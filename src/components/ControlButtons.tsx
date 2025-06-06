@@ -48,7 +48,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                             canNormalSummon(gameState, selectedCardInstance) && (
                                 <button
                                     onClick={() => {
-                                        console.log("Preparing summon for monster:", selectedCardInstance.card.card_name);
                                         playCard(selectedCard!);
                                     }}
                                     className="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
@@ -60,7 +59,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                             canActivateSpell(gameState, selectedCardInstance.card) && (
                                 <button
                                     onClick={() => {
-                                        console.log("Activating spell:", selectedCardInstance.card.card_name);
                                         playCard(selectedCard!);
                                     }}
                                     className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
@@ -72,7 +70,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                             canSetSpellTrap(gameState, selectedCardInstance.card) && (
                                 <button
                                     onClick={() => {
-                                        console.log("Setting card:", selectedCardInstance.card.card_name);
                                         setCard(selectedCard!);
                                     }}
                                     className="block w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded"
@@ -128,10 +125,10 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                                             );
                                             const minRitualLevel =
                                                 ritualMonsters.length > 0
-                                                    ? Math.min(...ritualMonsters.map((c) => (c.card as any).level || 0))
+                                                    ? Math.min(...ritualMonsters.map((c) => (c.card as { level?: number }).level || 0))
                                                     : 0;
                                             const totalNormalLevel = normalMonsters.reduce(
-                                                (sum, c) => sum + ((c.card as any).level || 0),
+                                                (sum, c) => sum + ((c.card as { level?: number }).level || 0),
                                                 0
                                             );
                                             return `Ritual: ${ritualMonsters.length} (Min Lv${minRitualLevel}) | Normal: ${totalNormalLevel}Lv total`;
@@ -192,12 +189,8 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
             </button>
             <button
                 onClick={() => {
-                    console.log("=== Manual State Check ===");
-                    const fullState = useGameStore.getState();
-                    console.log("Full store state:", fullState);
-                    console.log("extravaganceState from store:", fullState.extravaganceState);
-                    console.log("searchingEffect from store:", fullState.searchingEffect);
-                    console.log("========================");
+                    // Manual state check for debugging if needed
+                    useGameStore.getState();
                 }}
                 className="block w-32 bg-red-400 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-full shadow-lg"
             >

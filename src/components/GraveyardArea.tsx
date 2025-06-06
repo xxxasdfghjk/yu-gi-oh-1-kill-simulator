@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { CardInstance } from '@/types/card';
 import { Card } from './Card';
 import { CardDetail } from './CardDetail';
+import { CARD_SIZE } from '@/const/card';
 
 interface GraveyardAreaProps {
   cards: CardInstance[];
@@ -18,7 +19,7 @@ export const GraveyardArea: React.FC<GraveyardAreaProps> = ({ cards, title }) =>
         <h3 className="text-white mb-2 font-semibold">{title}</h3>
         <div 
           onClick={() => setShowCards(!showCards)}
-          className="w-20 h-28 bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer hover:bg-purple-800 transition-colors border-2 border-purple-700"
+          className={`${CARD_SIZE.MEDIUM} bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer hover:bg-purple-800 transition-colors border-2 border-purple-700`}
         >
           <div className="text-white text-center">
             <div className="text-2xl font-bold">{cards.length}</div>

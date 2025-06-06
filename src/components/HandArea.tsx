@@ -3,7 +3,13 @@ import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import { useGameStore } from "@/store/gameStore";
 import { isMonsterCard, isSpellCard, isTrapCard } from "@/utils/gameUtils";
-import { canNormalSummon, canActivateSpell, canSetSpellTrap, canActivateBanAlpha } from "@/utils/summonUtils";
+import {
+    canNormalSummon,
+    canActivateSpell,
+    canSetSpellTrap,
+    canActivateBanAlpha,
+    canActivateEruGanma,
+} from "@/utils/summonUtils";
 
 interface HandAreaProps {
     hand: CardInstance[];
@@ -13,6 +19,7 @@ interface HandAreaProps {
     playCard: (cardId: string) => void;
     setCard: (cardId: string) => void;
     activateBanAlpha: (card: CardInstance) => void;
+    activateEruGanma: (card: CardInstance) => void;
     onCardRightClick: (e: React.MouseEvent, card: CardInstance) => void;
     onCardHoverLeave: () => void;
 }
@@ -30,26 +37,27 @@ export const ActionListSelector = ({
     const actionList = actions.map((e) => {
         switch (e) {
             case "summon":
-                return "召喚";
+                return { key: "summon", label: "召喚" };
             case "activate":
-                return "発動";
+                return { key: "activate", label: "発動" };
             case "set":
-                return "セット";
+                return { key: "set", label: "セット" };
             case "effect":
-                return "効果発動";
+                return { key: "effect", label: "効果発動" };
             default:
-                return e;
+                return { key: e, label: e };
         }
     });
+
     return (
-        <div className="absolute bg-white shadow-lg rounded z-10 text-[12px] flex flex-col items-center text-center w-full justify-center h-full">
+        <div className="absolute bg-white shadow-lg rounded z-10 text-[12px]flex flex-col items-center text-center w-full justify-center h-full">
             {actionList.map((action) => (
                 <button
                     key={action}
                     onClick={() => onSelect(action)}
                     className="block w-full px-4 py-2 hover:bg-gray-200 text-center bg-opacity-10 flex-1"
                 >
-                    {action}
+                    {action.label}
                 </button>
             ))}
         </div>
@@ -60,10 +68,10 @@ export const HandArea: React.FC<HandAreaProps> = ({
     hand,
     selectedCard,
     lifePoints,
-    selectCard,
     playCard,
     setCard,
     activateBanAlpha,
+    activateEruGanma,
     onCardRightClick,
     onCardHoverLeave,
 }) => {
@@ -86,27 +94,33 @@ export const HandArea: React.FC<HandAreaProps> = ({
         if (card.card.card_name === "竜輝巧－バンα" && canActivateBanAlpha(gameState)) {
             actions.push("effect");
         }
+        if (card.card.card_name === "竜輝巧－エルγ" && canActivateEruGanma(gameState)) {
+            actions.push("effect");
+        }
 
         return actions;
     };
 
-    const handleBanAlphaClick = (card: CardInstance) => {
+    const handleEffect = (card: CardInstance) => {
         if (card.card.card_name === "竜輝巧－バンα") {
-            console.log("竜輝巧－バンα clicked from:", card.location);
-
             // 発動条件をチェック
             if (!canActivateBanAlpha(gameState)) {
-                console.log("Cannot activate 竜輝巧－バンα: conditions not met");
                 return;
             }
 
             activateBanAlpha(card);
+        } else if (card.card.card_name === "竜輝巧－エルγ") {
+            // 発動条件をチェック
+            if (!canActivateEruGanma(gameState)) {
+                return;
+            }
+            activateEruGanma(card);
         }
     };
 
     return (
         <div className="flex justify-center items-center gap-4">
-            <div className="flex gap-1">
+            <div className="flex gap-1 overflow-x-auto">
                 {hand.map((card) => (
                     <div
                         key={card.id}
@@ -129,25 +143,6 @@ export const HandArea: React.FC<HandAreaProps> = ({
                                     : "ring-2 ring-gray-400 opacity-60"
                                 : ""
                         }`}
-                        onClick={(e) => {
-                            // Shift+Clickでバンアルファの効果発動
-                            if (e.shiftKey && card.card.card_name === "竜輝巧－バンα") {
-                                handleBanAlphaClick(card);
-                                return;
-                            }
-
-                            const actions = getCardActions(card);
-                            if (actions.length === 1 && actions[0] === "summon") {
-                                // 召喚のみの場合は直接実行
-                                playCard(card.id);
-                            } else if (actions.length === 0) {
-                                // アクションがない場合は選択のみ
-                                selectCard(card.id);
-                            } else {
-                                // 複数アクションがある場合はホバーで表示済み
-                                selectCard(card.id);
-                            }
-                        }}
                     >
                         {hoveringCard?.id === card.id && actionList.length > 0 && (
                             <ActionListSelector
@@ -159,19 +154,16 @@ export const HandArea: React.FC<HandAreaProps> = ({
                                         setCard(card.id);
                                     } else if (action === "activate") {
                                         playCard(card.id);
+                                        playCard(card.id);
                                     } else if (action === "effect") {
-                                        handleBanAlphaClick(card);
+                                        handleEffect(card);
                                     }
+                                    setHoveringCard(null);
                                 }}
                                 card={card}
-                            ></ActionListSelector>
+                            />
                         )}
-                        <Card card={card} size="large" />
-                        {card.card.card_name === "竜輝巧－バンα" && (
-                            <div className="text-xs text-center text-blue-600 font-bold mt-1">
-                                Shift+Click: 効果発動
-                            </div>
-                        )}
+                        <Card card={card} size="medium" />
                     </div>
                 ))}
             </div>

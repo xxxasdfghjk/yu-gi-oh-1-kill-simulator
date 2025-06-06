@@ -1,6 +1,7 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
+import { CARD_SIZE } from "@/const/card";
 
 interface PlayerFieldProps {
     field: {
@@ -28,24 +29,22 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     deck,
     extraDeck,
     graveyard,
-    turn,
-    phase,
-    isOpponentTurn,
-    bonmawashiRestriction,
     handleFieldZoneClick,
     handleFieldCardClick,
     setShowCardDetail,
     setShowGraveyard,
     setShowExtraDeck,
 }) => {
+    const cardSizeClass = CARD_SIZE.MEDIUM;
+
     return (
         <div>
             {/* プレイヤーモンスターゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto mb-4">
+            <div className="grid grid-cols-7 gap-2 max-w-6xl mx-auto mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
                 <FieldZone
                     card={field.fieldZone}
-                    className="w-20 h-28"
+                    className={cardSizeClass}
                     onClick={() => {}}
                     onCardClick={handleFieldCardClick}
                     onCardRightClick={(card) => setShowCardDetail(card)}
@@ -57,7 +56,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     <FieldZone
                         key={`monster-${index}`}
                         card={card}
-                        className="w-20 h-28"
+                        className={cardSizeClass}
                         onClick={() => handleFieldZoneClick("monster", index)}
                         onCardClick={handleFieldCardClick}
                         onCardRightClick={(card) => setShowCardDetail(card)}
@@ -66,7 +65,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 {/* 墓地 */}
                 <div className="text-center">
                     <div
-                        className="w-20 h-28 bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors"
+                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors`}
                         onClick={() => setShowGraveyard(true)}
                     >
                         <div>
@@ -78,11 +77,11 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             </div>
 
             {/* 魔法・罠ゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto mb-8">
+            <div className="grid grid-cols-7 gap-2 max-w-6xl mx-auto mb-2">
                 {/* エクストラデッキ */}
                 <div className="text-center">
                     <div
-                        className="w-20 h-28 bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900"
+                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900`}
                         onClick={() => setShowExtraDeck(true)}
                     >
                         <div>
@@ -97,7 +96,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     <FieldZone
                         key={`spell-${index}`}
                         card={card}
-                        className="w-20 h-28"
+                        className={cardSizeClass}
                         onClick={() => handleFieldZoneClick("spell", index)}
                         onCardClick={handleFieldCardClick}
                         onCardRightClick={(card) => setShowCardDetail(card)}
@@ -106,7 +105,9 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* デッキ */}
                 <div className="text-center">
-                    <div className="w-20 h-28 bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900">
+                    <div
+                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900`}
+                    >
                         <div>
                             <div className="text-xs">DECK</div>
                             <div className="text-lg">{deck.length}</div>
@@ -114,12 +115,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     </div>
                 </div>
             </div>
-            <div className="text-xs text-gray-600 mt-1">Turn {turn}</div>
-            <div className="text-xs text-gray-600">
-                {isOpponentTurn ? "Opponent " : ""}
-                {phase}
-            </div>
-            {bonmawashiRestriction && <div className="text-xs text-red-600 font-bold">盆回し制限</div>}
         </div>
     );
 };

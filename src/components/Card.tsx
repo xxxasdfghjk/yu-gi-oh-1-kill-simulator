@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CardInstance } from '@/types/card';
 import { isMonsterCard, isSpellCard, isTrapCard } from '@/utils/gameUtils';
+import { CARD_SIZE } from '@/const/card';
 
 interface CardProps {
   card: CardInstance;
@@ -20,9 +21,9 @@ export const Card: React.FC<CardProps> = ({
   // カードが伏せ状態かどうかをチェック
   const isFaceDown = faceDown || card.position === 'facedown';
   const sizeClasses = {
-    small: 'w-16 h-24',
-    medium: 'w-20 h-28',
-    large: 'w-24 h-32',
+    small: CARD_SIZE.SMALL,
+    medium: CARD_SIZE.MEDIUM,
+    large: CARD_SIZE.LARGE,
   };
 
   const getCardColor = () => {
@@ -45,34 +46,68 @@ export const Card: React.FC<CardProps> = ({
     return 'bg-gray-500';
   };
 
+  // 画像パスを取得
+  const getImagePath = () => {
+    if (isFaceDown) {
+      return null; // 裏面はフォールバック表示を使用
+    }
+    if (card.card.image) {
+      // 拡張子を.pngに変更（処理済み画像を使用）
+      const imageName = card.card.image.replace(/\.(jpg|jpeg)$/i, '.png');
+      return `/card_image/${imageName}`;
+    }
+    return null;
+  };
+
+  const imagePath = getImagePath();
+
   return (
     <div
       className={`
         ${sizeClasses[size]} 
-        ${getCardColor()}
         ${selected ? 'ring-4 ring-yellow-400' : ''}
         rounded cursor-pointer hover:scale-105 transition-transform
-        flex flex-col items-center justify-center p-1
-        text-white shadow-md border border-gray-600
+        shadow-md border border-gray-600 overflow-hidden
+        ${!imagePath ? getCardColor() + ' flex flex-col items-center justify-center p-1 text-white' : 'bg-transparent'}
       `}
       onClick={onClick}
     >
-      {!isFaceDown && (
-        <>
-          <div className="text-xs font-bold text-center line-clamp-2">
-            {card.card.card_name}
-          </div>
-          {isMonsterCard(card.card) && 'attack' in card.card && (
-            <div className="text-xs mt-auto">
-              ATK: {card.card.attack}
-              {card.card.defense !== undefined && ` / DEF: ${card.card.defense}`}
+      {imagePath ? (
+        <img
+          src={imagePath}
+          alt={isFaceDown ? 'Card Back' : card.card.card_name}
+          className="w-full h-full object-contain"
+          style={{
+            filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
+            backgroundColor: 'transparent'
+          }}
+          onError={(e) => {
+            // 画像読み込みエラー時はフォールバック表示
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+          }}
+        />
+      ) : null}
+      
+      {/* フォールバック表示（画像がない場合や読み込みエラー時） */}
+      <div className={`${imagePath ? 'hidden' : ''} w-full h-full ${getCardColor()} flex flex-col items-center justify-center p-1 text-white`}>
+        {!isFaceDown && (
+          <>
+            <div className="text-xs font-bold text-center line-clamp-2">
+              {card.card.card_name}
             </div>
-          )}
-        </>
-      )}
-      {isFaceDown && (
-        <div className="text-xs text-gray-400">???</div>
-      )}
+            {isMonsterCard(card.card) && 'attack' in card.card && (
+              <div className="text-xs mt-auto">
+                ATK: {card.card.attack}
+                {card.card.defense !== undefined && ` / DEF: ${card.card.defense}`}
+              </div>
+            )}
+          </>
+        )}
+        {isFaceDown && (
+          <div className="text-xs text-gray-400">???</div>
+        )}
+      </div>
     </div>
   );
 };

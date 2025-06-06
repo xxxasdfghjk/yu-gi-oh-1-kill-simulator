@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CardInstance } from '@/types/card';
 import { Card } from './Card';
+import { CARD_SIZE } from '@/const/card';
 import { useGameStore } from '@/store/gameStore';
 
 interface FieldProps {
@@ -28,7 +29,7 @@ export const Field: React.FC<FieldProps> = ({ monsterZones, spellTrapZones, fiel
             {spellTrapZones.map((card, index) => (
               <div
                 key={`spell-${index}`}
-                className="w-20 h-28 border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400"
+                className={`${CARD_SIZE.MEDIUM} border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400`}
                 onClick={() => handleZoneClick('spell', index)}
               >
                 {card ? (
@@ -53,7 +54,7 @@ export const Field: React.FC<FieldProps> = ({ monsterZones, spellTrapZones, fiel
             {monsterZones.map((card, index) => (
               <div
                 key={`monster-${index}`}
-                className="w-20 h-28 border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400"
+                className={`${CARD_SIZE.MEDIUM} border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400`}
                 onClick={() => handleZoneClick('monster', index)}
               >
                 {card ? (
@@ -74,7 +75,7 @@ export const Field: React.FC<FieldProps> = ({ monsterZones, spellTrapZones, fiel
         {/* フィールドゾーン */}
         <div className="absolute top-4 right-4">
           <h4 className="text-white text-sm mb-2">フィールド</h4>
-          <div className="w-20 h-28 border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center">
+          <div className={`${CARD_SIZE.MEDIUM} border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center`}>
             {fieldZone ? (
               <Card
                 card={fieldZone}

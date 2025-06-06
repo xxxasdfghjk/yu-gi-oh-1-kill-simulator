@@ -9,7 +9,7 @@ interface FieldZoneProps {
     onCardRightClick?: (card: CardInstance) => void;
     label?: string;
     className?: string;
-    type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field";
+    type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone";
 }
 
 export const FieldZone: React.FC<FieldZoneProps> = ({
@@ -59,6 +59,10 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                 ) : type === "field" ? (
                     <div className="flex items-center justify-center text-blue-400 text-xs w-full h-full block">
                         Field
+                    </div>
+                ) : type === "extra_zone" ? (
+                    <div className="flex items-center justify-center text-blue-400 text-xs w-full h-full block">
+                        EX Zone
                     </div>
                 ) : (
                     <div className="text-blue-400 text-xs w-full h-full block">Empty</div>
