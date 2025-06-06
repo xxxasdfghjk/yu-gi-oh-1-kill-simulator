@@ -4,7 +4,6 @@ import { Card } from "./Card";
 import { useGameStore } from "@/store/gameStore";
 import { isMonsterCard, isSpellCard, isTrapCard } from "@/utils/gameUtils";
 import { canNormalSummon, canActivateSpell, canSetSpellTrap, canActivateBanAlpha } from "@/utils/summonUtils";
-import { getCardEffect } from "../utils/cardEffects";
 
 interface HandAreaProps {
     hand: CardInstance[];
@@ -15,15 +14,12 @@ interface HandAreaProps {
     setCard: (cardId: string) => void;
     activateBanAlpha: (card: CardInstance) => void;
     onCardRightClick: (e: React.MouseEvent, card: CardInstance) => void;
-    onCardHover: (event: React.MouseEvent, card: CardInstance) => void;
-    onCardHoverLeave: (event: React.MouseEvent) => void;
-    onSelectCardAction: (action: string, card: CardInstance) => void;
-    cardAction: { card: CardInstance; actions: string[] } | null;
+    onCardHoverLeave: () => void;
 }
 
 export type Action = "summon" | "activate" | "set" | "effect";
 
-const ActionListSelector = ({
+export const ActionListSelector = ({
     actions,
     onSelect,
 }: {
@@ -46,7 +42,7 @@ const ActionListSelector = ({
         }
     });
     return (
-        <div className="absolute bg-white shadow-lg rounded z-10 text-[12px]flex flex-col items-center text-center w-full justify-center h-full">
+        <div className="absolute bg-white shadow-lg rounded z-10 text-[12px] flex flex-col items-center text-center w-full justify-center h-full">
             {actionList.map((action) => (
                 <button
                     key={action}
@@ -69,9 +65,7 @@ export const HandArea: React.FC<HandAreaProps> = ({
     setCard,
     activateBanAlpha,
     onCardRightClick,
-    onCardHover,
     onCardHoverLeave,
-    onSelectCardAction,
 }) => {
     const gameState = useGameStore();
     const [actionList, setActionList] = useState<string[]>([]);
@@ -122,8 +116,8 @@ export const HandArea: React.FC<HandAreaProps> = ({
                             setActionList(cardActions);
                             setHoveringCard(card);
                         }}
-                        onMouseLeave={(e) => {
-                            onCardHoverLeave(e);
+                        onMouseLeave={() => {
+                            onCardHoverLeave();
                             setHoveringCard(null);
                         }}
                         className={`cursor-pointer transition-transform hover:-translate-y-2 ${
@@ -164,10 +158,7 @@ export const HandArea: React.FC<HandAreaProps> = ({
                                     } else if (action === "set") {
                                         setCard(card.id);
                                     } else if (action === "activate") {
-                                        const effect = getCardEffect(card);
-                                        if (effect) {
-                                            effect(gameState, card);
-                                        }
+                                        playCard(card.id);
                                     } else if (action === "effect") {
                                         handleBanAlphaClick(card);
                                     }

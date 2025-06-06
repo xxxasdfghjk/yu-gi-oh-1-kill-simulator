@@ -18,7 +18,6 @@ export const GameBoardNew: React.FC = () => {
     const {
         hand,
         field,
-        opponentField,
         deck,
         graveyard,
         extraDeck,
@@ -54,10 +53,8 @@ export const GameBoardNew: React.FC = () => {
         declineTrapActivation,
         selectHokyuyoinTargets,
         selectBonmawashiCards,
-        activateOpponentFieldSpell,
         bonmawashiRestriction,
         activateBanAlpha,
-        activateEruGanma,
         linkSummonState,
         xyzSummonState,
         startLinkSummon,
@@ -216,9 +213,6 @@ export const GameBoardNew: React.FC = () => {
                     extraMonsterZones={field.extraMonsterZones}
                     handleFieldZoneClick={handleFieldZoneClick}
                     handleFieldCardClick={handleFieldCardClick}
-                    opponentField={opponentField}
-                    activateOpponentFieldSpell={activateOpponentFieldSpell}
-                    setChickenRaceHover={setChickenRaceHover}
                     setShowCardDetail={setShowCardDetail}
                 />
 
@@ -248,7 +242,6 @@ export const GameBoardNew: React.FC = () => {
                     playCard={playCard}
                     setCard={setCard}
                     activateBanAlpha={activateBanAlpha}
-                    activateEruGanma={activateEruGanma}
                     onCardRightClick={handleCardRightClick}
                     onCardHoverLeave={handleCardHoverLeave}
                 />
@@ -405,6 +398,13 @@ export const GameBoardNew: React.FC = () => {
                         maxSelections={3}
                         onSelect={(selectedCards) => {
                             selectForJackInHand(selectedCards);
+                        }}
+                        onCancel={() => {
+                            useGameStore.setState((state) => ({
+                                ...state,
+                                searchingEffect: null,
+                                jackInHandState: null,
+                            }));
                         }}
                         filterFunction={(card, alreadySelected) => {
                             // 異なるカード名のモンスターのみ選択可能

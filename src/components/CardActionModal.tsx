@@ -5,6 +5,8 @@ interface CardActionModalProps {
     cardActionHover: {
         card: CardInstance;
         actions: string[];
+        x: number;
+        y: number;
     } | null;
     onActionClick: (action: string, card: CardInstance) => void;
     onClose: () => void;
