@@ -204,45 +204,48 @@ export const GameBoardNew: React.FC = () => {
                         <span className="text-5xl font-bold text-red-500">8000</span>
                     </div>
 
+                    {/* 対戦相手モンスターゾーンとフィールドゾーン（鏡写し） */}
+                    <div className="flex justify-center gap-2 mb-4">
+                        <div className="flex gap-2 items-center">
+                            {/* モンスターゾーン（鏡写し：4,3,2,1,0） */}
+                            {[4, 3, 2, 1, 0].map((index) => (
+                                <FieldZone key={`opp-monster-${index}`} card={opponentField.monsterZones[index]} />
+                            ))}
+                            
+                            {/* 相手のフィールド魔法（右側、点対称） */}
+                            <FieldZone 
+                                card={opponentField.fieldZone} 
+                                label="Field" 
+                                onCardClick={(card, event) => {
+                                    if (card.position === "facedown") {
+                                        // 相手のフィールド魔法を表側にする
+                                        activateOpponentFieldSpell();
+                                    } else if (card.card.card_name === "チキンレース") {
+                                        // チキンレースの効果を使用（相手フィールドからでも使用可能）
+                                        if (event) {
+                                            setChickenRaceHover({
+                                                card: card,
+                                                x: event.clientX,
+                                                y: event.clientY
+                                            });
+                                        }
+                                    } else {
+                                        // その他のフィールド魔法の効果（必要に応じて追加）
+                                        console.log("Opponent field spell clicked:", card.card.card_name);
+                                    }
+                                }}
+                                onCardRightClick={(card) => setShowCardDetail(card)}
+                            />
+                        </div>
+                    </div>
+
                     {/* 魔法・罠ゾーン（相手は上段、鏡写し） */}
                     <div className="flex justify-center gap-2 mb-4">
                         <div className="w-20" /> {/* スペーサー */}
                         {[4, 3, 2, 1, 0].map((index) => (
                             <FieldZone key={`opp-spell-${index}`} card={opponentField.spellTrapZones[index]} />
                         ))}
-                        <FieldZone 
-                            card={opponentField.fieldZone} 
-                            label="Field" 
-                            onCardClick={(card, event) => {
-                                if (card.position === "facedown") {
-                                    // 相手のフィールド魔法を表側にする
-                                    activateOpponentFieldSpell();
-                                } else if (card.card.card_name === "チキンレース") {
-                                    // チキンレースの効果を使用（相手フィールドからでも使用可能）
-                                    if (event) {
-                                        setChickenRaceHover({
-                                            card: card,
-                                            x: event.clientX,
-                                            y: event.clientY
-                                        });
-                                    }
-                                } else {
-                                    // その他のフィールド魔法の効果（必要に応じて追加）
-                                    console.log("Opponent field spell clicked:", card.card.card_name);
-                                }
-                            }}
-                            onCardRightClick={(card) => setShowCardDetail(card)}
-                        />
-                    </div>
-
-                    {/* 対戦相手モンスターゾーン（鏡写し） */}
-                    <div className="flex justify-center gap-2 mb-4">
-                        <div className="flex gap-2">
-                            {/* モンスターゾーン（鏡写し：4,3,2,1,0） */}
-                            {[4, 3, 2, 1, 0].map((index) => (
-                                <FieldZone key={`opp-monster-${index}`} card={opponentField.monsterZones[index]} />
-                            ))}
-                        </div>
+                        <div className="w-20" /> {/* スペーサー（フィールド魔法分） */}
                     </div>
                 </div>
 
@@ -285,9 +288,18 @@ export const GameBoardNew: React.FC = () => {
 
                 {/* プレイヤーエリア */}
                 <div>
-                    {/* モンスターゾーン */}
+                    {/* モンスターゾーンとフィールドゾーン */}
                     <div className="flex justify-center gap-2 mb-4">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
+                            {/* プレイヤーのフィールド魔法（左側） */}
+                            <FieldZone
+                                card={field.fieldZone}
+                                label="Field"
+                                onClick={() => {}}
+                                onCardClick={handleFieldCardClick}
+                                onCardRightClick={(card) => setShowCardDetail(card)}
+                            />
+                            
                             {/* 通常モンスターゾーン */}
                             {field.monsterZones.map((card, index) => (
                                 <FieldZone
@@ -303,13 +315,7 @@ export const GameBoardNew: React.FC = () => {
 
                     {/* 魔法・罠ゾーンとゲーム要素（下段） */}
                     <div className="flex justify-center gap-2 mb-8">
-                        <FieldZone
-                            card={field.fieldZone}
-                            label="Field"
-                            onClick={() => {}}
-                            onCardClick={handleFieldCardClick}
-                            onCardRightClick={(card) => setShowCardDetail(card)}
-                        />
+                        <div className="w-20" /> {/* スペーサー（フィールド魔法分） */}
                         {field.spellTrapZones.map((card, index) => (
                             <FieldZone
                                 key={`spell-${index}`}
