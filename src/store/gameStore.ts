@@ -111,7 +111,6 @@ const initialState: GameState = {
         monsterZones: Array(5).fill(null),
         spellTrapZones: Array(5).fill(null),
         fieldZone: null,
-        extraMonsterZones: [null, null],
     },
     graveyard: [],
     banished: [],
@@ -181,7 +180,6 @@ export const useGameStore = create<GameStore>()(
                     monsterZones: Array(5).fill(null),
                     spellTrapZones: Array(5).fill(null),
                     fieldZone: null,
-                    extraMonsterZones: [null, null],
                 };
                 state.turn = 1;
                 state.phase = "main1";

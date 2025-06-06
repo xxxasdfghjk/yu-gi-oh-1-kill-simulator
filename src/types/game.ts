@@ -24,7 +24,6 @@ export interface GameState {
     monsterZones: (CardInstance | null)[];
     spellTrapZones: (CardInstance | null)[];
     fieldZone: CardInstance | null;
-    extraMonsterZones: (CardInstance | null)[];
   };
   graveyard: CardInstance[];
   banished: CardInstance[];

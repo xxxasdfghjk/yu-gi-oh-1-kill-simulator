@@ -204,46 +204,12 @@ export const GameBoardNew: React.FC = () => {
                         <span className="text-5xl font-bold text-red-500">8000</span>
                     </div>
 
-                    {/* 対戦相手エクストラモンスターゾーン（下段） */}
-                    <div className="flex justify-center gap-2 mb-2">
-                        <div className="flex gap-2">
-                            {/* 空のスペース（ゾーン0の下） */}
-                            <div className="w-20 h-28"></div>
-                            
-                            {/* エクストラモンスターゾーン（左：ゾーン1の下） */}
-                            <FieldZone 
-                                card={opponentField.extraMonsterZones[0]} 
-                                label="EX" 
-                                className="border-4 border-red-400"
-                            />
-
-                            {/* 空のスペース（ゾーン2の下） */}
-                            <div className="w-20 h-28"></div>
-
-                            {/* エクストラモンスターゾーン（右：ゾーン3の下） */}
-                            <FieldZone 
-                                card={opponentField.extraMonsterZones[1]} 
-                                label="EX" 
-                                className="border-4 border-red-400"
-                            />
-
-                            {/* 空のスペース（ゾーン4の下） */}
-                            <div className="w-20 h-28"></div>
-                        </div>
-                    </div>
-
-                    {/* 対戦相手モンスターゾーン（中段） */}
+                    {/* 魔法・罠ゾーン（相手は上段、鏡写し） */}
                     <div className="flex justify-center gap-2 mb-4">
-                        <div className="flex gap-2">
-                            {/* モンスターゾーン */}
-                            {opponentField.monsterZones.map((card, index) => (
-                                <FieldZone key={`opp-monster-${index}`} card={card} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 魔法・罠ゾーン */}
-                    <div className="flex justify-center gap-2">
+                        <div className="w-20" /> {/* スペーサー */}
+                        {[4, 3, 2, 1, 0].map((index) => (
+                            <FieldZone key={`opp-spell-${index}`} card={opponentField.spellTrapZones[index]} />
+                        ))}
                         <FieldZone 
                             card={opponentField.fieldZone} 
                             label="Field" 
@@ -267,64 +233,23 @@ export const GameBoardNew: React.FC = () => {
                             }}
                             onCardRightClick={(card) => setShowCardDetail(card)}
                         />
-                        {[0, 1, 2, 3, 4].map((index) => (
-                            <FieldZone key={`opp-spell-${index}`} card={null} />
-                        ))}
-                        <div className="w-20" /> {/* スペーサー */}
-                    </div>
-                </div>
-
-                {/* 中央エリア - デッキ、エクストラデッキ、墓地 */}
-                <div className="flex justify-between items-center mb-8 px-24">
-                    <div className="text-center">
-                        <div className="w-20 h-28 bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900">
-                            <div>
-                                <div>DECK</div>
-                                <div className="text-2xl">{deck.length}</div>
-                            </div>
-                        </div>
                     </div>
 
-                    <div className="text-center">
-                        <div 
-                            className="w-20 h-28 bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900"
-                            onClick={() => setShowExtraDeck(true)}
-                        >
-                            <div>
-                                <div className="text-xs">EXTRA</div>
-                                <div className="text-2xl">{extraDeck.length}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="text-center">
-                        <div className="text-xs text-gray-600 mb-1">
-                            Turn {turn} - {isOpponentTurn ? "Opponent " : ""}{phase}
-                        </div>
-                        {bonmawashiRestriction && (
-                            <div className="text-xs text-red-600 font-bold">
-                                盆回し制限中
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="text-center">
-                        <div 
-                            className="w-20 h-28 bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors"
-                            onClick={() => setShowGraveyard(true)}
-                        >
-                            <div>
-                                <div>GY</div>
-                                <div className="text-2xl">{graveyard.length}</div>
-                            </div>
+                    {/* 対戦相手モンスターゾーン（鏡写し） */}
+                    <div className="flex justify-center gap-2 mb-4">
+                        <div className="flex gap-2">
+                            {/* モンスターゾーン（鏡写し：4,3,2,1,0） */}
+                            {[4, 3, 2, 1, 0].map((index) => (
+                                <FieldZone key={`opp-monster-${index}`} card={opponentField.monsterZones[index]} />
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                {/* プレイヤーエリア */}
-                <div>
-                    {/* エクストラモンスターゾーン（上段） */}
-                    <div className="flex justify-center gap-2 mb-2">
+                {/* 中央エリア - エクストラモンスターゾーン、デッキ、エクストラデッキ、墓地 */}
+                <div className="mb-8">
+                    {/* 共有エクストラモンスターゾーン */}
+                    <div className="flex justify-center gap-2 mb-4">
                         <div className="flex gap-2">
                             {/* 空のスペース（ゾーン0の上） */}
                             <div className="w-20 h-28"></div>
@@ -357,7 +282,57 @@ export const GameBoardNew: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* モンスターゾーン（中段） */}
+                    {/* デッキ、エクストラデッキ、墓地エリア */}
+                    <div className="flex justify-between items-center px-24">
+                        <div className="text-center">
+                            <div className="w-20 h-28 bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900">
+                                <div>
+                                    <div>DECK</div>
+                                    <div className="text-2xl">{deck.length}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-center">
+                            <div 
+                                className="w-20 h-28 bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900"
+                                onClick={() => setShowExtraDeck(true)}
+                            >
+                                <div>
+                                    <div className="text-xs">EXTRA</div>
+                                    <div className="text-2xl">{extraDeck.length}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-center">
+                            <div className="text-xs text-gray-600 mb-1">
+                                Turn {turn} - {isOpponentTurn ? "Opponent " : ""}{phase}
+                            </div>
+                            {bonmawashiRestriction && (
+                                <div className="text-xs text-red-600 font-bold">
+                                    盆回し制限中
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="text-center">
+                            <div 
+                                className="w-20 h-28 bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors"
+                                onClick={() => setShowGraveyard(true)}
+                            >
+                                <div>
+                                    <div>GY</div>
+                                    <div className="text-2xl">{graveyard.length}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* プレイヤーエリア */}
+                <div>
+                    {/* モンスターゾーン */}
                     <div className="flex justify-center gap-2 mb-4">
                         <div className="flex gap-2">
                             {/* 通常モンスターゾーン */}
@@ -1252,7 +1227,7 @@ export const GameBoardNew: React.FC = () => {
                                 素材: {linkSummonState.selectedMaterials.map(m => m.card.card_name).join(", ")}
                             </p>
                         </div>
-                        <p className="text-center mb-6">エクストラモンスターゾーン（モンスターゾーンの上にある赤枠）をクリックしてリンク召喚してください</p>
+                        <p className="text-center mb-6">エクストラモンスターゾーン（中央の赤枠、相手と共有）をクリックしてリンク召喚してください</p>
                         <div className="flex justify-center">
                             <button
                                 onClick={() => {
