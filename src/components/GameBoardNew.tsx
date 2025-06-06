@@ -2,23 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useGameStore } from "@/store/gameStore";
 import { Card } from "./Card";
 import { CardDetail } from "./CardDetail";
-import { FieldZone } from "./FieldZone";
 import { CardSelector } from "./CardSelector";
 import { MultiCardSelector } from "./MultiCardSelector";
 import { AdvancedRitualSelector } from "./AdvancedRitualSelector";
+import { HandArea } from "./HandArea";
+import { OpponentField } from "./OpponentField";
+import { PlayerField } from "./PlayerField";
+import { ExtraMonsterZones } from "./ExtraMonsterZones";
+import { CardActionModal } from "./CardActionModal";
+import { ControlButtons } from "./ControlButtons";
 import { isMonsterCard, isSpellCard, isTrapCard } from "@/utils/gameUtils";
-import {
-    canNormalSummon,
-    canActivateSpell,
-    canSetSpellTrap,
-    canActivateJackInHand,
-    canActivateFoolishBurial,
-    canActivateExtravagance,
-    canActivateOneForOne,
-    canActivateAdvancedRitual,
-    canActivateFafnir,
-    canActivateBanAlpha,
-} from "@/utils/summonUtils";
+import { canNormalSummon, canActivateSpell, canSetSpellTrap, canActivateBanAlpha } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 
 export const GameBoardNew: React.FC = () => {
@@ -74,6 +68,10 @@ export const GameBoardNew: React.FC = () => {
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
     const [chickenRaceHover, setChickenRaceHover] = useState<{ card: CardInstance; x: number; y: number } | null>(null);
+    const [cardAction, setCardAction] = useState<{
+        card: CardInstance;
+        actions: string[];
+    } | null>(null);
     const gameState = useGameStore();
 
     // 相手ターン中で補充要員の確認がない場合、3秒後に自動でターンエンド
@@ -92,9 +90,9 @@ export const GameBoardNew: React.FC = () => {
 
     useEffect(() => {
         initializeGame();
-    }, []); // 空の依存配列：コンポーネントマウント時のみ実行
+    }, [initializeGame]); // initializeGameを依存配列に追加
 
-    const selectedCardInstance = hand.find((c) => c.id === selectedCard);
+    const selectedCardInstance = hand.find((c) => c.id === selectedCard) || null;
 
     const handleCardRightClick = (e: React.MouseEvent, card: CardInstance) => {
         e.preventDefault();
@@ -112,6 +110,63 @@ export const GameBoardNew: React.FC = () => {
             }
 
             activateBanAlpha(card);
+        }
+    };
+
+    const getCardActions = (card: CardInstance): string[] => {
+        const actions: string[] = [];
+
+        if (isMonsterCard(card.card) && canNormalSummon(gameState, card)) {
+            actions.push("summon");
+        }
+        if (isSpellCard(card.card) && canActivateSpell(gameState, card.card)) {
+            actions.push("activate");
+        }
+        if ((isSpellCard(card.card) || isTrapCard(card.card)) && canSetSpellTrap(gameState, card.card)) {
+            actions.push("set");
+        }
+        if (card.card.card_name === "竜輝巧－バンα" && canActivateBanAlpha(gameState)) {
+            actions.push("effect");
+        }
+
+        return actions;
+    };
+
+    const handleCardHover = (_: React.MouseEvent, card: CardInstance) => {
+        const actions = getCardActions(card);
+        if (actions.length >= 1) {
+            setCardAction({
+                card: card,
+                actions: actions,
+            });
+        }
+    };
+    const handleCardHoverLeave = (_: React.MouseEvent) => {
+        // マウスがモーダルの方向に移動している場合は非表示にしない
+        setCardAction(null);
+    };
+
+    const handleCardAction = (action: string, card: CardInstance) => {
+        setCardAction(null);
+
+        switch (action) {
+            case "summon":
+                console.log("Preparing summon for monster:", card.card.card_name);
+                playCard(card.id);
+                break;
+            case "activate":
+                console.log("Activating card:", card.card.card_name);
+                playCard(card.id);
+                break;
+            case "set":
+                console.log("Setting card:", card.card.card_name);
+                setCard(card.id);
+                break;
+            case "effect":
+                if (card.card.card_name === "竜輝巧－バンα") {
+                    handleBanAlphaClick(card);
+                }
+                break;
         }
     };
 
@@ -198,431 +253,72 @@ export const GameBoardNew: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
             <div className="container mx-auto px-4 py-8">
                 {/* 対戦相手エリア */}
-                <div className="mb-8">
-                    {/* ライフポイント */}
-                    <div className="text-center mb-4">
-                        <span className="text-5xl font-bold text-red-500">8000</span>
-                    </div>
-
-                    {/* 対戦相手のフィールド（Grid配置） */}
-                    <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto mb-4">
-                        <FieldZone type={"deck"} card={null} className="w-20 h-28"></FieldZone>
-
-                        {/* 魔法・罠ゾーン（相手は上段、鏡写し） */}
-                        {[4, 3, 2, 1, 0].map((index) => (
-                            <FieldZone
-                                key={`opp-spell-${index}`}
-                                card={opponentField.spellTrapZones[index]}
-                                className="w-20 h-28"
-                            />
-                        ))}
-                        <FieldZone type={"extra_deck"} card={null} className="w-20 h-28"></FieldZone>
-                    </div>
-
-                    {/* 対戦相手モンスターゾーン（Grid配置） */}
-                    <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto">
-                        <FieldZone card={null} className="w-20 h-28" type={"graveyard"} />
-                        {/* モンスターゾーン（鏡写し：4,3,2,1,0） */}
-                        {[4, 3, 2, 1, 0].map((index) => (
-                            <FieldZone
-                                key={`opp-monster-${index}`}
-                                card={opponentField.monsterZones[index]}
-                                className="w-20 h-28"
-                            />
-                        ))}
-                        {/* 空のスペース（フィールド魔法の下） */}
-                        {/* 相手のフィールド魔法（右側） */}
-                        <FieldZone
-                            type="field"
-                            card={opponentField.fieldZone}
-                            className="w-20 h-28"
-                            onCardClick={(card, event) => {
-                                if (card.position === "facedown") {
-                                    activateOpponentFieldSpell();
-                                } else if (card.card.card_name === "チキンレース") {
-                                    if (event) {
-                                        setChickenRaceHover({
-                                            card: card,
-                                            x: event.clientX,
-                                            y: event.clientY,
-                                        });
-                                    }
-                                } else {
-                                    console.log("Opponent field spell clicked:", card.card.card_name);
-                                }
-                            }}
-                            onCardRightClick={(card) => setShowCardDetail(card)}
-                        />
-                    </div>
-                </div>
+                <OpponentField
+                    opponentField={opponentField}
+                    activateOpponentFieldSpell={activateOpponentFieldSpell}
+                    setChickenRaceHover={setChickenRaceHover}
+                    setShowCardDetail={setShowCardDetail}
+                />
 
                 {/* エクストラモンスターゾーン（相手と自分の間） */}
-                <div className="my-6">
-                    <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto">
-                        {/* 左のエクストラモンスターゾーン */}
-                        <div className="w-20 h-28"></div>
-                        <div className="w-20 h-28"></div>
-                        <FieldZone
-                            card={field.extraMonsterZones[0]}
-                            label="EX"
-                            className="w-20 h-28 border-4 border-red-400"
-                            onClick={() => handleFieldZoneClick("monster", 5)}
-                            onCardClick={handleFieldCardClick}
-                            onCardRightClick={(card) => setShowCardDetail(card)}
-                        />
-                        <div className="w-20 h-28"></div>
-                        {/* 右のエクストラモンスターゾーン */}
-                        <FieldZone
-                            card={field.extraMonsterZones[1]}
-                            label="EX"
-                            className="w-20 h-28 border-4 border-red-400"
-                            onClick={() => handleFieldZoneClick("monster", 6)}
-                            onCardClick={handleFieldCardClick}
-                            onCardRightClick={(card) => setShowCardDetail(card)}
-                        />
-                        <div className="w-20 h-28"></div>
-                        <div className="w-20 h-28"></div>
-                    </div>
-                </div>
+                <ExtraMonsterZones
+                    extraMonsterZones={field.extraMonsterZones}
+                    handleFieldZoneClick={handleFieldZoneClick}
+                    handleFieldCardClick={handleFieldCardClick}
+                    setShowCardDetail={setShowCardDetail}
+                />
 
                 {/* プレイヤーエリア */}
-                <div>
-                    {/* プレイヤーモンスターゾーン（Grid配置） */}
-                    <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto mb-4">
-                        {/* プレイヤーのフィールド魔法（左側） */}
-                        <FieldZone
-                            card={field.fieldZone}
-                            className="w-20 h-28"
-                            onClick={() => {}}
-                            onCardClick={handleFieldCardClick}
-                            onCardRightClick={(card) => setShowCardDetail(card)}
-                            type="field"
-                        />
+                <PlayerField
+                    field={field}
+                    deck={deck}
+                    extraDeck={extraDeck}
+                    graveyard={graveyard}
+                    turn={turn}
+                    phase={phase}
+                    isOpponentTurn={isOpponentTurn}
+                    bonmawashiRestriction={bonmawashiRestriction}
+                    handleFieldZoneClick={handleFieldZoneClick}
+                    handleFieldCardClick={handleFieldCardClick}
+                    setShowCardDetail={setShowCardDetail}
+                    setShowGraveyard={setShowGraveyard}
+                    setShowExtraDeck={setShowExtraDeck}
+                />
 
-                        {/* 通常モンスターゾーン */}
-                        {field.monsterZones.map((card, index) => (
-                            <FieldZone
-                                key={`monster-${index}`}
-                                card={card}
-                                className="w-20 h-28"
-                                onClick={() => handleFieldZoneClick("monster", index)}
-                                onCardClick={handleFieldCardClick}
-                                onCardRightClick={(card) => setShowCardDetail(card)}
-                            />
-                        ))}
-                        {/* 墓地 */}
-                        {/* 墓地 */}
-                        <div className="text-center">
-                            <div
-                                className="w-20 h-28 bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors"
-                                onClick={() => setShowGraveyard(true)}
-                            >
-                                <div>
-                                    <div className="text-xs">GY</div>
-                                    <div className="text-lg">{graveyard.length}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {/* 手札エリア */}
+                <HandArea
+                    hand={hand}
+                    selectedCard={selectedCard}
+                    lifePoints={lifePoints}
+                    selectCard={selectCard}
+                    playCard={playCard}
+                    setCard={setCard}
+                    activateBanAlpha={activateBanAlpha}
+                    onCardRightClick={handleCardRightClick}
+                    onCardHover={handleCardHover}
+                    onCardHoverLeave={handleCardHoverLeave}
+                    onSelectCardAction={handleCardAction}
+                    cardAction={cardAction}
+                />
+            </div>
 
-                    {/* 魔法・罠ゾーン（Grid配置） */}
-                    <div className="grid grid-cols-7 gap-2 max-w-4xl mx-auto mb-8">
-                        {/* 空のスペース（フィールド魔法分） */}
-                        <div className="text-center">
-                            <div
-                                className="w-20 h-28 bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900"
-                                onClick={() => setShowExtraDeck(true)}
-                            >
-                                <div>
-                                    <div className="text-xs">EX</div>
-                                    <div className="text-lg">{extraDeck.length}</div>
-                                </div>
-                            </div>
-                        </div>
+            {/* コントロールボタン */}
+            <ControlButtons
+                selectedCardInstance={selectedCardInstance}
+                selectedCard={selectedCard}
+                isOpponentTurn={isOpponentTurn}
+                nextPhase={nextPhase}
+                playCard={playCard}
+                setCard={setCard}
+                initializeGame={initializeGame}
+            />
 
-                        {/* 魔法・罠ゾーン */}
-                        {field.spellTrapZones.map((card, index) => (
-                            <FieldZone
-                                key={`spell-${index}`}
-                                card={card}
-                                className="w-20 h-28"
-                                onClick={() => handleFieldZoneClick("spell", index)}
-                                onCardClick={handleFieldCardClick}
-                                onCardRightClick={(card) => setShowCardDetail(card)}
-                            />
-                        ))}
-
-                        {/* デッキ、エクストラデッキ、墓地エリア */}
-                        {/* デッキ */}
-                        <div className="text-center">
-                            <div className="w-20 h-28 bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900">
-                                <div>
-                                    <div className="text-xs">DECK</div>
-                                    <div className="text-lg">{deck.length}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">Turn {turn}</div>
-                    <div className="text-xs text-gray-600">
-                        {isOpponentTurn ? "Opponent " : ""}
-                        {phase}
-                    </div>
-                    {bonmawashiRestriction && <div className="text-xs text-red-600 font-bold">盆回し制限</div>}
-                    {/* 手札エリア */}
-                    <div className="flex justify-center items-center gap-4">
-                        <div className="flex gap-1">
-                            {hand.map((card) => (
-                                <div
-                                    key={card.id}
-                                    onContextMenu={(e) => handleCardRightClick(e, card)}
-                                    className={`cursor-pointer transition-transform hover:-translate-y-2 ${
-                                        selectedCard === card.id ? "ring-4 ring-yellow-400 -translate-y-4" : ""
-                                    } ${
-                                        card.card.card_name === "竜輝巧－バンα"
-                                            ? canActivateBanAlpha(gameState)
-                                                ? "ring-2 ring-blue-300"
-                                                : "ring-2 ring-gray-400 opacity-60"
-                                            : ""
-                                    }`}
-                                    onClick={(e) => {
-                                        if (e.shiftKey && card.card.card_name === "竜輝巧－バンα") {
-                                            handleBanAlphaClick(card);
-                                        } else {
-                                            selectCard(card.id);
-                                        }
-                                    }}
-                                >
-                                    <Card card={card} size="medium" />
-                                    {card.card.card_name === "竜輝巧－バンα" && (
-                                        <div className="text-xs text-center text-blue-600 font-bold mt-1">
-                                            Shift+Click: 効果発動
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* ライフポイント */}
-                        <div className="text-center ml-8">
-                            <span className="text-5xl font-bold text-blue-600">{lifePoints}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* コントロールボタン */}
-                <div className="fixed right-8 top-1/2 -translate-y-1/2 space-y-4">
-                    {/* アクションボタン */}
-                    {selectedCardInstance && (
-                        <div className="mb-6 p-4 bg-white/90 rounded-lg shadow-lg">
-                            <p className="text-gray-800 text-sm mb-2 font-semibold">
-                                選択中: {selectedCardInstance.card.card_name}
-                            </p>
-                            <div className="space-y-2">
-                                {isMonsterCard(selectedCardInstance.card) &&
-                                    canNormalSummon(gameState, selectedCardInstance) && (
-                                        <button
-                                            onClick={() => {
-                                                console.log(
-                                                    "Preparing summon for monster:",
-                                                    selectedCardInstance.card.card_name
-                                                );
-                                                playCard(selectedCard!);
-                                            }}
-                                            className="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-                                        >
-                                            召喚準備
-                                        </button>
-                                    )}
-                                {isSpellCard(selectedCardInstance.card) &&
-                                    canActivateSpell(gameState, selectedCardInstance.card) && (
-                                        <button
-                                            onClick={() => {
-                                                console.log("Activating spell:", selectedCardInstance.card.card_name);
-                                                console.log("Card type:", selectedCardInstance.card.card_type);
-                                                console.log("Is spell card:", isSpellCard(selectedCardInstance.card));
-                                                console.log(
-                                                    "Can activate:",
-                                                    canActivateSpell(gameState, selectedCardInstance.card)
-                                                );
-                                                console.log("Before playCard - searchingEffect:", searchingEffect);
-                                                console.log("Before playCard - extravaganceState:", extravaganceState);
-                                                if (
-                                                    selectedCardInstance.card.card_name === "ジャック・イン・ザ・ハンド"
-                                                ) {
-                                                    console.log(
-                                                        "Can activate ジャック・イン・ザ・ハンド:",
-                                                        canActivateJackInHand(gameState)
-                                                    );
-                                                }
-                                                playCard(selectedCard!);
-                                            }}
-                                            className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-                                        >
-                                            発動
-                                        </button>
-                                    )}
-                                {(isSpellCard(selectedCardInstance.card) || isTrapCard(selectedCardInstance.card)) &&
-                                    canSetSpellTrap(gameState, selectedCardInstance.card) && (
-                                        <button
-                                            onClick={() => {
-                                                console.log("Setting card:", selectedCardInstance.card.card_name);
-                                                console.log("Card type:", selectedCardInstance.card.card_type);
-                                                console.log(
-                                                    "Can set:",
-                                                    canSetSpellTrap(gameState, selectedCardInstance.card)
-                                                );
-                                                setCard(selectedCard!);
-                                            }}
-                                            className="block w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded"
-                                        >
-                                            セット
-                                        </button>
-                                    )}
-                                {/* デバッグ情報 */}
-                                <div className="text-xs text-gray-700">
-                                    <div>Type: {selectedCardInstance.card.card_type}</div>
-                                    <div>Is Monster: {isMonsterCard(selectedCardInstance.card) ? "Yes" : "No"}</div>
-                                    <div>Is Spell: {isSpellCard(selectedCardInstance.card) ? "Yes" : "No"}</div>
-                                    <div>Is Trap: {isTrapCard(selectedCardInstance.card) ? "Yes" : "No"}</div>
-                                    <div>Phase: {gameState.phase}</div>
-                                    {selectedCardInstance.card.card_name === "ジャック・イン・ザ・ハンド" && (
-                                        <div className="text-red-600 font-bold">
-                                            Jack:{" "}
-                                            {canActivateJackInHand(gameState) ? "Can Activate" : "Cannot Activate"}
-                                        </div>
-                                    )}
-                                    {selectedCardInstance.card.card_name === "おろかな埋葬" && (
-                                        <div className="text-red-600 font-bold">
-                                            Foolish:{" "}
-                                            {canActivateFoolishBurial(gameState) ? "Can Activate" : "Cannot Activate"}
-                                        </div>
-                                    )}
-                                    {selectedCardInstance.card.card_name === "金満で謙虚な壺" && (
-                                        <div className="text-red-600 font-bold">
-                                            Extravagance:{" "}
-                                            {canActivateExtravagance(gameState) ? "Can Activate" : "Cannot Activate"}
-                                            <div className="text-xs">
-                                                EX Deck: {gameState.extraDeck.length} | Drawn by Effect:{" "}
-                                                {gameState.hasDrawnByEffect ? "Yes" : "No"} | Extravagance Used:{" "}
-                                                {gameState.hasActivatedExtravagance ? "Yes" : "No"}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {selectedCardInstance.card.card_name === "ワン・フォー・ワン" && (
-                                        <div className="text-red-600 font-bold">
-                                            OneForOne:{" "}
-                                            {canActivateOneForOne(gameState) ? "Can Activate" : "Cannot Activate"}
-                                        </div>
-                                    )}
-                                    {selectedCardInstance.card.card_name === "高等儀式術" && (
-                                        <div className="text-red-600 font-bold">
-                                            AdvancedRitual:{" "}
-                                            {canActivateAdvancedRitual(gameState) ? "Can Activate" : "Cannot Activate"}
-                                            <div className="text-xs">
-                                                {(() => {
-                                                    const ritualMonsters = gameState.hand.filter(
-                                                        (c) =>
-                                                            isMonsterCard(c.card) &&
-                                                            c.card.card_type === "儀式・効果モンスター"
-                                                    );
-                                                    const normalMonsters = gameState.deck.filter(
-                                                        (c) =>
-                                                            isMonsterCard(c.card) &&
-                                                            c.card.card_type === "通常モンスター"
-                                                    );
-                                                    const minRitualLevel =
-                                                        ritualMonsters.length > 0
-                                                            ? Math.min(
-                                                                  ...ritualMonsters.map(
-                                                                      (c) => (c.card as any).level || 0
-                                                                  )
-                                                              )
-                                                            : 0;
-                                                    const totalNormalLevel = normalMonsters.reduce(
-                                                        (sum, c) => sum + ((c.card as any).level || 0),
-                                                        0
-                                                    );
-                                                    return `Ritual: ${ritualMonsters.length} (Min Lv${minRitualLevel}) | Normal: ${totalNormalLevel}Lv total`;
-                                                })()}
-                                            </div>
-                                            <div className="text-xs">
-                                                SearchingEffect: {gameState.searchingEffect?.effectType || "null"}
-                                            </div>
-                                            <div className="text-xs">
-                                                AdvancedRitualState: {gameState.advancedRitualState?.phase || "null"}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {selectedCardInstance.card.card_name === "竜輝巧－ファフニール" && (
-                                        <div className="text-red-600 font-bold">
-                                            Fafnir: {canActivateFafnir(gameState) ? "Can Activate" : "Cannot Activate"}
-                                            <div className="text-xs">
-                                                {(() => {
-                                                    const drytronSpellTraps = gameState.deck.filter((c) => {
-                                                        const isSpellOrTrap =
-                                                            c.card.card_type.includes("魔法") ||
-                                                            c.card.card_type.includes("罠");
-                                                        const isDrytron =
-                                                            c.card.card_name.includes("竜輝巧") ||
-                                                            c.card.card_name.includes("ドライトロン");
-                                                        const isNotFafnir = c.card.card_name !== "竜輝巧－ファフニール";
-                                                        return isSpellOrTrap && isDrytron && isNotFafnir;
-                                                    });
-                                                    return `Drytron Spell/Trap: ${drytronSpellTraps.length} available`;
-                                                })()}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <button
-                        onClick={nextPhase}
-                        disabled={isOpponentTurn}
-                        className={`block w-32 font-bold py-3 px-6 rounded-full shadow-lg ${
-                            isOpponentTurn
-                                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                                : "bg-cyan-400 hover:bg-cyan-500 text-white"
-                        }`}
-                    >
-                        {isOpponentTurn ? "OPPONENT TURN..." : "TURN END"}
-                    </button>
-                    <button className="block w-32 bg-cyan-400 hover:bg-cyan-500 text-white font-bold py-3 px-6 rounded-full shadow-lg">
-                        GAME END
-                    </button>
-                    <button
-                        onClick={initializeGame}
-                        className="block w-32 bg-cyan-400 hover:bg-cyan-500 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-                    >
-                        RESET
-                    </button>
-                    <button
-                        onClick={() => {
-                            console.log("=== Manual State Check ===");
-                            const fullState = useGameStore.getState();
-                            console.log("Full store state:", fullState);
-                            console.log("extravaganceState from store:", fullState.extravaganceState);
-                            console.log("searchingEffect from store:", fullState.searchingEffect);
-                            console.log("========================");
-                        }}
-                        className="block w-32 bg-red-400 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-                    >
-                        CHECK STATE
-                    </button>
-                </div>
-
-                {/* リンク */}
-                <div className="fixed bottom-4 right-8 space-y-2">
-                    <button className="block bg-sky-400 hover:bg-sky-500 text-white px-4 py-2 rounded">
-                        HOW TO PLAY
-                    </button>
-                    <button className="block bg-green-400 hover:bg-green-500 text-white px-4 py-2 rounded">
-                        不具合を報告
-                    </button>
-                </div>
+            {/* リンク */}
+            <div className="fixed bottom-4 right-8 space-y-2">
+                <button className="block bg-sky-400 hover:bg-sky-500 text-white px-4 py-2 rounded">HOW TO PLAY</button>
+                <button className="block bg-green-400 hover:bg-green-500 text-white px-4 py-2 rounded">
+                    不具合を報告
+                </button>
             </div>
 
             <CardDetail card={showCardDetail} onClose={() => setShowCardDetail(null)} />
