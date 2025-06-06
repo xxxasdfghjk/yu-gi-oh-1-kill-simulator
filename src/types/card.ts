@@ -39,6 +39,7 @@ export interface BaseCard {
   limit_status: string;
   errata: string;
   quantity: number;
+  image?: string;
 }
 
 export interface MonsterCard extends BaseCard {
@@ -86,4 +87,5 @@ export interface CardInstance {
   counters?: number;
   setTurn?: number; // セットされたターン番号
   setByBonmawashi?: boolean; // 盆回しでセットされたかどうか
+  isActivating?: boolean; // 発動中かどうか（通常・速攻・儀式魔法用）
 }

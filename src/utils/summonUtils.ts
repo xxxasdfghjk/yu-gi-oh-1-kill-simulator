@@ -110,13 +110,17 @@ export const canActivateSpell = (gameState: GameState, card: Card): boolean => {
   // フィールド魔法は専用ゾーンへ（盆回し制限をチェック）
   if (card.card_type === 'フィールド魔法') {
     if (gameState.bonmawashiRestriction) {
-      console.log("Cannot activate field spell: 盆回し restriction");
       return false;
     }
     return true;
   }
   
-  // その他の魔法は魔法・罠ゾーンに空きが必要
+  // OCGルール準拠: 通常・速攻・儀式魔法も魔法・罠ゾーンに空きが必要
+  if (card.card_type === '通常魔法' || card.card_type === '速攻魔法' || card.card_type === '儀式魔法') {
+    return findEmptySpellTrapZone(gameState) !== -1;
+  }
+  
+  // 永続魔法・装備魔法も魔法・罠ゾーンに空きが必要
   return findEmptySpellTrapZone(gameState) !== -1;
 };
 
@@ -170,16 +174,12 @@ export const canActivateOneForOne = (gameState: GameState): boolean => {
 };
 
 export const canActivateAdvancedRitual = (gameState: GameState): boolean => {
-  console.log("=== canActivateAdvancedRitual Debug ===");
-  
   // 手札に儀式モンスターが1体以上必要
   const ritualMonsters = gameState.hand.filter(c => 
     isMonsterCard(c.card) && c.card.card_type === '儀式・効果モンスター'
   );
-  console.log("Ritual monsters in hand:", ritualMonsters.map(c => c.card.card_name));
   
   if (ritualMonsters.length === 0) {
-    console.log("No ritual monsters in hand");
     return false;
   }
 
@@ -188,24 +188,19 @@ export const canActivateAdvancedRitual = (gameState: GameState): boolean => {
     const monster = c.card as { level?: number };
     return monster.level || 0;
   }));
-  console.log("Min ritual level:", minRitualLevel);
 
   // デッキの通常モンスターのレベル合計を計算
   const normalMonsters = gameState.deck.filter(c => 
     isMonsterCard(c.card) && c.card.card_type === '通常モンスター'
   );
-  console.log("Normal monsters in deck:", normalMonsters.map(c => c.card.card_name));
   
   const totalNormalLevel = normalMonsters.reduce((sum, c) => {
     const monster = c.card as { level?: number };
     return sum + (monster.level || 0);
   }, 0);
-  console.log("Total normal level:", totalNormalLevel);
 
   // デッキの通常モンスターレベル合計が手札の儀式モンスター最小レベル以上必要
   const canActivate = totalNormalLevel >= minRitualLevel;
-  console.log("Can activate result:", canActivate);
-  console.log("=====================================");
   
   return canActivate;
 };
@@ -228,7 +223,6 @@ export const canActivateHokyuYoin = (gameState: GameState): boolean => {
 export const canActivateFafnir = (gameState: GameState): boolean => {
   // このターンに既に発動済みの場合は発動不可
   if (gameState.hasActivatedFafnir) {
-    console.log("Cannot activate 竜輝巧－ファフニール: already activated this turn");
     return false;
   }
   
@@ -246,7 +240,6 @@ export const canActivateFafnir = (gameState: GameState): boolean => {
 export const canActivateBanAlpha = (gameState: GameState): boolean => {
   // このターンに既に発動済みの場合は発動不可
   if (gameState.hasActivatedBanAlpha) {
-    console.log("Cannot activate 竜輝巧－バンα: already activated this turn");
     return false;
   }
 
