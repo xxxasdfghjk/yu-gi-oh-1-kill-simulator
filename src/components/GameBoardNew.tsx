@@ -246,10 +246,10 @@ export const GameBoardNew: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 中央エリア - エクストラモンスターゾーン、デッキ、エクストラデッキ、墓地 */}
-                <div className="mb-8">
+                {/* 中央エリア - 共有エクストラモンスターゾーン */}
+                <div className="mb-4">
                     {/* 共有エクストラモンスターゾーン */}
-                    <div className="flex justify-center gap-2 mb-4">
+                    <div className="flex justify-center gap-2">
                         <div className="flex gap-2">
                             {/* 空のスペース（ゾーン0の上） */}
                             <div className="w-20 h-28"></div>
@@ -281,53 +281,6 @@ export const GameBoardNew: React.FC = () => {
                             <div className="w-20 h-28"></div>
                         </div>
                     </div>
-
-                    {/* デッキ、エクストラデッキ、墓地エリア */}
-                    <div className="flex justify-between items-center px-24">
-                        <div className="text-center">
-                            <div className="w-20 h-28 bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900">
-                                <div>
-                                    <div>DECK</div>
-                                    <div className="text-2xl">{deck.length}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="text-center">
-                            <div 
-                                className="w-20 h-28 bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900"
-                                onClick={() => setShowExtraDeck(true)}
-                            >
-                                <div>
-                                    <div className="text-xs">EXTRA</div>
-                                    <div className="text-2xl">{extraDeck.length}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-1">
-                                Turn {turn} - {isOpponentTurn ? "Opponent " : ""}{phase}
-                            </div>
-                            {bonmawashiRestriction && (
-                                <div className="text-xs text-red-600 font-bold">
-                                    盆回し制限中
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="text-center">
-                            <div 
-                                className="w-20 h-28 bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors"
-                                onClick={() => setShowGraveyard(true)}
-                            >
-                                <div>
-                                    <div>GY</div>
-                                    <div className="text-2xl">{graveyard.length}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* プレイヤーエリア */}
@@ -348,7 +301,7 @@ export const GameBoardNew: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 魔法・罠ゾーン（下段） */}
+                    {/* 魔法・罠ゾーンとゲーム要素（下段） */}
                     <div className="flex justify-center gap-2 mb-8">
                         <FieldZone
                             card={field.fieldZone}
@@ -366,7 +319,56 @@ export const GameBoardNew: React.FC = () => {
                                 onCardRightClick={(card) => setShowCardDetail(card)}
                             />
                         ))}
-                        <div className="w-20" /> {/* スペーサー */}
+                        
+                        {/* デッキ、エクストラデッキ、墓地エリア */}
+                        <div className="flex gap-2 ml-4">
+                            {/* デッキ */}
+                            <div className="text-center">
+                                <div className="w-16 h-20 bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900">
+                                    <div>
+                                        <div className="text-xs">DECK</div>
+                                        <div className="text-lg">{deck.length}</div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                    Turn {turn}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                    {isOpponentTurn ? "Opponent " : ""}{phase}
+                                </div>
+                                {bonmawashiRestriction && (
+                                    <div className="text-xs text-red-600 font-bold">
+                                        盆回し制限
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* エクストラデッキ */}
+                            <div className="text-center">
+                                <div 
+                                    className="w-16 h-20 bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900"
+                                    onClick={() => setShowExtraDeck(true)}
+                                >
+                                    <div>
+                                        <div className="text-xs">EX</div>
+                                        <div className="text-lg">{extraDeck.length}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 墓地 */}
+                            <div className="text-center">
+                                <div 
+                                    className="w-16 h-20 bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors"
+                                    onClick={() => setShowGraveyard(true)}
+                                >
+                                    <div>
+                                        <div className="text-xs">GY</div>
+                                        <div className="text-lg">{graveyard.length}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* 手札エリア */}
