@@ -204,19 +204,41 @@ export const GameBoardNew: React.FC = () => {
                         <span className="text-5xl font-bold text-red-500">8000</span>
                     </div>
 
-                    {/* 対戦相手フィールド */}
+                    {/* 対戦相手エクストラモンスターゾーン（下段） */}
+                    <div className="flex justify-center gap-2 mb-2">
+                        <div className="flex gap-2">
+                            {/* 空のスペース（ゾーン0の下） */}
+                            <div className="w-20 h-28"></div>
+                            
+                            {/* エクストラモンスターゾーン（左：ゾーン1の下） */}
+                            <FieldZone 
+                                card={opponentField.extraMonsterZones[0]} 
+                                label="EX" 
+                                className="border-4 border-red-400"
+                            />
+
+                            {/* 空のスペース（ゾーン2の下） */}
+                            <div className="w-20 h-28"></div>
+
+                            {/* エクストラモンスターゾーン（右：ゾーン3の下） */}
+                            <FieldZone 
+                                card={opponentField.extraMonsterZones[1]} 
+                                label="EX" 
+                                className="border-4 border-red-400"
+                            />
+
+                            {/* 空のスペース（ゾーン4の下） */}
+                            <div className="w-20 h-28"></div>
+                        </div>
+                    </div>
+
+                    {/* 対戦相手モンスターゾーン（中段） */}
                     <div className="flex justify-center gap-2 mb-4">
                         <div className="flex gap-2">
-                            {/* EXモンスターゾーン */}
-                            <FieldZone card={null} />
-
                             {/* モンスターゾーン */}
-                            {[0, 1, 2, 3, 4].map((index) => (
-                                <FieldZone key={`opp-monster-${index}`} card={null} />
+                            {opponentField.monsterZones.map((card, index) => (
+                                <FieldZone key={`opp-monster-${index}`} card={card} />
                             ))}
-
-                            {/* EXモンスターゾーン */}
-                            <FieldZone card={null} />
                         </div>
                     </div>
 
@@ -301,10 +323,13 @@ export const GameBoardNew: React.FC = () => {
 
                 {/* プレイヤーエリア */}
                 <div>
-                    {/* モンスターゾーン（上段） */}
-                    <div className="flex justify-center gap-2 mb-4">
+                    {/* エクストラモンスターゾーン（上段） */}
+                    <div className="flex justify-center gap-2 mb-2">
                         <div className="flex gap-2">
-                            {/* エクストラモンスターゾーン（左） */}
+                            {/* 空のスペース（ゾーン0の上） */}
+                            <div className="w-20 h-28"></div>
+                            
+                            {/* エクストラモンスターゾーン（左：ゾーン1の上） */}
                             <FieldZone 
                                 card={field.extraMonsterZones[0]} 
                                 label="EX" 
@@ -314,6 +339,27 @@ export const GameBoardNew: React.FC = () => {
                                 onCardRightClick={(card) => setShowCardDetail(card)}
                             />
 
+                            {/* 空のスペース（ゾーン2の上） */}
+                            <div className="w-20 h-28"></div>
+
+                            {/* エクストラモンスターゾーン（右：ゾーン3の上） */}
+                            <FieldZone 
+                                card={field.extraMonsterZones[1]} 
+                                label="EX" 
+                                className="border-4 border-red-400"
+                                onClick={() => handleFieldZoneClick("monster", 6)}
+                                onCardClick={handleFieldCardClick}
+                                onCardRightClick={(card) => setShowCardDetail(card)}
+                            />
+
+                            {/* 空のスペース（ゾーン4の上） */}
+                            <div className="w-20 h-28"></div>
+                        </div>
+                    </div>
+
+                    {/* モンスターゾーン（中段） */}
+                    <div className="flex justify-center gap-2 mb-4">
+                        <div className="flex gap-2">
                             {/* 通常モンスターゾーン */}
                             {field.monsterZones.map((card, index) => (
                                 <FieldZone
@@ -324,16 +370,6 @@ export const GameBoardNew: React.FC = () => {
                                     onCardRightClick={(card) => setShowCardDetail(card)}
                                 />
                             ))}
-
-                            {/* エクストラモンスターゾーン（右） */}
-                            <FieldZone 
-                                card={field.extraMonsterZones[1]} 
-                                label="EX" 
-                                className="border-4 border-red-400"
-                                onClick={() => handleFieldZoneClick("monster", 6)}
-                                onCardClick={handleFieldCardClick}
-                                onCardRightClick={(card) => setShowCardDetail(card)}
-                            />
                         </div>
                     </div>
 
@@ -1216,7 +1252,7 @@ export const GameBoardNew: React.FC = () => {
                                 素材: {linkSummonState.selectedMaterials.map(m => m.card.card_name).join(", ")}
                             </p>
                         </div>
-                        <p className="text-center mb-6">エクストラモンスターゾーン（赤枠）をクリックしてリンク召喚してください</p>
+                        <p className="text-center mb-6">エクストラモンスターゾーン（モンスターゾーンの上にある赤枠）をクリックしてリンク召喚してください</p>
                         <div className="flex justify-center">
                             <button
                                 onClick={() => {
