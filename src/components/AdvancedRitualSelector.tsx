@@ -85,7 +85,7 @@ export const AdvancedRitualSelector: React.FC<AdvancedRitualSelectorProps> = ({
                     ? 'border-red-300 bg-red-50 opacity-50 cursor-not-allowed'
                     : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
               }`}
-              onClick={() => !wouldExceed && handleMonsterClick(monster)}
+              onClick={() => (isSelected || !wouldExceed) && handleMonsterClick(monster)}
             >
               <Card card={monster} size="small" />
               <div className="text-xs text-center mt-1 truncate font-semibold">
