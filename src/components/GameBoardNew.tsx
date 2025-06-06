@@ -36,6 +36,7 @@ export const GameBoardNew: React.FC = () => {
         activateFieldCard,
         activateSetCard,
         searchingEffect,
+        foolishBurialState,
         selectFromDeck,
         summonSelecting,
         jackInHandState,
@@ -65,6 +66,9 @@ export const GameBoardNew: React.FC = () => {
         summonXyzMonster,
         meteorKikougunState,
         selectMaterialsForMeteorKikougun,
+        activateEruGanma,
+        opponentField,
+        activateOpponentFieldSpell,
     } = useGameStore();
 
     const [showCardDetail, setShowCardDetail] = useState<CardInstance | null>(null);
@@ -195,7 +199,6 @@ export const GameBoardNew: React.FC = () => {
             </div>
         );
     }
-    console.log(searchingEffect);
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
             <div className="container mx-auto px-4 py-2 relative">
@@ -214,6 +217,9 @@ export const GameBoardNew: React.FC = () => {
                     handleFieldZoneClick={handleFieldZoneClick}
                     handleFieldCardClick={handleFieldCardClick}
                     setShowCardDetail={setShowCardDetail}
+                    opponentField={opponentField}
+                    activateOpponentFieldSpell={activateOpponentFieldSpell}
+                    setChickenRaceHover={setChickenRaceHover}
                 />
 
                 {/* プレイヤーエリア */}
@@ -244,6 +250,7 @@ export const GameBoardNew: React.FC = () => {
                     activateBanAlpha={activateBanAlpha}
                     onCardRightClick={handleCardRightClick}
                     onCardHoverLeave={handleCardHoverLeave}
+                    activateEruGanma={activateEruGanma}
                 />
             </div>
 
@@ -289,27 +296,31 @@ export const GameBoardNew: React.FC = () => {
                 )}
 
             {/* おろかな埋葬効果のカード選択 */}
-            {searchingEffect && searchingEffect.effectType === "foolish_burial_select" && (
+            {(searchingEffect && searchingEffect.effectType === "foolish_burial_select") || foolishBurialState ? (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold mb-4 text-center">おろかな埋葬</h3>
                         <p className="text-center mb-6">デッキからモンスター1体を選んで墓地へ送ってください：</p>
                         <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
-                                </div>
-                            ))}
+                            {(foolishBurialState?.availableCards || searchingEffect?.availableCards || []).map(
+                                (card) => (
+                                    <div
+                                        key={card.id}
+                                        className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300"
+                                        onClick={() => selectFromDeck(card)}
+                                    >
+                                        <Card card={card} size="small" />
+                                        <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
+                                    </div>
+                                )
+                            )}
                         </div>
                         <div className="flex justify-center"></div>
                     </div>
                 </div>
-            )}
+            ) : null}
+
+            {/* エクストラデッキのカード選択 */}
 
             {/* リンクリボー効果のカード選択 */}
             {searchingEffect && searchingEffect.effectType === "link_riboh_mill" && (
@@ -527,6 +538,46 @@ export const GameBoardNew: React.FC = () => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 竜輝巧－エルγ効果 - 墓地からモンスター特殊召喚 */}
+            {searchingEffect?.effectType === "eru_ganma_graveyard_select" && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－エルγ</h3>
+                        <p className="text-center mb-6">墓地からモンスター1体を選んで特殊召喚してください：</p>
+                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                            {searchingEffect.availableCards.map((card) => (
+                                <div
+                                    key={card.id}
+                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-cyan-300 border-2 border-gray-200 rounded p-2"
+                                    onClick={() => selectFromDeck(card)}
+                                >
+                                    <Card card={card} size="small" />
+                                    <div className="text-xs text-center mt-2 truncate font-semibold">
+                                        {card.card.card_name}
+                                    </div>
+                                    <div className="text-xs text-center text-gray-600">
+                                        {card.location === "graveyard" ? "墓地" : ""}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-center">
+                            <button
+                                onClick={() => {
+                                    useGameStore.setState((state) => ({
+                                        ...state,
+                                        searchingEffect: null,
+                                    }));
+                                }}
+                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
+                            >
+                                キャンセル
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -12,8 +12,9 @@ import {
     canActivateHokyuYoin,
 } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
+import { helper } from "./gameStoreHelper";
 
-interface GameStore extends GameState {
+export interface GameStore extends GameState {
     initializeGame: () => void;
     drawCard: (count?: number) => void;
     nextPhase: () => void;
@@ -43,7 +44,9 @@ interface GameStore extends GameState {
     checkBonmawashiRestriction: () => void;
     activateOpponentFieldSpell: () => void;
     activateBanAlpha: (eruGanmaCard: CardInstance) => void;
+    activateEruGanma: (eruGanmaCard: CardInstance) => void;
     selectBanAlphaRitualMonster: (ritualMonster: CardInstance) => void;
+    selectEruGanmaGraveyardMonster: (monster: CardInstance) => void;
     checkCritterEffect: (card: CardInstance) => void;
     startLinkSummon: (linkMonster: CardInstance) => void;
     selectLinkMaterials: (materials: CardInstance[]) => void;
@@ -58,6 +61,29 @@ interface GameStore extends GameState {
     selectRitualMonsterForMeteorKikougun: (ritualMonster: CardInstance) => void;
     selectMaterialsForMeteorKikougun: (materials: CardInstance[]) => void;
     selectedCard: string | null;
+    // 個別のサーチ効果状態
+    foolishBurialState: {
+        availableCards: CardInstance[];
+    } | null;
+    deckSearchState: {
+        cardName: string;
+        availableCards: CardInstance[];
+        effectType: string;
+    } | null;
+    fafnirMuBetaState: {
+        availableCards: CardInstance[];
+        effectType: "xyz_summon" | "graveyard";
+    } | null;
+    hokyuyoinState: {
+        availableCards: CardInstance[];
+    } | null;
+    linkRibohState: {
+        availableCards: CardInstance[];
+    } | null;
+    meteorKikougunMonsterSelectState: {
+        availableCards: CardInstance[];
+    } | null;
+    // 一時的に残す（段階的移行のため）
     searchingEffect: {
         cardName: string;
         availableCards: CardInstance[];
@@ -158,183 +184,18 @@ const initialState: GameState = {
     hasActivatedEruGanma: false,
 };
 
-const helper = {
-    selectBanAlphaReleaseTarget: (state: GameStore, targetCard: CardInstance) => {
-        // Get the current state to verify we have valid banAlphaState
-        if (!state.banAlphaState || state.banAlphaState.phase !== "select_release_target") {
-            return;
-        }
-
-        const banAlphaCard = state.banAlphaState.banAlphaCard!;
-
-        // Try multiple separate state updates to isolate the issue
-        let searchingEffectReset = false;
-        if (targetCard.location === "hand") {
-            searchingEffectReset = helper.sendMonsterToGraveyardInternal(state, targetCard, "hand");
-            state.hand = state.hand.filter((c) => c.id !== targetCard.id);
-        } else if (targetCard.location === "field_monster") {
-            const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === targetCard.id);
-            if (zoneIndex !== -1) {
-                searchingEffectReset = helper.sendMonsterToGraveyardInternal(state, targetCard, "field");
-            }
-        }
-        if (banAlphaCard.location === "hand") {
-            state.hand = state.hand.filter((c) => c.id !== banAlphaCard.id);
-        } else if (banAlphaCard.location === "graveyard") {
-            state.graveyard = state.graveyard.filter((c) => c.id !== banAlphaCard.id);
-        }
-        const emptyZone = state.field.monsterZones.findIndex((zone) => zone === null);
-
-        if (emptyZone !== -1) {
-            // Create new summoned monster object
-            const summonedMonster = {
-                id: banAlphaCard.id,
-                card: banAlphaCard.card,
-                location: "field_monster" as const,
-                position: "defense" as const,
-                zone: emptyZone,
-            };
-
-            // Force array update
-            const newMonsterZones = [...state.field.monsterZones];
-            newMonsterZones[emptyZone] = summonedMonster;
-            state.field.monsterZones = newMonsterZones;
-
-            state.hasSpecialSummoned = true;
-            state.searchingEffect = null;
-        }
-
-        // デッキから儀式モンスターを選択
-        const ritualMonsters = state.deck.filter(
-            (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
-        );
-
-        if (ritualMonsters.length > 0) {
-            state.banAlphaState = {
-                phase: "select_ritual_monster",
-                banAlphaCard: banAlphaCard,
-            };
-
-            state.searchingEffect = {
-                cardName: "竜輝巧－バンα（儀式モンスター選択）",
-                availableCards: ritualMonsters,
-                effectType: "ban_alpha_ritual_select",
-            };
-        } else {
-            state.banAlphaState = null;
-            state.searchingEffect = searchingEffectReset ? state.searchingEffect : null;
-        }
-    },
-
-    selectEruGanmaReleaseTarget: (state: GameStore, targetCard: CardInstance) => {
-        if (!state.eruGanmaState || state.eruGanmaState.phase !== "select_release_target") {
-            return;
-        }
-        const eruGanmaCard = state.eruGanmaState.eruGanmaCard!;
-
-        // Try multiple separate state updates to isolate the issue
-        if (targetCard.location === "hand") {
-            helper.sendMonsterToGraveyardInternal(state, targetCard, "hand");
-        } else if (targetCard.location === "field_monster") {
-            const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === targetCard.id);
-            if (zoneIndex !== -1) {
-                helper.sendMonsterToGraveyardInternal(state, targetCard, "field");
-            }
-        }
-        if (eruGanmaCard.location === "hand") {
-            state.hand = state.hand.filter((c) => c.id !== eruGanmaCard.id);
-        } else if (eruGanmaCard.location === "graveyard") {
-            state.graveyard = state.graveyard.filter((c) => c.id !== eruGanmaCard.id);
-        }
-
-        const emptyZone = state.field.monsterZones.findIndex((zone) => zone === null);
-
-        if (emptyZone !== -1) {
-            // Create new summoned monster object
-            const summonedMonster = {
-                id: eruGanmaCard.id,
-                card: eruGanmaCard.card,
-                location: "field_monster" as const,
-                position: "defense" as const,
-                zone: emptyZone,
-            };
-
-            // Force array update
-            const newMonsterZones = [...state.field.monsterZones];
-            newMonsterZones[emptyZone] = summonedMonster;
-            state.field.monsterZones = newMonsterZones;
-            state.hasSpecialSummoned = true;
-
-            state.searchingEffect = null;
-            state.eruGanmaState = null;
-        }
-    },
-    checkFafnirMuBetaGraveyardEffectInternal: (state: GameStore, card: CardInstance) => {
-        if (card.card.card_name !== "竜輝巧－ファフμβ'") {
-            return false;
-        }
-
-        // 手札・デッキからドライトロンモンスターを探す
-        const handDrytronMonsters = state.hand.filter((c) => {
-            if (!isMonsterCard(c.card)) return false;
-            return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
-        });
-
-        const deckDrytronMonsters = state.deck.filter((c) => {
-            if (!isMonsterCard(c.card)) return false;
-            return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
-        });
-
-        const allDrytronMonsters = [...handDrytronMonsters, ...deckDrytronMonsters];
-
-        if (allDrytronMonsters.length === 0) {
-            return false;
-        }
-
-        // カード選択UIを表示
-        state.searchingEffect = {
-            cardName: "竜輝巧－ファフμβ'の墓地送り時効果",
-            availableCards: allDrytronMonsters,
-            effectType: "fafnir_mu_beta_graveyard",
-        };
-        return true;
-    },
-    sendMonsterToGraveyardInternal: (
-        state: GameStore,
-        monster: CardInstance,
-        fromLocation: "field" | "hand" | "deck"
-    ) => {
-        const graveyardCard = { ...monster, location: "graveyard" as const };
-        let effectOccurred = false;
-        if (fromLocation === "field") {
-            // フィールドのモンスターゾーンから削除
-            const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === monster.id);
-            if (zoneIndex !== -1) {
-                state.field.monsterZones[zoneIndex] = null;
-            }
-            // エクストラモンスターゾーンからも確認
-            const extraZoneIndex = state.field.extraMonsterZones.findIndex((c) => c?.id === monster.id);
-            if (extraZoneIndex !== -1) {
-                state.field.extraMonsterZones[extraZoneIndex] = null;
-            }
-            effectOccurred = helper.checkFafnirMuBetaGraveyardEffectInternal(state, monster);
-        } else if (fromLocation === "hand") {
-            state.hand = state.hand.filter((c) => c.id !== monster.id);
-        } else if (fromLocation === "deck") {
-            state.deck = state.deck.filter((c) => c.id !== monster.id);
-        }
-        // 墓地に追加
-        state.graveyard.push(graveyardCard);
-        return effectOccurred;
-    },
-};
-
 const phaseOrder: GamePhase[] = ["draw", "standby", "main1", "end"];
 
 export const useGameStore = create<GameStore>()(
     immer((set, get) => ({
         ...initialState,
         selectedCard: null,
+        foolishBurialState: null,
+        deckSearchState: null,
+        fafnirMuBetaState: null,
+        hokyuyoinState: null,
+        linkRibohState: null,
+        meteorKikougunMonsterSelectState: null,
         searchingEffect: null,
         summonSelecting: null,
         jackInHandState: null,
@@ -841,10 +702,8 @@ export const useGameStore = create<GameStore>()(
                         // デッキからモンスター1体をユーザーに選択させる（全モンスターを表示）
                         const deckMonsters = state.deck.filter((c) => isMonsterCard(c.card));
                         if (deckMonsters.length > 0) {
-                            state.searchingEffect = {
-                                cardName: "おろかな埋葬",
+                            state.foolishBurialState = {
                                 availableCards: deckMonsters,
-                                effectType: "foolish_burial_select",
                             };
                         }
                         break;
@@ -1102,14 +961,27 @@ export const useGameStore = create<GameStore>()(
         },
 
         selectFromDeck: (targetCard: CardInstance) => {
+            const currentState = get();
             console.log(
                 "selectFromDeck called for:",
                 targetCard.card.card_name,
                 "effect type:",
-                get().searchingEffect?.effectType
+                currentState.searchingEffect?.effectType,
+                "foolishBurialState:",
+                !!currentState.foolishBurialState
             );
 
             set((state) => {
+                // チェック: foolishBurialStateがある場合
+                if (state.foolishBurialState) {
+                    // おろかな埋葬: デッキから墓地へ送る
+                    state.deck = state.deck.filter((c) => c.id !== targetCard.id);
+                    const updatedCard = { ...targetCard, location: "graveyard" as const };
+                    state.graveyard.push(updatedCard);
+                    state.foolishBurialState = null;
+                    return;
+                }
+
                 if (!state.searchingEffect) {
                     console.log("No searchingEffect found");
                     return;
@@ -1395,7 +1267,13 @@ export const useGameStore = create<GameStore>()(
 
                     case "ban_alpha_ritual_select": {
                         // 竜輝巧－バンα: 儀式モンスター選択
-                        state.selectBanAlphaRitualMonster(targetCard);
+                        helper.selectBanAlphaRitualMonster(state, targetCard);
+                        return;
+                    }
+
+                    case "eru_ganma_graveyard_select": {
+                        // 竜輝巧－エルγ: 墓地からモンスター特殊召喚
+                        helper.selectEruGanmaGraveyardMonster(state, targetCard);
                         return;
                     }
 
@@ -1814,10 +1692,8 @@ export const useGameStore = create<GameStore>()(
 
                     if (targetMonsters.length > 0) {
                         // 補充要員の選択状態を設定
-                        state.searchingEffect = {
-                            cardName: "補充要員",
+                        state.hokyuyoinState = {
                             availableCards: targetMonsters,
-                            effectType: "hokyuyoin_multi_select",
                         };
                     }
 
@@ -1851,6 +1727,7 @@ export const useGameStore = create<GameStore>()(
 
                 // サーチ効果を終了
                 state.searchingEffect = null;
+                state.hokyuyoinState = null;
             });
         },
 
@@ -2019,7 +1896,7 @@ export const useGameStore = create<GameStore>()(
         activateEruGanma: (EruGanmaCard: CardInstance) => {
             // このターンに既に発動済みの場合は発動不可
             const currentState = get();
-            if (currentState.hasActivatedBanAlpha) {
+            if (currentState.hasActivatedEruGanma) {
                 return;
             }
 
@@ -2075,35 +1952,6 @@ export const useGameStore = create<GameStore>()(
                     effectType: "eru_ganma_release_select",
                 };
             });
-        },
-
-        selectBanAlphaRitualMonster: (ritualMonster: CardInstance) => {
-            set((state) => {
-                if (!state.banAlphaState || state.banAlphaState.phase !== "select_ritual_monster") {
-                    return;
-                }
-
-                // 金満で謙虚な壺を発動したターンは効果で手札に加えられない
-                if (state.hasActivatedExtravagance) {
-                    state.banAlphaState = null;
-                    state.searchingEffect = null;
-                    return;
-                }
-
-                // 儀式モンスターをデッキから手札に加える
-                state.deck = state.deck.filter((c) => c.id !== ritualMonster.id);
-                const cardToHand = { ...ritualMonster, location: "hand" as const };
-                state.hand.push(cardToHand);
-                state.hasDrawnByEffect = true;
-            });
-
-            // Clear the effect states in a separate update to ensure UI refresh
-            setTimeout(() => {
-                set((state) => {
-                    state.banAlphaState = null;
-                    state.searchingEffect = null;
-                });
-            }, 0);
         },
 
         checkCritterEffect: (card: CardInstance) => {
@@ -2603,6 +2451,18 @@ export const useGameStore = create<GameStore>()(
                 // 状態をクリア
                 state.meteorKikougunState = null;
                 state.searchingEffect = null;
+            });
+        },
+
+        selectBanAlphaRitualMonster: (ritualMonster: CardInstance) => {
+            set((state) => {
+                helper.selectBanAlphaRitualMonster(state, ritualMonster);
+            });
+        },
+
+        selectEruGanmaGraveyardMonster: (monster: CardInstance) => {
+            set((state) => {
+                helper.selectEruGanmaGraveyardMonster(state, monster);
             });
         },
     }))
