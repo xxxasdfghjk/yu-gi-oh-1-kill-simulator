@@ -61,12 +61,12 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                 {/* 相手のフィールド魔法（右側） */}
                 <FieldZone
                     type="field"
-                    card={opponentField.fieldZone}
+                    card={opponentField?.fieldZone || null}
                     className={CARD_SIZE.MEDIUM}
                     onCardClick={(card, event) => {
-                        if (card.position === "facedown") {
+                        if (card?.position === "facedown") {
                             activateOpponentFieldSpell();
-                        } else if (card.card.card_name === "チキンレース") {
+                        } else if (card?.card.card_name === "チキンレース") {
                             if (event) {
                                 setChickenRaceHover({
                                     card: card,

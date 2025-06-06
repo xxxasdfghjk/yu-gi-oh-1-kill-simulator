@@ -50,12 +50,12 @@ export const ActionListSelector = ({
     });
 
     return (
-        <div className="absolute bg-white shadow-lg rounded z-10 text-[12px]flex flex-col items-center text-center w-full justify-center h-full">
+        <div className="absolute rounded z-10 flex flex-col items-center text-center w-full justify-center h-full hover:bg-black hover:bg-opacity-60 text-[18px] text-white">
             {actionList.map((action) => (
                 <button
-                    key={action}
-                    onClick={() => onSelect(action)}
-                    className="block w-full px-4 py-2 hover:bg-gray-200 text-center bg-opacity-10 flex-1"
+                    key={action.key}
+                    onClick={() => onSelect(action.key)}
+                    className="block w-full px-4 py-2 hover:bg-black hover:bg-opacity-50 text-center bg-opacity-90 flex-1"
                 >
                     {action.label}
                 </button>
@@ -107,7 +107,6 @@ export const HandArea: React.FC<HandAreaProps> = ({
             if (!canActivateBanAlpha(gameState)) {
                 return;
             }
-
             activateBanAlpha(card);
         } else if (card.card.card_name === "竜輝巧－エルγ") {
             // 発動条件をチェック
@@ -153,7 +152,6 @@ export const HandArea: React.FC<HandAreaProps> = ({
                                     } else if (action === "set") {
                                         setCard(card.id);
                                     } else if (action === "activate") {
-                                        playCard(card.id);
                                         playCard(card.id);
                                     } else if (action === "effect") {
                                         handleEffect(card);

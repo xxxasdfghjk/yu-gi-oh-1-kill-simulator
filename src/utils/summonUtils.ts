@@ -358,7 +358,7 @@ export const canActivateEruGanma = (gameState: GameState): boolean => {
     if (gameState.hasActivatedEruGanma) {
         return false;
     }
-
+    console.log(gameState);
     // リリース対象となるカードが必要（手札・フィールドのドライトロンモンスターまたは儀式モンスター）
     const handTargets = gameState.hand.filter((c) => {
         if (!isMonsterCard(c.card)) return false;
