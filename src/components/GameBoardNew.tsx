@@ -206,17 +206,22 @@ export const GameBoardNew: React.FC = () => {
 
                     {/* 魔法・罠ゾーン（相手は上段、鏡写し） */}
                     <div className="flex justify-center gap-2 mb-4">
-                        <div className="w-20" /> {/* スペーサー（フィールド魔法分） */}
+                        <div className="w-20" /> {/* スペーサー */}
                         {[4, 3, 2, 1, 0].map((index) => (
                             <FieldZone key={`opp-spell-${index}`} card={opponentField.spellTrapZones[index]} />
                         ))}
-                        <div className="w-20" /> {/* スペーサー */}
+                        <div className="w-20" /> {/* スペーサー（フィールド魔法分） */}
                     </div>
 
                     {/* 対戦相手モンスターゾーンとフィールドゾーン（下段、向かい合うように） */}
                     <div className="flex justify-center gap-2 mb-4">
                         <div className="flex gap-2 items-center">
-                            {/* 相手のフィールド魔法（左側、向かい合うレイアウト） */}
+                            {/* モンスターゾーン（鏡写し：4,3,2,1,0） */}
+                            {[4, 3, 2, 1, 0].map((index) => (
+                                <FieldZone key={`opp-monster-${index}`} card={opponentField.monsterZones[index]} />
+                            ))}
+                            
+                            {/* 相手のフィールド魔法（右側、プレイヤーから見て） */}
                             <FieldZone 
                                 card={opponentField.fieldZone} 
                                 label="Field" 
@@ -240,11 +245,6 @@ export const GameBoardNew: React.FC = () => {
                                 }}
                                 onCardRightClick={(card) => setShowCardDetail(card)}
                             />
-                            
-                            {/* モンスターゾーン（鏡写し：4,3,2,1,0） */}
-                            {[4, 3, 2, 1, 0].map((index) => (
-                                <FieldZone key={`opp-monster-${index}`} card={opponentField.monsterZones[index]} />
-                            ))}
                         </div>
                     </div>
                 </div>
