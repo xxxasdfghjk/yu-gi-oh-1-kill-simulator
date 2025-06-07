@@ -123,7 +123,7 @@ export const canActivateSpell = (gameState: GameState, card: Card): boolean => {
     }
 
     // 極超の竜輝巧の特別な発動条件チェック
-    if (card.card_name === "竜輝巧－ファフニール") {
+    if (card.card_name === "極超の竜輝巧") {
         return canActivateDreitronNova(gameState);
     }
 

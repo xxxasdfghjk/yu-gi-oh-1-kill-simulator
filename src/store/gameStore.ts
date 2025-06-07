@@ -370,6 +370,7 @@ export const useGameStore = create<GameStore>()(
                     state.hasActivatedEmergencyCyber = false;
                     state.hasActivatedJackInTheHand = false;
                     state.hasActivatedDivinerSummonEffect = false;
+                    state.hasActivatedDreitronNova = false;
 
                     // ターン終了時の効果をリセット（レベルバフなど）
                     [...state.field.monsterZones, ...state.field.extraMonsterZones]
@@ -1140,14 +1141,21 @@ export const useGameStore = create<GameStore>()(
                                             const monster = c.card as { race?: string };
                                             return monster.race === "機械族";
                                         });
-                                        const fieldMachineMonsters = state.field.monsterZones.filter(
-                                            (c): c is CardInstance => {
-                                                if (!c || !isMonsterCard(c.card)) return false;
-                                                const monster = c.card as { race?: string };
-                                                return monster.race === "機械族";
-                                            }
-                                        );
-                                        return [...handMachineMonsters, ...fieldMachineMonsters];
+                                        const fieldMachineMonsters = [
+                                            ...state.field.monsterZones,
+                                            ...state.field.extraMonsterZones,
+                                        ].filter((c): c is CardInstance => {
+                                            if (!c || !isMonsterCard(c.card)) return false;
+                                            const monster = c.card as { race?: string };
+                                            return monster.race === "機械族";
+                                        });
+                                        const myu =
+                                            [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                                                .find((e) => e?.card.card_name === "竜輝巧－ファフμβ'")
+                                                ?.materials.filter(
+                                                    (e) => (e.card as { race?: string })?.race === "機械族"
+                                                ) ?? [];
+                                        return [...handMachineMonsters, ...fieldMachineMonsters, ...myu];
                                     },
                                     condition: (cards: CardInstance[]) => {
                                         // 選択されたモンスターの攻撃力合計が必要攻撃力以上であることを確認
@@ -1254,42 +1262,6 @@ export const useGameStore = create<GameStore>()(
                             });
                             break;
                         }
-                        case "meteor_first_select": {
-                            const targetPower = (selectedCard[0].card as { attack?: number }).attack ?? 0;
-                            state.effectQueue.unshift({
-                                id: "",
-                                type: "multiselect",
-                                effectName: "高等儀式術（リリースモンスター選択）",
-                                cardInstance: selectedCard[0],
-                                getAvailableCards: (state: GameStore) => {
-                                    return state.deck.filter((c): c is CardInstance => {
-                                        return (
-                                            c.card.card_type === "通常モンスター" ||
-                                            c.card.card_type === "通常モンスター（チューナー）"
-                                        );
-                                    });
-                                },
-                                condition: (cards: CardInstance[]) => {
-                                    console.log(cards);
-                                    const sumPower = cards.reduce(
-                                        (prev, cur) => ((cur.card as { attack?: number })?.attack ?? 0) + prev,
-                                        0
-                                    );
-                                    console.log(sumPower, targetPower);
-
-                                    return (
-                                        sumPower >= targetPower &&
-                                        cards.every((card) => {
-                                            const pow = (card.card as { attack?: number })?.attack ?? 0;
-                                            return sumPower - pow < targetPower;
-                                        })
-                                    );
-                                },
-                                effectType: "ritual_summon",
-                                canCancel: false,
-                            });
-                            break;
-                        }
                         case "fafnir_mu_beta_graveyard": {
                             state.effectQueue.unshift({
                                 id: "",
@@ -1306,7 +1278,10 @@ export const useGameStore = create<GameStore>()(
                             selectedCard.forEach((material) => {
                                 helper.monsterExcludeFromField(state, material);
                             });
-                            const materials = selectedCard.map((e) => [e, ...e.materials]).flat();
+                            const materials = selectedCard
+                                .map((e) => [e, ...e.materials])
+                                .flat()
+                                .map((e) => ({ ...e, location: "material" as const }));
                             xyzMonster.materials = materials;
                             state.effectQueue.unshift({
                                 id: "",

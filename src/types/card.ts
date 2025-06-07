@@ -78,7 +78,8 @@ export type CardLocation =
     | "field_spell_trap"
     | "graveyard"
     | "banished"
-    | "extra_deck";
+    | "extra_deck"
+    | "material";
 
 export interface CardInstance {
     card: Card;

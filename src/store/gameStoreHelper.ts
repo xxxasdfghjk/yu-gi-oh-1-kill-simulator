@@ -10,7 +10,7 @@ export const helper = {
         state.effectQueue.push({
             id: ``,
             type: "select",
-            effectName: "竜輝巧－ファフμβ'（墓地に送るモンスターを選択）",
+            effectName: "竜輝巧－ファフμβ'（墓地に送るカードを選択）",
             cardInstance: card,
             getAvailableCards: (state) => {
                 return state.deck.filter((e) => e.card.card_name.includes("竜輝巧"));
@@ -107,7 +107,7 @@ export const helper = {
         if (card.card.card_name !== "宣告者の神巫") {
             return false;
         }
-        
+
         // 1ターンに1度の制限チェック
         if (state.hasActivatedDivinerSummonEffect) {
             return false;
@@ -238,8 +238,6 @@ export const helper = {
             buf: { attack: 0, defense: 0, level: 0 },
         };
         let locate = "";
-        console.log([...state.field.spellTrapZones]);
-        console.log(monster);
         const trapZoneIndex = state.field.spellTrapZones.findIndex((c) => c?.id === monster.id);
         if (trapZoneIndex !== -1) {
             state.field.spellTrapZones[trapZoneIndex] = null;
@@ -248,6 +246,15 @@ export const helper = {
 
         // フィールドのモンスターゾーンから削除
         const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === monster.id);
+        for (let i = 0; i < 5; i++) {
+            const target = state.field.monsterZones[i]?.materials.find((e) => e.id === monster.id);
+            if (target) {
+                state.field.monsterZones[i]!.materials = state.field.monsterZones[i]!.materials.filter(
+                    (e) => monster.id !== e.id
+                );
+                locate = "material";
+            }
+        }
         if (zoneIndex !== -1) {
             state.field.monsterZones[zoneIndex] = null;
             locate = "field";
@@ -258,6 +265,16 @@ export const helper = {
             state.field.extraMonsterZones[extraZoneIndex] = null;
             locate = "field";
         }
+        for (let i = 0; i < 2; i++) {
+            const target = state.field.extraMonsterZones[i]?.materials.find((e) => e.id === monster.id);
+            if (target) {
+                state.field.extraMonsterZones[i]!.materials = state.field.extraMonsterZones[i]!.materials.filter(
+                    (e) => monster.id !== e.id
+                );
+                locate = "material";
+            }
+        }
+
         if (state.hand.findIndex((c) => c.id === monster.id) !== -1) {
             locate = "hand";
         }
