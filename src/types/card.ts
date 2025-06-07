@@ -95,6 +95,6 @@ export interface CardInstance {
     buf: {
         level: number;
         attack: number;
-        defence: number;
+        defense: number;
     };
 }

@@ -1,0 +1,76 @@
+import React from "react";
+import type { CardInstance } from "@/types/card";
+import { Card } from "./Card";
+import { ActionListSelector } from "./HandArea";
+import { canActivateBanAlpha } from "@/utils/summonUtils";
+import type { GameStore } from "@/store/gameStore";
+import ModalWrapper from "./ModalWrapper";
+
+interface GraveyardModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    graveyard: CardInstance[];
+    gameState: GameStore;
+    handleBanAlphaClick: (card: CardInstance) => void;
+}
+
+export const GraveyardModal: React.FC<GraveyardModalProps> = ({
+    isOpen,
+    onClose,
+    graveyard,
+    gameState,
+    handleBanAlphaClick,
+}) => {
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose}>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold">墓地 ({graveyard.length}枚)</h3>
+                <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">
+                    ×
+                </button>
+            </div>
+
+            {graveyard.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">墓地にカードはありません</div>
+            ) : (
+                <div className="grid grid-cols-5 gap-3">
+                    {graveyard.map((card, index) => (
+                        <div
+                            key={`${card.id}-${index}`}
+                            className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded ${
+                                card.card.card_name === "竜輝巧－バンα"
+                                    ? canActivateBanAlpha(gameState)
+                                        ? "ring-2 ring-blue-300"
+                                        : "ring-2 ring-gray-400 opacity-60"
+                                    : ""
+                            }`}
+                            onClick={() => {}}
+                        >
+                            <Card card={card} size="small" customSize="w-30" />
+                            <div className="text-xs text-center mt-1 truncate w-30">{card.card.card_name}</div>
+                            {card.card.card_name === "竜輝巧－バンα" && (
+                                <ActionListSelector
+                                    card={card}
+                                    actions={["effect"]}
+                                    onSelect={() => {
+                                        handleBanAlphaClick(card);
+                                        onClose();
+                                    }}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <div className="flex justify-center mt-6">
+                <button
+                    onClick={onClose}
+                    className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded font-bold"
+                >
+                    閉じる
+                </button>
+            </div>
+        </ModalWrapper>
+    );
+};

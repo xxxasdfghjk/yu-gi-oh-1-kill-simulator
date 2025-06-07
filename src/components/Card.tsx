@@ -1,7 +1,9 @@
 import React from "react";
+import { useSetAtom } from "jotai";
 import type { CardInstance } from "@/types/card";
 import { isMonsterCard, isSpellCard, isTrapCard } from "@/utils/gameUtils";
 import { CARD_SIZE } from "@/const/card";
+import { hoveredCardAtom } from "@/store/hoveredCardAtom";
 
 interface CardProps {
     card: CardInstance;
@@ -23,6 +25,7 @@ export const Card: React.FC<CardProps> = ({
     faceDown = false,
     customSize = undefined,
 }) => {
+    const setHoveredCard = useSetAtom(hoveredCardAtom);
     // カードが伏せ状態かどうかをチェック
     const isFaceDown = faceDown || card.position === "facedown" || card.position === "facedown_defense";
     const sizeClasses = {
@@ -75,6 +78,8 @@ export const Card: React.FC<CardProps> = ({
         ${(card.position === "defense" || card.position === "facedown_defense") && !forceAttack ? " -rotate-90" : ""}
       `}
             onClick={onClick}
+            onMouseEnter={() => setHoveredCard(card)}
+            onMouseLeave={() => {}}
         >
             {imagePath ? (
                 <img

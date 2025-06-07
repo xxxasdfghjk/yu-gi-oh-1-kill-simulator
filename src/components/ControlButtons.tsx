@@ -39,7 +39,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
         <div className="fixed right-8 top-1/2 -translate-y-1/2 space-y-4">
             {/* アクションボタン */}
             {selectedCardInstance && (
-                <div className="mb-6 p-4 bg-white/90 rounded-lg shadow-lg">
+                <div className="mb-6 p-4 bg-white rounded-lg shadow-lg">
                     <p className="text-gray-800 text-sm mb-2 font-semibold">
                         選択中: {selectedCardInstance.card.card_name}
                     </p>
@@ -77,7 +77,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                                     セット
                                 </button>
                             )}
-                        
+
                         {/* デバッグ情報 */}
                         <div className="text-xs text-gray-700">
                             <div>Type: {selectedCardInstance.card.card_type}</div>
@@ -97,7 +97,8 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                             )}
                             {selectedCardInstance.card.card_name === "金満で謙虚な壺" && (
                                 <div className="text-red-600 font-bold">
-                                    Extravagance: {canActivateExtravagance(gameState) ? "Can Activate" : "Cannot Activate"}
+                                    Extravagance:{" "}
+                                    {canActivateExtravagance(gameState) ? "Can Activate" : "Cannot Activate"}
                                     <div className="text-xs">
                                         EX Deck: {gameState.extraDeck.length} | Drawn by Effect:{" "}
                                         {gameState.hasDrawnByEffect ? "Yes" : "No"} | Extravagance Used:{" "}
@@ -125,7 +126,11 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                                             );
                                             const minRitualLevel =
                                                 ritualMonsters.length > 0
-                                                    ? Math.min(...ritualMonsters.map((c) => (c.card as { level?: number }).level || 0))
+                                                    ? Math.min(
+                                                          ...ritualMonsters.map(
+                                                              (c) => (c.card as { level?: number }).level || 0
+                                                          )
+                                                      )
                                                     : 0;
                                             const totalNormalLevel = normalMonsters.reduce(
                                                 (sum, c) => sum + ((c.card as { level?: number }).level || 0),
@@ -134,9 +139,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                                             return `Ritual: ${ritualMonsters.length} (Min Lv${minRitualLevel}) | Normal: ${totalNormalLevel}Lv total`;
                                         })()}
                                     </div>
-                                    <div className="text-xs">
-                                        EffectQueue: {gameState.effectQueue.length}
-                                    </div>
+                                    <div className="text-xs">EffectQueue: {gameState.effectQueue.length}</div>
                                     <div className="text-xs">
                                         AdvancedRitualState: {gameState.advancedRitualState?.phase || "null"}
                                     </div>

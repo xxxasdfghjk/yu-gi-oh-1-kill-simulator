@@ -22,7 +22,6 @@ interface HandAreaProps {
     activateBanAlpha: (card: CardInstance) => void;
     activateEruGanma: (card: CardInstance) => void;
     activateAruZeta: (card: CardInstance) => void;
-    onCardRightClick: (e: React.MouseEvent, card: CardInstance) => void;
     onCardHoverLeave: () => void;
 }
 
@@ -75,7 +74,6 @@ export const HandArea: React.FC<HandAreaProps> = ({
     activateBanAlpha,
     activateEruGanma,
     activateAruZeta,
-    onCardRightClick,
     onCardHoverLeave,
 }) => {
     const gameState = useGameStore();
@@ -134,7 +132,6 @@ export const HandArea: React.FC<HandAreaProps> = ({
                 {hand.map((card) => (
                     <div
                         key={card.id}
-                        onContextMenu={(e) => onCardRightClick(e, card)}
                         onMouseEnter={() => {
                             const cardActions = getCardActions(card);
                             setActionList(cardActions);
@@ -172,7 +169,10 @@ export const HandArea: React.FC<HandAreaProps> = ({
                                 card={card}
                             />
                         )}
-                        <Card card={card} size="medium" />
+                        <Card 
+                            card={card} 
+                            size="medium" 
+                        />
                     </div>
                 ))}
             </div>

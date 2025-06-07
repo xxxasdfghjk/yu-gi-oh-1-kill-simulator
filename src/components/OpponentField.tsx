@@ -11,14 +11,12 @@ interface OpponentFieldProps {
     };
     activateOpponentFieldSpell: () => void;
     setChickenRaceHover: (hover: { card: CardInstance; x: number; y: number } | null) => void;
-    setShowCardDetail: (card: CardInstance | null) => void;
 }
 
 export const OpponentField: React.FC<OpponentFieldProps> = ({
     opponentField,
     activateOpponentFieldSpell,
     setChickenRaceHover,
-    setShowCardDetail,
 }) => {
     return (
         <div className="mb-2 relative">

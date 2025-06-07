@@ -6,29 +6,25 @@ import { CARD_SIZE } from "@/const/card";
 interface ExtraMonsterZonesProps {
     extraMonsterZones: (CardInstance | null)[];
     handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
-    setShowCardDetail: (card: CardInstance | null) => void;
     opponentField: {
         monsterZones: (CardInstance | null)[];
         spellTrapZones: (CardInstance | null)[];
         fieldZone: CardInstance | null;
     };
-    activateOpponentFieldSpell: () => void;
     setChickenRaceHover: (hover: { card: CardInstance; x: number; y: number } | null) => void;
 }
 
 export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
     extraMonsterZones,
     handleFieldCardClick,
-    setShowCardDetail,
     opponentField,
-    activateOpponentFieldSpell,
     setChickenRaceHover,
 }) => {
     const cardSizeClass = CARD_SIZE.MEDIUM;
 
     return (
         <div className="my-2">
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mx-auto">
+            <div className="grid grid-cols-7 gap-2 max-w-6xl">
                 {/* 空のスペース */}
                 <div className={`${cardSizeClass}`}></div>
                 <div className={`${cardSizeClass}`}></div>
@@ -38,7 +34,6 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                     card={extraMonsterZones[0]}
                     className={`${cardSizeClass} border-4 border-red-400`}
                     onCardClick={handleFieldCardClick}
-                    onCardRightClick={(card) => setShowCardDetail(card)}
                     type={"extra_zone"}
                 />
 
@@ -49,7 +44,6 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                     card={extraMonsterZones[1]}
                     className={`${cardSizeClass} border-4 border-red-400`}
                     onCardClick={handleFieldCardClick}
-                    onCardRightClick={(card) => setShowCardDetail(card)}
                     type={"extra_zone"}
                 />
 
@@ -60,9 +54,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                     card={opponentField?.fieldZone || null}
                     className={CARD_SIZE.MEDIUM}
                     onCardClick={(card, event) => {
-                        if (card?.position === "facedown") {
-                            activateOpponentFieldSpell();
-                        } else if (card?.card.card_name === "チキンレース") {
+                        if (card?.card.card_name === "チキンレース") {
                             if (event) {
                                 setChickenRaceHover({
                                     card: card,
@@ -72,7 +64,6 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                             }
                         }
                     }}
-                    onCardRightClick={(card) => setShowCardDetail(card)}
                 />
             </div>
         </div>

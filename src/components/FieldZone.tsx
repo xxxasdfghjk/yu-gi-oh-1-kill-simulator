@@ -6,7 +6,6 @@ interface FieldZoneProps {
     card: CardInstance | null;
     onClick?: () => void;
     onCardClick?: (card: CardInstance, event?: React.MouseEvent) => void;
-    onCardRightClick?: (card: CardInstance) => void;
     label?: string;
     className?: string;
     type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone";
@@ -20,7 +19,6 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
     card,
     onClick,
     onCardClick,
-    onCardRightClick,
     label,
     className = "",
     type,
@@ -36,12 +34,6 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
         }
     };
 
-    const handleRightClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        if (card && onCardRightClick) {
-            onCardRightClick(card);
-        }
-    };
     const textColor = selected ? "text-red-400" : "text-blue-400";
     const borderColor = selected ? "border-red-400" : "border-blue-400";
     const bgColor = selected ? "bg-red-100" : "";
@@ -54,10 +46,13 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                     disabled ? "opacity-50" : ""
                 }`}
                 onClick={handleClick}
-                onContextMenu={handleRightClick}
             >
                 {card ? (
-                    <Card card={card} size="medium" customSize={customSize} />
+                    <Card 
+                        card={card} 
+                        size="medium" 
+                        customSize={customSize} 
+                    />
                 ) : type === "deck" ? (
                     <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Deck</div>
                 ) : type === "extra_deck" ? (

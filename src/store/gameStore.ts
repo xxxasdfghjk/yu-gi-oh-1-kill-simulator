@@ -3,13 +3,7 @@ import { immer } from "zustand/middleware/immer";
 import type { GameState, GamePhase } from "@/types/game";
 import { loadDeckData } from "@/data/cardLoader";
 import { createCardInstance, shuffleDeck, drawCards, isMonsterCard, isSpellCard, getLevel } from "@/utils/gameUtils";
-import {
-    canNormalSummon,
-    canActivateSpell,
-    findEmptySpellTrapZone,
-    canSetSpellTrap,
-    canActivateHokyuYoin,
-} from "@/utils/summonUtils";
+import { canNormalSummon, findEmptySpellTrapZone, canSetSpellTrap, canActivateHokyuYoin } from "@/utils/summonUtils";
 import type { CardInstance, MonsterCard } from "@/types/card";
 import { helper } from "./gameStoreHelper";
 import { getAttack } from "../utils/gameUtils";
@@ -44,6 +38,18 @@ export type EffectQueueItem =
           effectType: string;
           canSelectPosition: boolean;
           optionPosition: ("attack" | "defense" | "facedown" | "facedown_defense")[];
+      }
+    | {
+          id: string;
+          type: "activate_spell";
+          cardInstance: CardInstance;
+          effectType: string;
+      }
+    | {
+          id: string;
+          type: "spell_end";
+          cardInstance: CardInstance;
+          effectType: string;
       };
 
 export interface GameStore extends GameState {
@@ -54,31 +60,28 @@ export interface GameStore extends GameState {
     playCard: (cardId: string, zone?: number) => void;
     setCard: (cardId: string, zone?: number) => void;
     activateFieldCard: (cardId: string) => void;
-    activateSpellEffect: (card: CardInstance) => void;
-    selectExtravaganceCount: (count: 3 | 6) => void;
-    selectCardFromExtravagance: (selectedCard: CardInstance) => void;
     selectCardFromRevealedCards: (selectedCard: CardInstance, remainingCards: CardInstance[]) => void;
     activateChickenRaceEffect: (effectType: "draw" | "destroy" | "heal") => void;
     setPhase: (phase: GamePhase) => void;
     activateTrapCard: (card: CardInstance) => void;
     selectHokyuyoinTargets: (selectedCards: CardInstance[]) => void;
-    selectBonmawashiCards: (selectedCards: CardInstance[]) => void;
-    selectBonmawashiForPlayer: (card: CardInstance) => void;
-    checkBonmawashiRestriction: () => void;
     activateBanAlpha: (eruGanmaCard: CardInstance) => void;
     activateEruGanma: (eruGanmaCard: CardInstance) => void;
     activateAruZeta: (eruGanmaCard: CardInstance) => void;
     startLinkSummon: (linkMonster: CardInstance) => void;
     startXyzSummon: (xyzMonster: CardInstance) => void;
     effectQueue: EffectQueueItem[];
+    sendSpellToGraveyard: (card: CardInstance) => void;
     addEffectToQueue: (effect: EffectQueueItem) => void;
     processQueueTop: (
         payload:
             | { type: "cardSelect"; cardList: CardInstance[] }
             | { type: "option"; option: { name: string; value: string }[] }
             | { type: "summon"; zone: number; position: "attack" | "defense" | "facedown" | "facedown_defense" }
+            | { type: "activate_spell" }
     ) => void;
     clearQueue: () => void;
+    popQueue: () => void;
     selectedCard: string | null;
     // 個別のサーチ効果状態
     foolishBurialState: {
@@ -191,6 +194,7 @@ const initialState: GameState = {
     hasActivatedCritter: false,
     hasActivatedEmergencyCyber: false,
     hasActivatedFafnirSummonEffect: false,
+    hasActivatedDreitronNova: false,
     isOpponentTurn: false,
     pendingTrapActivation: null,
     bonmawashiRestriction: false,
@@ -297,6 +301,7 @@ export const useGameStore = create<GameStore>()(
                 state.meteorKikougunState = null;
                 state.oneForOneTarget = null;
                 state.hasActivatedFafnirSummonEffect = false;
+                state.hasActivatedDreitronNova = false;
             });
 
             // 初期手札15枚をドロー（デバッグ用）
@@ -429,17 +434,8 @@ export const useGameStore = create<GameStore>()(
                     });
                     return;
                 } else if (isSpellCard(card.card)) {
-                    // 魔法カードの発動処理
-                    console.log("Attempting to activate spell card:", card.card.card_name);
-                    if (!canActivateSpell(state, card.card)) {
-                        console.log("Cannot activate spell card:", card.card.card_name);
-                        return;
-                    }
-                    console.log("Spell card activation allowed:", card.card.card_name);
-
                     // 手札から削除
                     state.hand = state.hand.filter((c) => c.id !== cardId);
-
                     if (card.card.card_type === "フィールド魔法") {
                         // 既存のフィールド魔法を墓地へ
                         if (state.field.fieldZone) {
@@ -495,37 +491,13 @@ export const useGameStore = create<GameStore>()(
                     }
                 }
 
-                state.selectedCard = null;
+                state.effectQueue.unshift({
+                    type: "activate_spell",
+                    cardInstance: card,
+                    effectType: "",
+                    id: "",
+                });
             });
-
-            // set()の外で効果処理を実行
-            if (
-                isSpellCard(card.card) &&
-                (card.card.card_type === "通常魔法" ||
-                    card.card.card_type === "速攻魔法" ||
-                    card.card.card_type === "儀式魔法" ||
-                    card.card.card_type === "フィールド魔法")
-            ) {
-                // フィールドに配置されたカードの情報を取得して効果処理
-                const currentState = get();
-                let activatingCard = card;
-
-                // 通常・速攻・儀式魔法の場合は、フィールドから情報を取得
-                if (
-                    card.card.card_type === "通常魔法" ||
-                    card.card.card_type === "速攻魔法" ||
-                    card.card.card_type === "儀式魔法"
-                ) {
-                    const fieldCard = currentState.field.spellTrapZones.find(
-                        (zoneCard) => zoneCard && zoneCard.id === card.id && zoneCard.isActivating
-                    );
-                    if (fieldCard) {
-                        activatingCard = fieldCard;
-                    }
-                }
-
-                get().activateSpellEffect(activatingCard);
-            }
         },
 
         setCard: (cardId: string, zone?: number) => {
@@ -580,419 +552,6 @@ export const useGameStore = create<GameStore>()(
             }
 
             // 他のカードの効果もここに追加可能
-        },
-
-        activateSpellEffect: (card: CardInstance) => {
-            // 通常・速攻・儀式魔法の場合、効果処理後に墓地へ送る
-            const shouldMoveToGraveyard =
-                card.card.card_type === "通常魔法" ||
-                card.card.card_type === "速攻魔法" ||
-                card.card.card_type === "儀式魔法";
-
-            set((state) => {
-                switch (card.card.card_name) {
-                    case "金満で謙虚な壺": {
-                        state.hasActivatedExtravagance = true; // 金満で謙虚な壺を発動したフラグを立てる
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "option",
-                            effectName: "金満で謙虚な壺（エクストラデッキの除外枚数選択）",
-                            cardInstance: card,
-                            effectType: "option_extravagance",
-                            option: [
-                                { name: "3枚除外", value: "three" },
-                                { name: "6枚除外", value: "six" },
-                            ],
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "ワン・フォー・ワン": {
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "ワン・フォーワン（墓地送り対象選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.hand.filter((c): c is CardInstance => {
-                                    return isMonsterCard(c.card);
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "one_for_one_discard_hand",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "おろかな埋葬": {
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "おろかな埋葬（墓地送り対象選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.deck.filter((c): c is CardInstance => {
-                                    return isMonsterCard(c.card);
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "send_to_graveyard",
-                            canCancel: true,
-                        });
-                        break;
-                    }
-
-                    case "ジャック・イン・ザ・ハンド": {
-                        state.hasActivatedJackInTheHand = true;
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "multiselect",
-                            effectName: "ジャック・イン・ザ・ハンド（3体選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                // レベル1モンスターをデッキから取得
-                                // 同名のカードは一枚までとする
-                                return state.deck
-                                    .filter((c): c is CardInstance => {
-                                        return isMonsterCard(c.card) && (c.card as MonsterCard)?.level === 1;
-                                    })
-                                    .reduce<CardInstance[]>((prev, cur) => {
-                                        if (!prev.some((c) => c.card.card_name === cur.card.card_name)) {
-                                            prev.push(cur);
-                                        }
-                                        return prev;
-                                    }, []);
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                // 3体選択かつ全て異なるカード名であることを確認
-                                if (cards.length !== 3) return false;
-                                const uniqueNames = new Set(cards.map((c) => c.card.card_name));
-                                if (uniqueNames.size !== 3) return false;
-                                return true;
-                            },
-                            effectType: "jack_in_hand_select_three",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "エマージェンシー・サイバー": {
-                        // ターン1制限チェック（発動済みフラグを立てる）
-                        state.hasActivatedEmergencyCyber = true;
-
-                        // デッキから「サイバー・ドラゴン」モンスターまたは通常召喚できない機械族・光属性モンスターを選択
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "エマージェンシー・サイバー（モンスター選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.deck.filter((c): c is CardInstance => {
-                                    if (!isMonsterCard(c.card)) return false;
-                                    const monster = c.card as MonsterCard;
-
-                                    // サイバー・ドラゴンモンスター
-                                    if (monster.card_name.includes("サイバー・ドラゴン")) return true;
-
-                                    // 通常召喚できない機械族・光属性モンスター
-                                    if (
-                                        monster.race === "機械族" &&
-                                        monster.attribute === "光属性" &&
-                                        (monster.card_type === "特殊召喚・効果モンスター" ||
-                                            c.card.text.includes("このカードは通常召喚できない"))
-                                    ) {
-                                        return true;
-                                    }
-
-                                    return false;
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "get_hand_single",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "極超の竜輝巧": {
-                        // デッキから「ドライトロン」モンスター1体を特殊召喚
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "極超の竜輝巧（ドライトロン選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.deck.filter((c): c is CardInstance => {
-                                    if (!isMonsterCard(c.card)) return false;
-                                    return (
-                                        c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")
-                                    );
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "special_summon_from_deck_with_destruction",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "テラ・フォーミング": {
-                        // デッキからフィールド魔法カード1枚を手札に加える
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "テラ・フォーミング（フィールド魔法選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.deck.filter((c): c is CardInstance => {
-                                    return c.card.card_type === "フィールド魔法";
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "get_hand_single",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "盆回し": {
-                        // デッキから異なるフィールド魔法を取得
-                        const fieldSpells = state.deck.filter((c) => c.card.card_type === "フィールド魔法");
-
-                        // 異なるカード名のフィールド魔法を取得
-                        const uniqueFieldSpells: CardInstance[] = [];
-                        const seenNames = new Set<string>();
-
-                        for (const spell of fieldSpells) {
-                            if (!seenNames.has(spell.card.card_name)) {
-                                uniqueFieldSpells.push(spell);
-                                seenNames.add(spell.card.card_name);
-                            }
-                        }
-
-                        if (uniqueFieldSpells.length >= 2) {
-                            // 2枚のフィールド魔法を選択するUIを表示
-                            state.searchingEffect = {
-                                cardName: "盆回し（フィールド魔法2枚選択）",
-                                availableCards: uniqueFieldSpells,
-                                effectType: "bonmawashi_select",
-                            };
-                        }
-                        break;
-                    }
-
-                    case "竜輝巧－ファフニール": {
-                        // ターンに1回制限フラグを設定
-                        state.hasActivatedFafnir = true;
-
-                        // 発動時効果：デッキから「竜輝巧－ファフニール」以外の「ドライトロン」魔法・罠カードを手札に加える
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "竜輝巧－ファフニール（ドライトロン魔法・罠カード選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.deck.filter((c): c is CardInstance => {
-                                    const isSpellOrTrap =
-                                        c.card.card_type.includes("魔法") || c.card.card_type.includes("罠");
-                                    const isDrytron =
-                                        c.card.card_name.includes("竜輝巧") ||
-                                        c.card.card_name.includes("ドライトロン");
-                                    const isNotFafnir = c.card.card_name !== "竜輝巧－ファフニール";
-                                    return isSpellOrTrap && isDrytron && isNotFafnir;
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "add_to_hand_from_deck",
-                            canCancel: true, // この効果は「できる」効果
-                        });
-
-                        // 注: ②の儀式魔法無効化されない効果は実装しない（ユーザーの指示により）
-                        // 注: ③のレベル減少効果は常時効果のため、別途実装が必要
-                        break;
-                    }
-
-                    case "儀式の準備": {
-                        if (state.graveyard.some((c) => c.card.card_type === "儀式魔法")) {
-                            state.effectQueue.unshift({
-                                id: "",
-                                type: "select",
-                                effectName: "儀式の準備（儀式魔法選択）",
-                                cardInstance: card,
-                                getAvailableCards: (state: GameStore) => {
-                                    return state.graveyard.filter((c): c is CardInstance => {
-                                        return c.card.card_type === "儀式魔法";
-                                    });
-                                },
-                                condition: (cards: CardInstance[]) => {
-                                    return cards.length === 1;
-                                },
-                                effectType: "get_hand_single",
-                                canCancel: true,
-                            });
-                        }
-
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "儀式の準備（儀式モンスター選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.deck.filter((c): c is CardInstance => {
-                                    return c.card.card_type === "儀式・効果モンスター";
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "get_hand_single",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "高等儀式術": {
-                        // 手札から儀式モンスターを選択させる
-                        state.effectQueue.unshift({
-                            id: "",
-                            type: "select",
-                            effectName: "高等儀式術（儀式モンスター選択）",
-                            cardInstance: card,
-                            getAvailableCards: (state: GameStore) => {
-                                return state.hand.filter((c): c is CardInstance => {
-                                    return c.card.card_type === "儀式・効果モンスター";
-                                });
-                            },
-                            condition: (cards: CardInstance[]) => {
-                                return cards.length === 1;
-                            },
-                            effectType: "advanced_ritual_first_select",
-                            canCancel: false,
-                        });
-                        break;
-                    }
-
-                    case "流星輝巧群": {
-                        console.log("Activating Meteor Kikougun effect...");
-
-                        // 手札・墓地から儀式モンスターを選択させる
-                        const handRitualMonsters = state.hand.filter(
-                            (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
-                        );
-                        const graveyardRitualMonsters = state.graveyard.filter(
-                            (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
-                        );
-
-                        const allRitualMonsters = [...handRitualMonsters, ...graveyardRitualMonsters];
-
-                        console.log(
-                            "Available ritual monsters for Meteor Kikougun:",
-                            allRitualMonsters.map((c) => c.card.card_name)
-                        );
-
-                        if (allRitualMonsters.length > 0) {
-                            console.log("Setting up ritual monster selection UI");
-                            state.meteorKikougunState = {
-                                phase: "select_ritual_monster",
-                                availableRitualMonsters: allRitualMonsters,
-                            };
-                            state.searchingEffect = {
-                                cardName: "流星輝巧群（儀式モンスター選択）",
-                                availableCards: allRitualMonsters,
-                                effectType: "meteor_kikougun_select_monster",
-                            };
-                        } else {
-                            console.log("No ritual monsters available for Meteor Kikougun");
-                        }
-                        break;
-                    }
-                }
-
-                // 効果処理後に墓地送り処理を実行
-                if (shouldMoveToGraveyard) {
-                    // 発動中のカードをフィールドから探して墓地へ送る
-                    for (let i = 0; i < state.field.spellTrapZones.length; i++) {
-                        const zoneCard = state.field.spellTrapZones[i];
-                        if (zoneCard && zoneCard.id === card.id && zoneCard.isActivating) {
-                            // フィールドから削除
-                            state.field.spellTrapZones[i] = null;
-                            // 墓地へ送る
-                            const graveyardCard = {
-                                ...zoneCard,
-                                location: "graveyard" as const,
-                                zone: undefined,
-                                isActivating: undefined,
-                            };
-                            state.graveyard.push(graveyardCard);
-                            break;
-                        }
-                    }
-                }
-                // Immerでは明示的なreturnは不要（問題の原因かもしれない）
-                // return state;
-            });
-        },
-
-        selectExtravaganceCount: (count: 3 | 6) => {
-            set((state) => {
-                if (!state.extravaganceState || state.extravaganceState.phase !== "select_count") return;
-
-                // EXデッキからカードを除外
-                const actualCount = Math.min(count, state.extraDeck.length);
-                for (let i = 0; i < actualCount; i++) {
-                    const excludedCard = state.extraDeck.shift();
-                    if (excludedCard) {
-                        const updatedCard = { ...excludedCard, location: "banished" as const };
-                        state.banished.push(updatedCard);
-                    }
-                }
-
-                // 除外した数だけデッキの上からカードをめくる
-                const revealedCards: CardInstance[] = [];
-                const cardsToReveal = Math.min(actualCount, state.deck.length);
-
-                for (let i = 0; i < cardsToReveal; i++) {
-                    const revealedCard = state.deck.shift();
-                    if (revealedCard) {
-                        revealedCards.push(revealedCard);
-                    }
-                }
-
-                if (revealedCards.length > 0) {
-                    // カード選択フェーズに移行
-                    state.extravaganceState = {
-                        phase: "select_card_from_deck",
-                        revealedCards: revealedCards,
-                        banishedCount: actualCount,
-                    };
-                } else {
-                    // めくるカードがない場合は終了
-                    state.extravaganceState = null;
-                }
-
-                // TODO: ターン終了時まで相手が受ける全てのダメージは半分になる（実装省略）
-            });
-        },
-
-        selectCardFromExtravagance: () => {
-            // この関数は使用されなくなったが、互換性のため残しておく
-            set((state) => {
-                state.extravaganceState = null;
-            });
         },
 
         selectCardFromRevealedCards: (selectedCard: CardInstance, remainingCards: CardInstance[]) => {
@@ -1165,95 +724,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        selectBonmawashiCards: (selectedCards: CardInstance[]) => {
-            set((state) => {
-                if (selectedCards.length !== 2) {
-                    return;
-                }
-
-                // 選択された2枚をデッキから削除
-                selectedCards.forEach((card) => {
-                    state.deck = state.deck.filter((c) => c.id !== card.id);
-                });
-
-                // 盆回しの状態を更新し、プレイヤーに自分用を選択させる
-                state.bonmawashiState = {
-                    phase: "select_for_player",
-                    selectedCards: selectedCards,
-                };
-
-                // 選択UIを表示
-                state.searchingEffect = {
-                    cardName: "盆回し（自分のフィールドにセットするカードを選択）",
-                    availableCards: selectedCards,
-                    effectType: "bonmawashi_player_select",
-                };
-            });
-        },
-
-        selectBonmawashiForPlayer: (card: CardInstance) => {
-            set((state) => {
-                if (!state.bonmawashiState || state.bonmawashiState.phase !== "select_for_player") return;
-                if (!state.bonmawashiState.selectedCards || state.bonmawashiState.selectedCards.length !== 2) return;
-
-                const otherCard = state.bonmawashiState.selectedCards.find((c) => c.id !== card.id);
-                if (!otherCard) return;
-
-                // 既存のフィールド魔法を墓地へ
-                if (state.field.fieldZone) {
-                    const oldFieldCard = { ...state.field.fieldZone, location: "graveyard" as const };
-                    state.graveyard.push(oldFieldCard);
-                }
-
-                // 選択したカードを自分のフィールドに表側で発動
-                const setSpell = {
-                    ...card,
-                    location: "field_spell_trap" as const,
-                    setByBonmawashi: true, // 盆回しでセットされたことを記録
-                };
-                state.field.fieldZone = setSpell;
-
-                // 自分のフィールドに配置されたカードの発動時効果を処理
-                if (card.card.card_name === "竜輝巧－ファフニール") {
-                    // ファフニールの発動時効果を後で実行
-                    setTimeout(() => {
-                        const currentState = get();
-                        if (!currentState.hasActivatedFafnir) {
-                            get().activateSpellEffect(card);
-                        }
-                    }, 0);
-                }
-
-                // 相手のフィールドにもう1枚を表側で発動
-                const opponentSetSpell = {
-                    ...otherCard,
-                    location: "field_spell_trap" as const,
-                    setByBonmawashi: true, // 盆回しでセットされたことを記録
-                };
-                state.opponentField.fieldZone = opponentSetSpell;
-
-                // 盆回し制限を適用
-                state.bonmawashiRestriction = true;
-
-                // 状態をクリア
-                state.bonmawashiState = null;
-                state.searchingEffect = null;
-            });
-        },
-
-        checkBonmawashiRestriction: () => {
-            set((state) => {
-                // 盆回しでセットされたフィールド魔法がまだフィールドに存在するかチェック
-                const playerFieldHasBonmawashi = state.field.fieldZone?.setByBonmawashi || false;
-                const opponentFieldHasBonmawashi = state.opponentField.fieldZone?.setByBonmawashi || false;
-
-                // どちらもフィールドにない場合、制限を解除
-                if (!playerFieldHasBonmawashi && !opponentFieldHasBonmawashi) {
-                    state.bonmawashiRestriction = false;
-                }
-            });
-        },
-
         activateBanAlpha: (banAlphaCard: CardInstance) => {
             // このターンに既に発動済みの場合は発動不可
             const currentState = get();
@@ -1261,8 +731,6 @@ export const useGameStore = create<GameStore>()(
                 return;
             }
             set((state) => {
-                // バンαの効果を発動済みとしてマーク（UIが表示される前に設定）
-                state.hasActivatedBanAlpha = true;
                 state.effectQueue.unshift({
                     id: "",
                     type: "select",
@@ -1295,7 +763,6 @@ export const useGameStore = create<GameStore>()(
             }
 
             set((state) => {
-                state.hasActivatedEruGanma = true;
                 state.effectQueue.unshift({
                     id: "",
                     type: "select",
@@ -1328,7 +795,6 @@ export const useGameStore = create<GameStore>()(
                 return;
             }
             set((state) => {
-                state.hasActivatedAruZeta = true;
                 state.effectQueue.unshift({
                     id: "",
                     type: "select",
@@ -1437,6 +903,7 @@ export const useGameStore = create<GameStore>()(
                             state.hasActivatedCritter = true;
                             break;
                         case "ban_alpha_release_select":
+                            state.hasActivatedBanAlpha = true;
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
 
                             state.effectQueue.unshift({
@@ -1444,8 +911,8 @@ export const useGameStore = create<GameStore>()(
                                 type: "summon",
                                 cardInstance: currentEffect.cardInstance,
                                 effectType: "",
-                                optionPosition: ["attack" as const, "defense" as const],
-                                canSelectPosition: true,
+                                optionPosition: ["defense" as const],
+                                canSelectPosition: false,
                             });
                             // バンαの効果を適用
                             state.effectQueue.push({
@@ -1484,25 +951,16 @@ export const useGameStore = create<GameStore>()(
                             });
                             break;
 
-                        case "defense_special_summon":
-                            state.effectQueue.unshift({
-                                id: "",
-                                type: "summon",
-                                cardInstance: selectedCard[0],
-                                effectType: "",
-                                optionPosition: ["defense" as const],
-                                canSelectPosition: false,
-                            });
-                            break;
                         case "eru_ganma_release_select": {
+                            state.hasActivatedEruGanma = true;
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
                             state.effectQueue.unshift({
                                 id: "",
                                 type: "summon",
                                 cardInstance: currentEffect.cardInstance,
                                 effectType: "",
-                                optionPosition: ["attack" as const, "defense" as const],
-                                canSelectPosition: true,
+                                optionPosition: ["defense" as const],
+                                canSelectPosition: false,
                             });
 
                             const target = state.graveyard.filter((c): c is CardInstance => {
@@ -1524,28 +982,29 @@ export const useGameStore = create<GameStore>()(
                                     condition: (cards: CardInstance[]) => {
                                         return cards.length === 1;
                                     },
-                                    effectType: "defense_special_summon",
+                                    effectType: "special_summon",
                                     canCancel: true,
                                 });
                             }
                             break;
                         }
                         case "aru_zeta_release_select": {
+                            state.hasActivatedAruZeta = true;
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
                             state.effectQueue.unshift({
                                 id: "",
                                 type: "summon",
                                 cardInstance: currentEffect.cardInstance,
                                 effectType: "",
-                                optionPosition: ["attack", "defense"],
-                                canSelectPosition: true,
+                                optionPosition: ["defense"],
+                                canSelectPosition: false,
                             });
 
                             const target = state.deck.filter((c) => {
                                 return c.card.card_type === "儀式魔法";
                             });
                             if (target.length > 0) {
-                                state.effectQueue.unshift({
+                                state.effectQueue.push({
                                     id: "",
                                     type: "select",
                                     effectName: "竜輝巧－アルζ（儀式魔法選択）",
@@ -1582,6 +1041,12 @@ export const useGameStore = create<GameStore>()(
                                 },
                                 effectType: "get_hand_single",
                                 canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
                             });
                             break;
                         }
@@ -1654,6 +1119,12 @@ export const useGameStore = create<GameStore>()(
                                 },
                                 effectType: "ritual_summon",
                                 canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
                             });
                             break;
                         }
@@ -1752,9 +1223,62 @@ export const useGameStore = create<GameStore>()(
                                 effectType: "special_summon",
                                 canCancel: false,
                             });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
 
                             break;
                         }
+                        case "bonmawashi_select_two": {
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "盆回し（自分のフィールドにセットするフィールド魔法を選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: () => selectedCard,
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "bonmawashi_select_one",
+                                canCancel: false,
+                            });
+                            state.bonmawashiState = {
+                                selectedCards: selectedCard,
+                                phase: "select_two",
+                            };
+                            break;
+                        }
+                        case "bonmawashi_select_one": {
+                            const opponent = state.bonmawashiState!.selectedCards!.find(
+                                (e) => e.id !== selectedCard[0].id
+                            )!;
+                            state.deck = state.deck.filter((e) => ![opponent.id, selectedCard[0].id].includes(e.id));
+
+                            state.opponentField.fieldZone = opponent;
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+                            if (state.field.fieldZone !== null) {
+                                helper.sendMonsterToGraveyardInternalAnywhere(state, state.field.fieldZone!);
+                            }
+                            state.field.fieldZone = selectedCard[0];
+
+                            state.effectQueue.push({
+                                type: "activate_spell",
+                                cardInstance: selectedCard[0],
+                                effectType: "",
+                                id: "",
+                            });
+
+                            break;
+                        }
+
                         default:
                             console.warn("Unknown effect type:", currentEffect.effectType);
                             break;
@@ -1790,13 +1314,20 @@ export const useGameStore = create<GameStore>()(
                                 effectType: "get_hand_single",
                                 canCancel: false,
                             });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+
                             break;
                         }
                         case "fafnir_summon_effect_option": {
                             if (payload.option[0].value === "use") {
                                 state.hasActivatedFafnirSummonEffect = true;
                                 const newInstance = { ...currentEffect.cardInstance };
-                                newInstance.buf.level -= getAttack(newInstance);
+                                newInstance.buf.level -= Math.floor(getAttack(newInstance) / 1000);
                                 helper.updateFieldMonster(state, newInstance);
                             }
                             break;
@@ -1810,6 +1341,371 @@ export const useGameStore = create<GameStore>()(
                     state.effectQueue.shift(); // Remove the processed effect
                     helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance, payload.zone, payload.position);
                 });
+            } else if (payload.type === "activate_spell") {
+                set((state) => {
+                    if (state.effectQueue.length === 0) return;
+                    const currentEffect = state.effectQueue[0];
+                    state.effectQueue.shift(); // Remove the processed effect
+                    switch (currentEffect.cardInstance.card.card_name) {
+                        case "金満で謙虚な壺": {
+                            state.hasActivatedExtravagance = true; // 金満で謙虚な壺を発動したフラグを立てる
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "option",
+                                effectName: "金満で謙虚な壺（エクストラデッキの除外枚数選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "option_extravagance",
+                                option: [
+                                    { name: "3枚除外", value: "three" },
+                                    { name: "6枚除外", value: "six" },
+                                ],
+                                canCancel: false,
+                            });
+                            break;
+                        }
+
+                        case "ワン・フォー・ワン": {
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "ワン・フォーワン（墓地送り対象選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.hand.filter((c): c is CardInstance => {
+                                        return isMonsterCard(c.card);
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "one_for_one_discard_hand",
+                                canCancel: false,
+                            });
+                            break;
+                        }
+
+                        case "おろかな埋葬": {
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "おろかな埋葬（墓地送り対象選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        return isMonsterCard(c.card);
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "send_to_graveyard",
+                                canCancel: true,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+
+                            break;
+                        }
+
+                        case "ジャック・イン・ザ・ハンド": {
+                            state.hasActivatedJackInTheHand = true;
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "multiselect",
+                                effectName: "ジャック・イン・ザ・ハンド（3体選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    // レベル1モンスターをデッキから取得
+                                    // 同名のカードは一枚までとする
+                                    return state.deck
+                                        .filter((c): c is CardInstance => {
+                                            return isMonsterCard(c.card) && (c.card as MonsterCard)?.level === 1;
+                                        })
+                                        .reduce<CardInstance[]>((prev, cur) => {
+                                            if (!prev.some((c) => c.card.card_name === cur.card.card_name)) {
+                                                prev.push(cur);
+                                            }
+                                            return prev;
+                                        }, []);
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    // 3体選択かつ全て異なるカード名であることを確認
+                                    if (cards.length !== 3) return false;
+                                    const uniqueNames = new Set(cards.map((c) => c.card.card_name));
+                                    if (uniqueNames.size !== 3) return false;
+                                    return true;
+                                },
+                                effectType: "jack_in_hand_select_three",
+                                canCancel: false,
+                            });
+                            break;
+                        }
+
+                        case "エマージェンシー・サイバー": {
+                            // ターン1制限チェック（発動済みフラグを立てる）
+                            state.hasActivatedEmergencyCyber = true;
+
+                            // デッキから「サイバー・ドラゴン」モンスターまたは通常召喚できない機械族・光属性モンスターを選択
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "エマージェンシー・サイバー（モンスター選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        if (!isMonsterCard(c.card)) return false;
+                                        const monster = c.card as MonsterCard;
+
+                                        // サイバー・ドラゴンモンスター
+                                        if (monster.card_name.includes("サイバー・ドラゴン")) return true;
+
+                                        // 通常召喚できない機械族・光属性モンスター
+                                        if (
+                                            monster.race === "機械族" &&
+                                            monster.attribute === "光属性" &&
+                                            (monster.card_type === "特殊召喚・効果モンスター" ||
+                                                c.card.text.includes("このカードは通常召喚できない"))
+                                        ) {
+                                            return true;
+                                        }
+
+                                        return false;
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "get_hand_single",
+                                canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+
+                            break;
+                        }
+
+                        case "極超の竜輝巧": {
+                            state.hasActivatedDreitronNova = true;
+                            // デッキから「ドライトロン」モンスター1体を特殊召喚
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "極超の竜輝巧（ドライトロン選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        if (!isMonsterCard(c.card)) return false;
+                                        return (
+                                            c.card.card_name.includes("竜輝巧") ||
+                                            c.card.card_name.includes("ドライトロン")
+                                        );
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "special_summon_from_deck_with_destruction",
+                                canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+
+                            break;
+                        }
+
+                        case "テラ・フォーミング": {
+                            // デッキからフィールド魔法カード1枚を手札に加える
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "テラ・フォーミング（フィールド魔法選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        return c.card.card_type === "フィールド魔法";
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "get_hand_single",
+                                canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+
+                            break;
+                        }
+
+                        case "盆回し": {
+                            // デッキから異なるフィールド魔法を取得
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "multiselect",
+                                effectName: "盆回し（フィールド魔法を2つ選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        return c.card.card_type === "フィールド魔法";
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 2;
+                                },
+                                effectType: "bonmawashi_select_two",
+                                canCancel: false,
+                            });
+                            break;
+                        }
+
+                        case "竜輝巧－ファフニール": {
+                            // ターンに1回制限フラグを設定
+                            state.hasActivatedFafnir = true;
+
+                            // 発動時効果：デッキから「竜輝巧－ファフニール」以外の「ドライトロン」魔法・罠カードを手札に加える
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "竜輝巧－ファフニール（ドライトロン魔法・罠カード選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        const isSpellOrTrap =
+                                            c.card.card_type.includes("魔法") || c.card.card_type.includes("罠");
+                                        const isDrytron =
+                                            c.card.card_name.includes("竜輝巧") ||
+                                            c.card.card_name.includes("ドライトロン");
+                                        const isNotFafnir = c.card.card_name !== "竜輝巧－ファフニール";
+                                        return isSpellOrTrap && isDrytron && isNotFafnir;
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "add_to_hand_from_deck",
+                                canCancel: true, // この効果は「できる」効果
+                            });
+                            break;
+                        }
+
+                        case "儀式の準備": {
+                            if (state.graveyard.some((c) => c.card.card_type === "儀式魔法")) {
+                                state.effectQueue.unshift({
+                                    id: "",
+                                    type: "select",
+                                    effectName: "儀式の準備（儀式魔法選択）",
+                                    cardInstance: currentEffect.cardInstance,
+                                    getAvailableCards: (state: GameStore) => {
+                                        return state.graveyard.filter((c): c is CardInstance => {
+                                            return c.card.card_type === "儀式魔法";
+                                        });
+                                    },
+                                    condition: (cards: CardInstance[]) => {
+                                        return cards.length === 1;
+                                    },
+                                    effectType: "get_hand_single",
+                                    canCancel: true,
+                                });
+                            }
+
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "儀式の準備（儀式モンスター選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.deck.filter((c): c is CardInstance => {
+                                        return c.card.card_type === "儀式・効果モンスター";
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "get_hand_single",
+                                canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
+                            break;
+                        }
+
+                        case "高等儀式術": {
+                            // 手札から儀式モンスターを選択させる
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "高等儀式術（儀式モンスター選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.hand.filter((c): c is CardInstance => {
+                                        return c.card.card_type === "儀式・効果モンスター";
+                                    });
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "advanced_ritual_first_select",
+                                canCancel: false,
+                            });
+                            break;
+                        }
+
+                        case "流星輝巧群": {
+                            console.log("Activating Meteor Kikougun effect...");
+
+                            // 手札・墓地から儀式モンスターを選択させる
+                            const handRitualMonsters = state.hand.filter(
+                                (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
+                            );
+                            const graveyardRitualMonsters = state.graveyard.filter(
+                                (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
+                            );
+
+                            const allRitualMonsters = [...handRitualMonsters, ...graveyardRitualMonsters];
+
+                            console.log(
+                                "Available ritual monsters for Meteor Kikougun:",
+                                allRitualMonsters.map((c) => c.card.card_name)
+                            );
+
+                            if (allRitualMonsters.length > 0) {
+                                console.log("Setting up ritual monster selection UI");
+                                state.meteorKikougunState = {
+                                    phase: "select_ritual_monster",
+                                    availableRitualMonsters: allRitualMonsters,
+                                };
+                                state.searchingEffect = {
+                                    cardName: "流星輝巧群（儀式モンスター選択）",
+                                    availableCards: allRitualMonsters,
+                                    effectType: "meteor_kikougun_select_monster",
+                                };
+                            } else {
+                                console.log("No ritual monsters available for Meteor Kikougun");
+                            }
+                            break;
+                        }
+                    }
+                });
             }
         },
 
@@ -1817,6 +1713,21 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 state.effectQueue = [];
             });
+        },
+        popQueue: () => {
+            set((state) => {
+                state.effectQueue.shift();
+            });
+        },
+
+        sendSpellToGraveyard: (card: CardInstance) => {
+            set((state) => {
+                helper.sendMonsterToGraveyardInternalAnywhere(state, card);
+            });
+        },
+
+        getCardFieldZone: (card: CardInstance) => {
+            return get().field.spellTrapZones.findIndex((e) => e?.id === card.id);
         },
 
         // Keep searchingEffect for backward compatibility during migration

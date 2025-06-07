@@ -18,7 +18,6 @@ interface PlayerFieldProps {
     isOpponentTurn: boolean;
     bonmawashiRestriction: boolean;
     handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
-    setShowCardDetail: (card: CardInstance | null) => void;
     setShowGraveyard: (show: boolean) => void;
     setShowExtraDeck: (show: boolean) => void;
 }
@@ -29,7 +28,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     extraDeck,
     graveyard,
     handleFieldCardClick,
-    setShowCardDetail,
     setShowGraveyard,
     setShowExtraDeck,
 }) => {
@@ -38,14 +36,13 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     return (
         <div>
             {/* プレイヤーモンスターゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mx-auto mb-2">
+            <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
                 <FieldZone
                     card={field.fieldZone}
                     className={cardSizeClass}
                     onClick={() => {}}
                     onCardClick={handleFieldCardClick}
-                    onCardRightClick={(card) => setShowCardDetail(card)}
                     type="field"
                 />
 
@@ -56,8 +53,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         card={card}
                         className={cardSizeClass}
                         onCardClick={handleFieldCardClick}
-                        onCardRightClick={(card) => setShowCardDetail(card)}
-                    />
+                            />
                 ))}
                 {/* 墓地 */}
                 <div className="text-center">
@@ -74,7 +70,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             </div>
 
             {/* 魔法・罠ゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mx-auto mb-2">
+            <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
                 {/* エクストラデッキ */}
                 <div className="text-center">
                     <div
@@ -95,8 +91,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         card={card}
                         className={cardSizeClass}
                         onCardClick={handleFieldCardClick}
-                        onCardRightClick={(card) => setShowCardDetail(card)}
-                    />
+                            />
                 ))}
 
                 {/* デッキ */}

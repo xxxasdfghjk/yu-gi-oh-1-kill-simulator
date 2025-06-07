@@ -30,8 +30,9 @@ export const canNormalSummon = (gameState: GameState, card: CardInstance): boole
         const availableTributes = gameState.field.monsterZones.filter((m) => m !== null).length;
         return availableTributes >= requiredTributes;
     }
+    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
 
-    return true;
+    return hasEmpty;
 };
 
 export const getRequiredTributes = (card: Card): number => {
@@ -121,6 +122,11 @@ export const canActivateSpell = (gameState: GameState, card: Card): boolean => {
         return canActivateFafnir(gameState);
     }
 
+    // 極超の竜輝巧の特別な発動条件チェック
+    if (card.card_name === "竜輝巧－ファフニール") {
+        return canActivateDreitronNova(gameState);
+    }
+
     // フィールド魔法は専用ゾーンへ（盆回し制限をチェック）
     if (card.card_type === "フィールド魔法") {
         if (gameState.bonmawashiRestriction) {
@@ -190,8 +196,22 @@ export const canActivateOneForOne = (gameState: GameState): boolean => {
         const monster = c.card as { level?: number };
         return monster.level === 1;
     });
+    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
 
-    return level1Monsters.length > 0;
+    return level1Monsters.length > 0 && hasEmpty;
+};
+
+export const canActivateDreitronNova = (gameState: GameState): boolean => {
+    if (gameState.hasActivatedDreitronNova === true) {
+        return false;
+    }
+    const monsters = gameState.deck.filter((c) => {
+        if (!isMonsterCard(c.card)) return false;
+        return c.card.card_name.includes("竜輝巧");
+    });
+    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
+
+    return monsters.length > 0 && hasEmpty;
 };
 
 export const canActivateEmergencyCyber = (gameState: GameState): boolean => {
@@ -256,8 +276,9 @@ export const canActivateAdvancedRitual = (gameState: GameState): boolean => {
 
     // デッキの通常モンスターレベル合計が手札の儀式モンスター最小レベル以上必要
     const canActivate = totalNormalLevel >= minRitualLevel;
+    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
 
-    return canActivate;
+    return canActivate && hasEmpty;
 };
 
 export const canActivateHokyuYoin = (gameState: GameState): boolean => {
@@ -281,15 +302,7 @@ export const canActivateFafnir = (gameState: GameState): boolean => {
         return false;
     }
 
-    // デッキに「竜輝巧－ファフニール」以外の「ドライトロン」魔法・罠カードが1枚以上必要
-    const drytronSpellTraps = gameState.deck.filter((c) => {
-        const isSpellOrTrap = c.card.card_type.includes("魔法") || c.card.card_type.includes("罠");
-        const isDrytron = c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
-        const isNotFafnir = c.card.card_name !== "竜輝巧－ファフニール";
-        return isSpellOrTrap && isDrytron && isNotFafnir;
-    });
-
-    return drytronSpellTraps.length >= 1;
+    return true;
 };
 
 export const canActivatePreparationForRitual = (gameState: GameState): boolean => {
@@ -345,7 +358,9 @@ export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
     const canActivate =
         handMachineMonsters.length + fieldMachineMonsters.length >= 1 && sumPower >= ritualMonstersMinAttack;
 
-    return canActivate;
+    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
+
+    return canActivate && hasEmpty;
 };
 
 export const canActivateBanAlpha = (gameState: GameState): boolean => {

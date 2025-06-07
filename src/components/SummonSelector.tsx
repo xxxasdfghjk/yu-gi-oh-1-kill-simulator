@@ -2,12 +2,14 @@ import type { GameStore } from "@/store/gameStore";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
 import { useEffect, useState } from "react";
+import ModalWrapper from "./ModalWrapper";
 type Props = {
     state: GameStore;
     cardInstance: CardInstance;
     onSelect: (zone: number, position: "attack" | "defense" | "facedown" | "facedown_defense") => void;
     optionPosition: ("attack" | "defense" | "facedown" | "facedown_defense")[];
     onCancel?: () => void;
+    isOpen?: boolean;
 };
 const getLinkMonsterSummonalble = (state: GameStore) => {
     const extraMonsters = state.field.extraMonsterZones
@@ -59,7 +61,7 @@ const getLinkMonsterSummonalble = (state: GameStore) => {
     }
 };
 
-const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPosition }: Props) => {
+const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPosition, isOpen = true }: Props) => {
     const cardSizeClass = "w-20 h-32";
     const positionSizeClass = "w-20 h-32";
     const isLinkMonster = cardInstance.card.card_type === "リンクモンスター";
@@ -84,128 +86,126 @@ const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPositio
         setPosition(optionPosition[0]);
     }, []);
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ">
-            <div className="bg-white rounded-lg p-6 max-w-[40vw] w-full mx-4">
-                {isLinkMonster && <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>}
-                <div className="mb-4 p-4 bg-blue-100 rounded text-center">
-                    <p className="font-bold">{cardInstance.card.card_name}</p>
-                    {cardInstance.materials.length > 0 && (
-                        <p className="text-sm text-gray-600 mt-2">
-                            素材: {cardInstance.materials.map((m) => m.card.card_name).join(", ")}
-                        </p>
-                    )}
-                </div>
-                <p className="text-center mb-6">召喚する場所を選択してください</p>
-
-                <div className="grid grid-cols-5 gap-4 max-w-6xl">
-                    {/* 空のスペース */}
-                    <div className={`${cardSizeClass}`}></div>
-
-                    {/* 左のエクストラモンスターゾーン */}
-                    <FieldZone
-                        card={state.field.extraMonsterZones[0]}
-                        className={`${cardSizeClass}`}
-                        onClick={() => {
-                            if (summonable.includes(5)) setZone(5);
-                        }}
-                        type={"extra_zone"}
-                        disabled={!summonable.includes(5)}
-                        selected={zone === 5}
-                        customSize={cardSizeClass}
-                    />
-
-                    <div className={`${cardSizeClass}`}></div>
-
-                    {/* 右のエクストラモンスターゾーン */}
-                    <FieldZone
-                        card={state.field.extraMonsterZones[1]}
-                        className={`${cardSizeClass}`}
-                        onClick={() => {
-                            if (summonable.includes(6)) setZone(6);
-                        }}
-                        type={"extra_zone"}
-                        disabled={!summonable.includes(6)}
-                        selected={zone === 6}
-                        customSize={cardSizeClass}
-                    />
-
-                    <div className={`${cardSizeClass}`}></div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-4 max-w-6xl mt-6">
-                    {state.field.monsterZones.map((card, index) => (
-                        <FieldZone
-                            key={`monster-${index}`}
-                            card={card}
-                            className={cardSizeClass}
-                            onClick={() => {
-                                if (summonable.includes(index)) setZone(index);
-                            }}
-                            disabled={!summonable.includes(index)}
-                            selected={zone === index}
-                            customSize={cardSizeClass}
-                        />
-                    ))}
-                </div>
-
-                <div className="flex mt-6 items-center justify-around">
-                    <div className="mr-2">{"表示形式を選択してください"}</div>
-                    {optionPosition.includes("attack") && (
-                        <FieldZone
-                            card={cardInstance}
-                            className={`${positionSizeClass}`}
-                            onClick={() => {
-                                setPosition("attack");
-                            }}
-                            selected={position === "attack"}
-                            customSize={positionSizeClass}
-                        />
-                    )}
-                    {optionPosition.includes("defense") && (
-                        <FieldZone
-                            card={cardInstance}
-                            className={`${positionSizeClass} -rotate-90`}
-                            onClick={() => {
-                                setPosition("defense");
-                            }}
-                            selected={position === "defense"}
-                            customSize={positionSizeClass}
-                        />
-                    )}
-
-                    {optionPosition.includes("facedown_defense") && (
-                        <FieldZone
-                            card={dummyCardInstance}
-                            className={`${positionSizeClass} `}
-                            onClick={() => {
-                                setPosition("facedown_defense");
-                            }}
-                            selected={position === "facedown_defense"}
-                            customSize={positionSizeClass}
-                            reverse={true}
-                        />
-                    )}
-                </div>
-
-                <div className="flex justify-center mt-6">
-                    <button
-                        onClick={() => onSelect(zone, position)}
-                        disabled={zone < 0}
-                        className={"px-6 py-3 rounded font-bold bg-blue-500 hover:bg-blue-600 text-white"}
-                    >
-                        確定
-                    </button>
-                    {onCancel && (
-                        <button
-                            onClick={() => onCancel()}
-                            className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                        >
-                            キャンセル
-                        </button>
-                    )}
-                </div>
+        <ModalWrapper isOpen={isOpen}>
+            {isLinkMonster && <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>}
+            <div className="mb-4 p-4 bg-blue-100 rounded text-center">
+                <p className="font-bold">{cardInstance.card.card_name}</p>
+                {cardInstance.materials.length > 0 && (
+                    <p className="text-sm text-gray-600 mt-2">
+                        素材: {cardInstance.materials.map((m) => m.card.card_name).join(", ")}
+                    </p>
+                )}
             </div>
-        </div>
+            <p className="text-center mb-6">召喚する場所を選択してください</p>
+
+            <div className="grid grid-cols-5 gap-4 max-w-6xl">
+                {/* 空のスペース */}
+                <div className={`${cardSizeClass}`}></div>
+
+                {/* 左のエクストラモンスターゾーン */}
+                <FieldZone
+                    card={state.field.extraMonsterZones[0]}
+                    className={`${cardSizeClass}`}
+                    onClick={() => {
+                        if (summonable.includes(5)) setZone(5);
+                    }}
+                    type={"extra_zone"}
+                    disabled={!summonable.includes(5)}
+                    selected={zone === 5}
+                    customSize={cardSizeClass}
+                />
+
+                <div className={`${cardSizeClass}`}></div>
+
+                {/* 右のエクストラモンスターゾーン */}
+                <FieldZone
+                    card={state.field.extraMonsterZones[1]}
+                    className={`${cardSizeClass}`}
+                    onClick={() => {
+                        if (summonable.includes(6)) setZone(6);
+                    }}
+                    type={"extra_zone"}
+                    disabled={!summonable.includes(6)}
+                    selected={zone === 6}
+                    customSize={cardSizeClass}
+                />
+
+                <div className={`${cardSizeClass}`}></div>
+            </div>
+
+            <div className="grid grid-cols-5 gap-4 max-w-6xl mt-6">
+                {state.field.monsterZones.map((card, index) => (
+                    <FieldZone
+                        key={`monster-${index}`}
+                        card={card}
+                        className={cardSizeClass}
+                        onClick={() => {
+                            if (summonable.includes(index)) setZone(index);
+                        }}
+                        disabled={!summonable.includes(index)}
+                        selected={zone === index}
+                        customSize={cardSizeClass}
+                    />
+                ))}
+            </div>
+
+            <div className="flex mt-6 items-center justify-around">
+                <div className="mr-2">{"表示形式を選択してください"}</div>
+                {optionPosition.includes("attack") && (
+                    <FieldZone
+                        card={cardInstance}
+                        className={`${positionSizeClass}`}
+                        onClick={() => {
+                            setPosition("attack");
+                        }}
+                        selected={position === "attack"}
+                        customSize={positionSizeClass}
+                    />
+                )}
+                {optionPosition.includes("defense") && (
+                    <FieldZone
+                        card={cardInstance}
+                        className={`${positionSizeClass} -rotate-90`}
+                        onClick={() => {
+                            setPosition("defense");
+                        }}
+                        selected={position === "defense"}
+                        customSize={positionSizeClass}
+                    />
+                )}
+
+                {optionPosition.includes("facedown_defense") && (
+                    <FieldZone
+                        card={dummyCardInstance}
+                        className={`${positionSizeClass} `}
+                        onClick={() => {
+                            setPosition("facedown_defense");
+                        }}
+                        selected={position === "facedown_defense"}
+                        customSize={positionSizeClass}
+                        reverse={true}
+                    />
+                )}
+            </div>
+
+            <div className="flex justify-center mt-6">
+                <button
+                    onClick={() => onSelect(zone, position)}
+                    disabled={zone < 0}
+                    className={"px-6 py-3 rounded font-bold bg-blue-500 hover:bg-blue-600 text-white"}
+                >
+                    確定
+                </button>
+                {onCancel && (
+                    <button
+                        onClick={() => onCancel()}
+                        className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
+                    >
+                        キャンセル
+                    </button>
+                )}
+            </div>
+        </ModalWrapper>
     );
 };
 

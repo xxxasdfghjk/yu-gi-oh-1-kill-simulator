@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "immer": "^10.1.1",
+    "jotai": "^2.12.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "uuid": "^11.1.0",

@@ -12,7 +12,7 @@ export const createCardInstance = (card: Card, location: CardInstance["location"
         equipped: [],
         counters: 0,
         materials: [],
-        buf: { attack: 0, defence: 0, level: 0 },
+        buf: { attack: 0, defense: 0, level: 0 },
     };
 };
 

@@ -85,13 +85,46 @@ export const helper = {
         });
     },
 
+    checkCyberAngelIdatenSummonEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "サイバー・エンジェル－韋駄天－") {
+            return false;
+        }
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "サイバー・エンジェル－韋駄天－（手札に加える儀式魔法を選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return [...state.deck, ...state.graveyard].filter((e) => e.card.card_type === "儀式魔法");
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
+            effectType: "get_hand_single",
+        });
+    },
+
+    checkCyberAngelIdatenReleaseEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "サイバー・エンジェル－韋駄天－") {
+            return false;
+        }
+        console.log("toutatsu");
+        for (let i = 0; i < 5; i++) {
+            if (state.field.monsterZones[i]?.card.card_type === "儀式・効果モンスター") {
+                state.field.monsterZones[i]!.buf.attack += 1000;
+                state.field.monsterZones[i]!.buf.defense += 1000;
+            }
+        }
+    },
+
     checkFieldSummonEffect: (state: GameStore, card: CardInstance) => {
         helper.checkFafnirMuBetaSummonEffect(state, card);
         helper.checkLinkliboSummonEffect(state, card);
         helper.checkFafnirSummonEffect(state, card);
+        helper.checkCyberAngelIdatenSummonEffect(state, card);
     },
     checkReleaseEffect: (state: GameStore, card: CardInstance) => {
         helper.checkCyberAngelBentenReleaseEffect(state, card);
+        helper.checkCyberAngelIdatenReleaseEffect(state, card);
     },
 
     checkFieldDestoryEffect: (state: GameStore, card: CardInstance) => {
@@ -168,8 +201,20 @@ export const helper = {
         return true;
     },
     sendMonsterToGraveyardInternalAnywhere: (state: GameStore, monster: CardInstance, context?: "release") => {
-        const graveyardCard = { ...monster, location: "graveyard" as const, position: undefined };
+        const graveyardCard = {
+            ...monster,
+            location: "graveyard" as const,
+            position: undefined,
+            buf: { attack: 0, defense: 0, level: 0 },
+        };
         let locate = "";
+        console.log([...state.field.spellTrapZones]);
+        console.log(monster);
+        const trapZoneIndex = state.field.spellTrapZones.findIndex((c) => c?.id === monster.id);
+        if (trapZoneIndex !== -1) {
+            state.field.spellTrapZones[trapZoneIndex] = null;
+            locate = "field";
+        }
 
         // フィールドのモンスターゾーンから削除
         const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === monster.id);
@@ -194,7 +239,7 @@ export const helper = {
         monster.materials.forEach((e) => {
             const graveyardCard = {
                 ...e,
-                buf: { attack: 0, level: 0, defence: 0 },
+                buf: { attack: 0, level: 0, defense: 0 },
                 location: "graveyard" as const,
                 position: undefined,
             };
@@ -256,6 +301,6 @@ export const helper = {
         state.deck = state.deck.filter((c) => c.id !== card.id);
         state.graveyard = state.graveyard.filter((c) => c.id !== card.id);
         state.field.monsterZones = state.field.monsterZones.filter((c) => c?.card.id !== card.id);
-        state.hand.push(card);
+        state.hand.push({ ...card, location: "hand" });
     },
 };
