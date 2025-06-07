@@ -111,6 +111,11 @@ export const canActivateSpell = (gameState: GameState, card: Card): boolean => {
         return canActivateMeteorKikougun(gameState);
     }
 
+    // 儀式の準備の特別な発動条件チェック
+    if (card.card_name === "儀式の準備") {
+        return canActivatePreparationForRitual(gameState);
+    }
+
     // 竜輝巧－ファフニールの特別な発動条件チェック
     if (card.card_name === "竜輝巧－ファフニール") {
         return canActivateFafnir(gameState);
@@ -135,6 +140,9 @@ export const canActivateSpell = (gameState: GameState, card: Card): boolean => {
 
 export const canActivateJackInHand = (gameState: GameState): boolean => {
     // デッキから異なるレベル1モンスター3体を探す
+    if (gameState.hasActivatedJackInTheHand) {
+        return false; // このターンに既に発動済み
+    }
     const level1Monsters = gameState.deck.filter((c) => {
         if (!isMonsterCard(c.card)) return false;
         const monster = c.card as { level?: number };
@@ -158,6 +166,10 @@ export const canActivateFoolishBurial = (gameState: GameState): boolean => {
 };
 
 export const canActivateExtravagance = (gameState: GameState): boolean => {
+    if (gameState.hasActivatedExtravagance) {
+        return false;
+    } // 金満で謙虚な壺を発動したフラグを立てる
+
     // EXデッキが3枚以上必要
     if (gameState.extraDeck.length < 3) return false;
 
@@ -280,6 +292,17 @@ export const canActivateFafnir = (gameState: GameState): boolean => {
     return drytronSpellTraps.length >= 1;
 };
 
+export const canActivatePreparationForRitual = (gameState: GameState): boolean => {
+    const deckRitualMonsters = gameState.deck.filter(
+        (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
+    );
+
+    if (deckRitualMonsters.length === 0) {
+        return false;
+    }
+    return true;
+};
+
 export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
     console.log("Checking Meteor Kikougun activation conditions...");
 
@@ -353,12 +376,38 @@ export const canActivateBanAlpha = (gameState: GameState): boolean => {
     return handTargets.length + fieldTargets.length >= 1;
 };
 
+export const canActivateAruZeta = (gameState: GameState): boolean => {
+    // このターンに既に発動済みの場合は発動不可
+    if (gameState.hasActivatedAruZeta) {
+        return false;
+    }
+    // リリース対象となるカードが必要（手札・フィールドのドライトロンモンスターまたは儀式モンスター）
+    const handTargets = gameState.hand.filter((c) => {
+        if (!isMonsterCard(c.card)) return false;
+        const isDrytron =
+            (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
+            c.card.card_name !== "竜輝巧－アルζ";
+        const isRitual = c.card.card_type === "儀式・効果モンスター";
+        return isDrytron || isRitual;
+    });
+
+    const fieldTargets = gameState.field.monsterZones.filter((c): c is CardInstance => {
+        if (!c || !isMonsterCard(c.card)) return false;
+        const isDrytron =
+            (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
+            c.card.card_name !== "竜輝巧－アルζ";
+        const isRitual = c.card.card_type === "儀式・効果モンスター";
+        return isDrytron || isRitual;
+    });
+
+    return handTargets.length + fieldTargets.length >= 1;
+};
+
 export const canActivateEruGanma = (gameState: GameState): boolean => {
     // このターンに既に発動済みの場合は発動不可
     if (gameState.hasActivatedEruGanma) {
         return false;
     }
-    console.log(gameState);
     // リリース対象となるカードが必要（手札・フィールドのドライトロンモンスターまたは儀式モンスター）
     const handTargets = gameState.hand.filter((c) => {
         if (!isMonsterCard(c.card)) return false;

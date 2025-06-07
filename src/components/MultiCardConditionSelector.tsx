@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
+import type { GameStore } from "@/store/gameStore";
 
 interface MultiCardConditionSelectorProps {
-    cards: CardInstance[];
+    type: "multi" | "single";
+    state: GameStore;
+    getAvailableCards: (state: GameStore) => CardInstance[];
     title: string;
-    maxSelections: number;
     onSelect: (selectedCards: CardInstance[]) => void;
     onCancel?: () => void;
     condition: (selectedCards: CardInstance[]) => boolean;
@@ -13,29 +15,35 @@ interface MultiCardConditionSelectorProps {
 }
 
 export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProps> = ({
-    cards,
+    type,
+    state,
+    getAvailableCards,
     title,
-    maxSelections,
     onSelect,
     onCancel,
     filterFunction,
     condition,
 }) => {
     const [selectedCards, setSelectedCards] = useState<CardInstance[]>([]);
-
+    const cards = getAvailableCards(state);
     const handleCardClick = (card: CardInstance) => {
-        const isSelected = selectedCards.some((c) => c.id === card.id);
-
-        if (isSelected) {
-            // カードの選択を解除
-            setSelectedCards((prev) => prev.filter((c) => c.id !== card.id));
-        } else {
-            // カードを選択（最大数チェック）
-            if (selectedCards.length < maxSelections) {
-                // フィルター関数をチェック
+        if (type === "multi") {
+            const isSelected = selectedCards.some((c) => c.id === card.id);
+            if (isSelected) {
+                // カードの選択を解除
+                setSelectedCards((prev) => prev.filter((c) => c.id !== card.id));
+            } else {
                 if (!filterFunction || filterFunction(card, selectedCards)) {
                     setSelectedCards((prev) => [...prev, card]);
                 }
+            }
+        } else {
+            const isSelected = selectedCards.some((c) => c.id === card.id);
+            if (isSelected) {
+                // カードの選択を解除
+                setSelectedCards((prev) => prev.filter((c) => c.id !== card.id));
+            } else {
+                setSelectedCards([card]); // シングル選択の場合、選択されたカードを上書き
             }
         }
     };
@@ -53,6 +61,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
     const handleConfirm = () => {
         if (canConfirm) {
             onSelect(selectedCards);
+            setSelectedCards([]);
         }
     };
 
@@ -61,9 +70,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
             <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
-                    <p className="text-center text-gray-600">
-                        {selectedCards.length}/{maxSelections} 枚選択中
-                    </p>
+                    <p className="text-center text-gray-600">{selectedCards.length} 枚選択中</p>
                 </div>
 
                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mb-6">
@@ -100,7 +107,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}
                     >
-                        確定 ({selectedCards.length}/{maxSelections})
+                        確定 ({selectedCards.length})
                     </button>
                     {onCancel && (
                         <button

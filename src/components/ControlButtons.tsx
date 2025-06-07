@@ -135,7 +135,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                                         })()}
                                     </div>
                                     <div className="text-xs">
-                                        SearchingEffect: {gameState.searchingEffect?.effectType || "null"}
+                                        EffectQueue: {gameState.effectQueue.length}
                                     </div>
                                     <div className="text-xs">
                                         AdvancedRitualState: {gameState.advancedRitualState?.phase || "null"}

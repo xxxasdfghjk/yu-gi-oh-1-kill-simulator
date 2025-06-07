@@ -9,6 +9,7 @@ import {
     canSetSpellTrap,
     canActivateBanAlpha,
     canActivateEruGanma,
+    canActivateAruZeta,
 } from "@/utils/summonUtils";
 
 interface HandAreaProps {
@@ -20,6 +21,7 @@ interface HandAreaProps {
     setCard: (cardId: string) => void;
     activateBanAlpha: (card: CardInstance) => void;
     activateEruGanma: (card: CardInstance) => void;
+    activateAruZeta: (card: CardInstance) => void;
     onCardRightClick: (e: React.MouseEvent, card: CardInstance) => void;
     onCardHoverLeave: () => void;
 }
@@ -72,6 +74,7 @@ export const HandArea: React.FC<HandAreaProps> = ({
     setCard,
     activateBanAlpha,
     activateEruGanma,
+    activateAruZeta,
     onCardRightClick,
     onCardHoverLeave,
 }) => {
@@ -97,6 +100,9 @@ export const HandArea: React.FC<HandAreaProps> = ({
         if (card.card.card_name === "竜輝巧－エルγ" && canActivateEruGanma(gameState)) {
             actions.push("effect");
         }
+        if (card.card.card_name === "竜輝巧－アルζ" && canActivateAruZeta(gameState)) {
+            actions.push("effect");
+        }
 
         return actions;
     };
@@ -114,6 +120,11 @@ export const HandArea: React.FC<HandAreaProps> = ({
                 return;
             }
             activateEruGanma(card);
+        } else if (card.card.card_name === "竜輝巧－アルζ") {
+            if (!canActivateAruZeta(gameState)) {
+                return;
+            }
+            activateAruZeta(card);
         }
     };
 

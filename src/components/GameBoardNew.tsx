@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useGameStore } from "@/store/gameStore";
 import { Card } from "./Card";
 import { CardDetail } from "./CardDetail";
-import { CardSelector } from "./CardSelector";
-import { MultiCardSelector } from "./MultiCardSelector";
 import { AdvancedRitualSelector } from "./AdvancedRitualSelector";
 import { ActionListSelector, HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
@@ -11,8 +9,9 @@ import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { isMonsterCard } from "@/utils/gameUtils";
 import { canActivateBanAlpha } from "@/utils/summonUtils";
-import type { CardInstance, MonsterCard } from "@/types/card";
+import type { CardInstance } from "@/types/card";
 import { MultiCardConditionSelector } from "./MultiCardConditionSelector";
+import { MultiOptionSelector } from "./MultiOptionSelector";
 
 export const GameBoardNew: React.FC = () => {
     const {
@@ -35,16 +34,7 @@ export const GameBoardNew: React.FC = () => {
         summonMonster,
         activateFieldCard,
         activateSetCard,
-        searchingEffect,
-        foolishBurialState,
-        selectFromDeck,
         summonSelecting,
-        jackInHandState,
-        selectForJackInHand,
-        selectPlayerCardFromJack,
-        extravaganceState,
-        selectExtravaganceCount,
-        selectCardFromRevealedCards,
         selectNormalMonstersForRitual,
         advancedRitualState,
         activateChickenRaceEffect,
@@ -52,23 +42,21 @@ export const GameBoardNew: React.FC = () => {
         pendingTrapActivation,
         activateTrapCard,
         declineTrapActivation,
-        selectHokyuyoinTargets,
-        selectBonmawashiCards,
         bonmawashiRestriction,
         activateBanAlpha,
         linkSummonState,
         xyzSummonState,
         startLinkSummon,
-        selectLinkMaterials,
         summonLinkMonster,
         startXyzSummon,
-        selectXyzMaterials,
         summonXyzMonster,
-        meteorKikougunState,
-        selectMaterialsForMeteorKikougun,
         activateEruGanma,
         opponentField,
         activateOpponentFieldSpell,
+        effectQueue,
+        processQueueTop,
+        clearQueue,
+        activateAruZeta,
     } = useGameStore();
 
     const [showCardDetail, setShowCardDetail] = useState<CardInstance | null>(null);
@@ -76,16 +64,6 @@ export const GameBoardNew: React.FC = () => {
     const [showExtraDeck, setShowExtraDeck] = useState(false);
     const [chickenRaceHover, setChickenRaceHover] = useState<{ card: CardInstance; x: number; y: number } | null>(null);
     const gameState = useGameStore();
-
-    // 相手ターン中で補充要員の確認がない場合、3秒後に自動でターンエンド
-    useEffect(() => {
-        if (isOpponentTurn && !pendingTrapActivation) {
-            const timer = setTimeout(() => {
-                nextPhase();
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [isOpponentTurn, pendingTrapActivation, nextPhase]);
 
     useEffect(() => {
         initializeGame();
@@ -251,6 +229,7 @@ export const GameBoardNew: React.FC = () => {
                     onCardRightClick={handleCardRightClick}
                     onCardHoverLeave={handleCardHoverLeave}
                     activateEruGanma={activateEruGanma}
+                    activateAruZeta={activateAruZeta}
                 />
             </div>
 
@@ -275,87 +254,57 @@ export const GameBoardNew: React.FC = () => {
 
             <CardDetail card={showCardDetail} onClose={() => setShowCardDetail(null)} />
 
-            {/* サーチ効果のカード選択 */}
-            {searchingEffect &&
-                searchingEffect.effectType !== "foolish_burial_select" &&
-                searchingEffect.effectType !== "jack_in_hand_select_three" &&
-                searchingEffect.effectType !== "hokyuyoin_multi_select" &&
-                searchingEffect.effectType !== "bonmawashi_select" && (
-                    <CardSelector
-                        cards={searchingEffect.availableCards}
-                        title={`${searchingEffect.cardName}の効果で選択してください`}
-                        onSelect={(card) => selectFromDeck(card)}
-                        onCancel={() => {
-                            // キャンセル処理（サーチ効果を無効にする）
-                            useGameStore.setState((state) => ({
-                                ...state,
-                                searchingEffect: null,
-                            }));
-                        }}
-                    />
-                )}
+            {/* 効果キューモーダル - 新しい統一システム */}
+            {effectQueue.length > 0 &&
+                (() => {
+                    const currentEffect = effectQueue[0];
+                    // 通常のカード選択
+                    switch (currentEffect.type) {
+                        case "option":
+                            return (
+                                <MultiOptionSelector
+                                    state={gameState}
+                                    title={`${currentEffect.cardInstance.card.card_name}: ${currentEffect.effectName}`}
+                                    onSelect={(option) => processQueueTop({ type: "option", option: [option] })}
+                                    onCancel={currentEffect.canCancel ? () => clearQueue() : undefined}
+                                    optionList={currentEffect.option}
+                                />
+                            );
 
-            {/* おろかな埋葬効果のカード選択 */}
-            {(searchingEffect && searchingEffect.effectType === "foolish_burial_select") || foolishBurialState ? (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">おろかな埋葬</h3>
-                        <p className="text-center mb-6">デッキからモンスター1体を選んで墓地へ送ってください：</p>
-                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-6">
-                            {(foolishBurialState?.availableCards || searchingEffect?.availableCards || []).map(
-                                (card) => (
-                                    <div
-                                        key={card.id}
-                                        className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300"
-                                        onClick={() => selectFromDeck(card)}
-                                    >
-                                        <Card card={card} size="small" />
-                                        <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
-                                    </div>
-                                )
-                            )}
-                        </div>
-                        <div className="flex justify-center"></div>
-                    </div>
-                </div>
-            ) : null}
+                        case "select":
+                            return (
+                                <MultiCardConditionSelector
+                                    condition={currentEffect.condition}
+                                    getAvailableCards={currentEffect.getAvailableCards}
+                                    state={gameState}
+                                    title={`${currentEffect.cardInstance.card.card_name}: ${currentEffect.effectName}`}
+                                    onSelect={(card) => processQueueTop({ type: "cardSelect", cardList: card })}
+                                    onCancel={currentEffect.canCancel ? () => clearQueue() : undefined}
+                                    type={"single"}
+                                />
+                            );
+
+                        case "multiselect":
+                            return (
+                                <MultiCardConditionSelector
+                                    title={`${currentEffect.cardInstance.card.card_name}: ${currentEffect.effectName}`}
+                                    onSelect={(card) => processQueueTop({ type: "cardSelect", cardList: card })}
+                                    onCancel={() => clearQueue()}
+                                    filterFunction={currentEffect.filterFunction}
+                                    type={"multi"}
+                                    state={gameState}
+                                    getAvailableCards={currentEffect.getAvailableCards}
+                                    condition={currentEffect.condition}
+                                />
+                            );
+                        default:
+                            return null;
+                    }
+                })()}
+
+            {/* おろかな埋葬効果のカード選択 - 現在はキューシステムで処理 */}
 
             {/* エクストラデッキのカード選択 */}
-
-            {/* リンクリボー効果のカード選択 */}
-            {searchingEffect && searchingEffect.effectType === "link_riboh_mill" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">リンクリボー</h3>
-                        <p className="text-center mb-6">デッキからレベル1モンスター1体を選んで墓地へ送ってください：</p>
-                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-center">
-                            <button
-                                onClick={() => {
-                                    useGameStore.setState((state) => ({
-                                        ...state,
-                                        searchingEffect: null,
-                                    }));
-                                }}
-                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                            >
-                                キャンセル
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* モンスター召喚選択 */}
             {summonSelecting && (
@@ -395,394 +344,15 @@ export const GameBoardNew: React.FC = () => {
                 </div>
             )}
 
-            {/* ジャック・イン・ザ・ハンド効果 */}
-            {jackInHandState &&
-                jackInHandState.phase === "select_three" &&
-                searchingEffect?.effectType === "jack_in_hand_select_three" && (
-                    <MultiCardSelector
-                        cards={searchingEffect.availableCards.filter((c) => {
-                            if (!isMonsterCard(c.card)) return false;
-                            const monster = c.card as { level?: number };
-                            return monster.level === 1;
-                        })}
-                        title="ジャック・イン・ザ・ハンド: 異なるレベル1モンスター3体を選択してください"
-                        maxSelections={3}
-                        onSelect={(selectedCards) => {
-                            selectForJackInHand(selectedCards);
-                        }}
-                        onCancel={() => {
-                            useGameStore.setState((state) => ({
-                                ...state,
-                                searchingEffect: null,
-                                jackInHandState: null,
-                            }));
-                        }}
-                        filterFunction={(card, alreadySelected) => {
-                            // 異なるカード名のモンスターのみ選択可能
-                            return !alreadySelected.some((selected) => selected.card.card_name === card.card.card_name);
-                        }}
-                    />
-                )}
+            {/* ジャック・イン・ザ・ハンド効果 - 現在はキューシステムで処理 */}
 
-            {/* 補充要員効果 */}
-            {searchingEffect?.effectType === "hokyuyoin_multi_select" && (
-                <MultiCardSelector
-                    cards={searchingEffect.availableCards}
-                    title="補充要員: 効果モンスター以外の攻撃力1500以下のモンスターを3体まで選択してください"
-                    maxSelections={3}
-                    onSelect={(selectedCards) => {
-                        selectHokyuyoinTargets(selectedCards);
-                    }}
-                    onCancel={() => {
-                        useGameStore.setState((state) => ({
-                            ...state,
-                            searchingEffect: null,
-                        }));
-                    }}
-                />
-            )}
+            {/* 補充要員効果 - 現在はキューシステムで処理 */}
 
-            {/* 盆回し効果 - 2枚選択 */}
-            {searchingEffect?.effectType === "bonmawashi_select" && (
-                <MultiCardSelector
-                    cards={searchingEffect.availableCards}
-                    title="盆回し: 異なるフィールド魔法2枚を選択してください"
-                    maxSelections={2}
-                    onSelect={(selectedCards) => {
-                        selectBonmawashiCards(selectedCards);
-                    }}
-                    onCancel={() => {
-                        useGameStore.setState((state) => ({
-                            ...state,
-                            searchingEffect: null,
-                            bonmawashiState: null,
-                        }));
-                    }}
-                />
-            )}
+            {/* 盆回し効果 - 現在はキューシステムで処理 */}
 
-            {/* 竜輝巧－バンα効果 - リリース対象選択 */}
-            {searchingEffect?.effectType === "ban_alpha_release_select" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－バンα</h3>
-                        <p className="text-center mb-6">
-                            リリースするドライトロンモンスターまたは儀式モンスターを選択してください：
-                        </p>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300 border-2 border-gray-200 rounded p-2"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-2 truncate font-semibold">
-                                        {card.card.card_name}
-                                    </div>
-                                    <div className="text-xs text-center text-gray-600">
-                                        {card.location === "hand" ? "手札" : "フィールド"}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* ジャック・イン・ザ・ハンドプレイヤー選択 - 現在はキューシステムで処理 */}
 
-            {/* 竜輝巧－エルγ効果 - リリース対象選択 */}
-            {searchingEffect?.effectType === "eru_ganma_release_select" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－エルγ</h3>
-                        <p className="text-center mb-6">
-                            リリースするドライトロンモンスターまたは儀式モンスターを選択してください：
-                        </p>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300 border-2 border-gray-200 rounded p-2"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-2 truncate font-semibold">
-                                        {card.card.card_name}
-                                    </div>
-                                    <div className="text-xs text-center text-gray-600">
-                                        {card.location === "hand" ? "手札" : "フィールド"}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 竜輝巧－バンα効果 - 儀式モンスター選択 */}
-            {searchingEffect?.effectType === "ban_alpha_ritual_select" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－バンα</h3>
-                        <p className="text-center mb-6">手札に加える儀式モンスターを選択してください：</p>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-green-300 border-2 border-gray-200 rounded p-2"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-2 truncate font-semibold">
-                                        {card.card.card_name}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 竜輝巧－エルγ効果 - 墓地からモンスター特殊召喚 */}
-            {searchingEffect?.effectType === "eru_ganma_graveyard_select" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－エルγ</h3>
-                        <p className="text-center mb-6">墓地からモンスター1体を選んで特殊召喚してください：</p>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-cyan-300 border-2 border-gray-200 rounded p-2"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-2 truncate font-semibold">
-                                        {card.card.card_name}
-                                    </div>
-                                    <div className="text-xs text-center text-gray-600">
-                                        {card.location === "graveyard" ? "墓地" : ""}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-center">
-                            <button
-                                onClick={() => {
-                                    useGameStore.setState((state) => ({
-                                        ...state,
-                                        searchingEffect: null,
-                                    }));
-                                }}
-                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                            >
-                                キャンセル
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 竜輝巧－ファフμβ'登場時効果 - ドライトロンカード選択 */}
-            {searchingEffect?.effectType === "fafnir_mu_beta_xyz_summon" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－ファフμβ'</h3>
-                        <p className="text-center mb-6">
-                            デッキからドライトロンカード1枚を選んで墓地へ送ってください：
-                        </p>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 border-2 border-gray-200 rounded p-2"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-2 truncate font-semibold">
-                                        {card.card.card_name}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 竜輝巧－ファフμβ'墓地送り時効果 - ドライトロンモンスター選択 */}
-            {searchingEffect?.effectType === "fafnir_mu_beta_graveyard" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">竜輝巧－ファフμβ'</h3>
-                        <p className="text-center mb-6">
-                            手札・デッキからドライトロンモンスター1体を選んで特殊召喚してください：
-                        </p>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                            {searchingEffect.availableCards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 border-2 border-gray-200 rounded p-2"
-                                    onClick={() => selectFromDeck(card)}
-                                >
-                                    <Card card={card} size="small" />
-                                    <div className="text-xs text-center mt-2 truncate font-semibold">
-                                        {card.card.card_name}
-                                    </div>
-                                    <div className="text-xs text-center text-gray-600">
-                                        {card.location === "hand" ? "手札" : "デッキ"}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-center">
-                            <button
-                                onClick={() => {
-                                    useGameStore.setState((state) => ({
-                                        ...state,
-                                        searchingEffect: null,
-                                    }));
-                                }}
-                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                            >
-                                キャンセル
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 流星輝巧群儀式モンスター選択 */}
-            {searchingEffect?.effectType === "meteor_kikougun_select_monster" &&
-                (() => {
-                    console.log(
-                        "Rendering ritual monster selection UI with cards:",
-                        searchingEffect.availableCards.map((c) => c.card.card_name)
-                    );
-                    return (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
-                            <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                                <h3 className="text-lg font-bold mb-4 text-center">流星輝巧群</h3>
-                                <p className="text-center mb-6">儀式召喚する儀式モンスターを選択してください：</p>
-                                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                                    {searchingEffect.availableCards.map((card) => (
-                                        <div
-                                            key={card.id}
-                                            className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300 border-2 border-gray-200 rounded p-2"
-                                            onClick={() => selectFromDeck(card)}
-                                        >
-                                            <Card card={card} size="small" />
-                                            <div className="text-xs text-center mt-2 truncate font-semibold">
-                                                {card.card.card_name}
-                                            </div>
-                                            <div className="text-xs text-center text-gray-600">
-                                                攻撃力: {(card.card as { attack?: number }).attack || 0}
-                                            </div>
-                                            <div className="text-xs text-center text-gray-600">
-                                                {card.location === "hand" ? "手札" : "墓地"}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })()}
-
-            {jackInHandState && jackInHandState.phase === "player_selects" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-                        <h3 className="text-lg font-bold mb-4 text-center">ジャック・イン・ザ・ハンド</h3>
-                        <div className="mb-4 p-4 bg-red-100 rounded">
-                            <p className="text-center text-red-800 mb-2">相手が次のカードをランダムに選択しました:</p>
-                            <div className="flex justify-center">
-                                <div className="text-center">
-                                    <Card card={jackInHandState.opponentCard!} size="medium" />
-                                    <p className="text-sm mt-1">{jackInHandState.opponentCard!.card.card_name}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mb-6">
-                            <p className="text-center mb-4">残りのカードから1枚を選んで手札に加えてください:</p>
-                            <div className="flex justify-center gap-4">
-                                {jackInHandState.remainingCards?.map((card) => (
-                                    <div
-                                        key={card.id}
-                                        className="cursor-pointer transition-transform hover:scale-105"
-                                        onClick={() => selectPlayerCardFromJack(card)}
-                                    >
-                                        <Card card={card} size="medium" />
-                                        <p className="text-sm text-center mt-1">{card.card.card_name}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 金満で謙虚な壺効果 - 除外枚数選択 */}
-            {extravaganceState && extravaganceState.phase === "select_count" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-bold mb-4 text-center">金満で謙虚な壺</h3>
-                        <p className="text-center mb-6">EXデッキから何枚除外しますか？</p>
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => selectExtravaganceCount(3)}
-                                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded"
-                            >
-                                3枚除外（デッキから3枚めくる）
-                            </button>
-                            <button
-                                onClick={() => selectExtravaganceCount(6)}
-                                disabled={extraDeck.length < 6}
-                                className={`w-full font-bold py-3 px-4 rounded ${
-                                    extraDeck.length >= 6
-                                        ? "bg-purple-500 hover:bg-purple-600 text-white"
-                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                }`}
-                            >
-                                6枚除外（デッキから6枚めくる）
-                                {extraDeck.length < 6 && <div className="text-xs">（EXデッキが不足）</div>}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 金満で謙虚な壺効果 - カード選択 */}
-            {extravaganceState &&
-                extravaganceState.phase === "select_card_from_deck" &&
-                extravaganceState.revealedCards && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                            <h3 className="text-lg font-bold mb-4 text-center">金満で謙虚な壺</h3>
-                            <p className="text-center mb-6">めくったカードから1枚を選んで手札に加えてください：</p>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                                {extravaganceState.revealedCards.map((card, index) => (
-                                    <div
-                                        key={`${card.id}-${index}`}
-                                        className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-300 border-2 border-gray-200 rounded p-2"
-                                        onClick={() => {
-                                            const remainingCards = extravaganceState.revealedCards!.filter(
-                                                (_, i) => i !== index
-                                            );
-                                            selectCardFromRevealedCards(card, remainingCards);
-                                        }}
-                                    >
-                                        <Card card={card} size="small" />
-                                        <div className="text-xs text-center mt-2 truncate font-semibold">
-                                            {card.card.card_name}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="text-center text-sm text-gray-600">
-                                残りの{extravaganceState.revealedCards.length - 1}枚のカードはデッキの一番下に戻されます
-                            </div>
-                        </div>
-                    </div>
-                )}
+            {/* 金満で謙虚な壺効果 - 現在はキューシステムで処理 */}
 
             {/* 墓地確認モーダル */}
             {showGraveyard && (
@@ -917,37 +487,6 @@ export const GameBoardNew: React.FC = () => {
                 </div>
             )}
 
-            {/* 高等儀式術効果 - 通常モンスター選択 */}
-            {advancedRitualState && advancedRitualState.phase === "select_normal_monsters" && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold mb-4 text-center">高等儀式術</h3>
-                        <div className="mb-4 p-4 bg-blue-100 rounded">
-                            <p className="text-center text-blue-800 mb-2">
-                                選択された儀式モンスター: {advancedRitualState.selectedRitualMonster?.card.card_name}
-                            </p>
-                            <p className="text-center text-blue-800">必要レベル: {advancedRitualState.requiredLevel}</p>
-                        </div>
-                        <p className="text-center mb-6">
-                            デッキから通常モンスターを選択してください（選択したモンスターは墓地へ送られます）：
-                        </p>
-                        <AdvancedRitualSelector
-                            normalMonsters={advancedRitualState.availableNormals || []}
-                            requiredLevel={advancedRitualState.requiredLevel || 0}
-                            onSelect={(selectedMonsters: CardInstance[]) => {
-                                selectNormalMonstersForRitual(selectedMonsters);
-                            }}
-                            onCancel={() => {
-                                useGameStore.setState((state) => ({
-                                    ...state,
-                                    advancedRitualState: null,
-                                }));
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
-
             {/* チキンレース効果選択モーダル */}
             {chickenRaceHover && (
                 <div className="fixed inset-0 bg-transparent z-50" onClick={() => setChickenRaceHover(null)}>
@@ -1032,70 +571,11 @@ export const GameBoardNew: React.FC = () => {
                 </div>
             )}
 
-            {/* リンク召喚素材選択 */}
-            {searchingEffect?.effectType === "link_summon_select_materials" && linkSummonState && (
-                <MultiCardSelector
-                    cards={searchingEffect.availableCards}
-                    title={`${linkSummonState.linkMonster?.card.card_name}: リンク素材を${linkSummonState.requiredMaterials}体選択してください`}
-                    maxSelections={linkSummonState.requiredMaterials || 1}
-                    onSelect={(selectedMaterials) => {
-                        selectLinkMaterials(selectedMaterials);
-                    }}
-                    onCancel={() => {
-                        useGameStore.setState((state) => ({
-                            ...state,
-                            searchingEffect: null,
-                            linkSummonState: null,
-                        }));
-                    }}
-                />
-            )}
-
-            {/* エクシーズ召喚素材選択 */}
-            {searchingEffect?.effectType === "xyz_summon_select_materials" && xyzSummonState && (
-                <MultiCardSelector
-                    cards={searchingEffect.availableCards}
-                    title={`${xyzSummonState.xyzMonster?.card.card_name}: エクシーズ素材を${xyzSummonState.requiredMaterials}体選択してください`}
-                    maxSelections={xyzSummonState.requiredMaterials || 2}
-                    onSelect={(selectedMaterials) => {
-                        selectXyzMaterials(selectedMaterials);
-                    }}
-                    onCancel={() => {
-                        useGameStore.setState((state) => ({
-                            ...state,
-                            searchingEffect: null,
-                            xyzSummonState: null,
-                        }));
-                    }}
-                />
-            )}
-
-            {/* 流星輝巧群素材選択 */}
-            {searchingEffect?.effectType === "meteor_kikougun_select_materials" && meteorKikougunState && (
-                <MultiCardConditionSelector
-                    cards={searchingEffect.availableCards}
-                    title={`流星輝巧群（${meteorKikougunState.selectedRitualMonster?.card.card_name}）: 攻撃力の合計が${meteorKikougunState.requiredAttack}以上になるように機械族モンスターを選択してください`}
-                    maxSelections={searchingEffect.availableCards.length}
-                    onSelect={(selectedMaterials) => {
-                        selectMaterialsForMeteorKikougun(selectedMaterials);
-                    }}
-                    condition={(selectedCardList) => {
-                        const sum = selectedCardList.reduce((acc, card) => acc + (card.card as MonsterCard).attack, 0);
-                        return (
-                            sum >= meteorKikougunState.requiredAttack! &&
-                            selectedCardList.every(
-                                (e) => sum - (e.card as MonsterCard).attack < meteorKikougunState.requiredAttack!
-                            )
-                        );
-                    }}
-                />
-            )}
-
             {/* リンク召喚ゾーン選択 */}
             {linkSummonState &&
                 linkSummonState.selectedMaterials &&
                 linkSummonState.selectedMaterials.length > 0 &&
-                !searchingEffect && (
+                effectQueue.length === 0 && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
                             <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>
@@ -1157,7 +637,7 @@ export const GameBoardNew: React.FC = () => {
             {xyzSummonState &&
                 xyzSummonState.selectedMaterials &&
                 xyzSummonState.selectedMaterials.length > 0 &&
-                !searchingEffect && (
+                effectQueue.length === 0 && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
                             <h3 className="text-lg font-bold mb-4 text-center">エクシーズ召喚</h3>

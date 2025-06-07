@@ -32,6 +32,8 @@ export interface GameState {
     hasActivatedCritter: boolean;
     hasActivatedEmergencyCyber: boolean;
     hasActivatedEruGanma: boolean;
+    hasActivatedAruZeta: boolean;
+    hasActivatedJackInTheHand: boolean;
     isOpponentTurn: boolean;
     pendingTrapActivation: CardInstance | null;
     bonmawashiRestriction: boolean;
