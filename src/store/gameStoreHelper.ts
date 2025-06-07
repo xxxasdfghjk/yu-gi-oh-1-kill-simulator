@@ -3,18 +3,6 @@ import { isMonsterCard } from "@/utils/gameUtils";
 import type { GameStore } from "./gameStore";
 
 export const helper = {
-    selectEruGanmaGraveyardMonster: (state: GameStore, monster: CardInstance) => {
-        helper.summonMonsterFromAnywhere(state, monster);
-    },
-    selectBanAlphaRitualMonster: (state: GameStore, ritualMonster: CardInstance) => {
-        // 儀式モンスターをデッキから手札に加える
-
-        state.deck = state.deck.filter((c) => c.id !== ritualMonster.id);
-        const cardToHand = { ...ritualMonster, location: "hand" as const };
-        state.hand.push(cardToHand);
-        // Clear the effect states in a separate update to ensure UI refresh
-        state.banAlphaState = null;
-    },
     checkFafnirMuBetaSummonEffect: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "竜輝巧－ファフμβ'") {
             return false;
@@ -72,18 +60,15 @@ export const helper = {
     },
 
     checkFafnirSummonEffect: (state: GameStore, card: CardInstance) => {
-        console.log("hasActivatedFafnirSummonEffect", state.hasActivatedFafnirSummonEffect);
         if (
             state.field.fieldZone?.card.card_name !== "竜輝巧－ファフニール" ||
             state.hasActivatedFafnirSummonEffect === true
         ) {
             return false;
         }
-        console.log("fffff");
         const existingDreitron = !![...state.field.extraMonsterZones, ...state.field.monsterZones].find(
             (e) => e?.id !== card.id && e?.card.card_name.includes("竜輝巧")
         );
-        console.log(existingDreitron);
 
         if (!existingDreitron) {
             return false;
@@ -133,6 +118,26 @@ export const helper = {
         });
         return true;
     },
+    monsterExcludeFromField: (state: GameStore, card: CardInstance) => {
+        const extraIndex = state.field.extraMonsterZones.findIndex((e) => e?.id === card.id);
+        if (extraIndex !== -1) {
+            state.field.extraMonsterZones[extraIndex] = null;
+        }
+        const monsterIndex = state.field.monsterZones.findIndex((e) => e?.id === card.id);
+        if (monsterIndex !== -1) {
+            state.field.monsterZones[monsterIndex] = null;
+        }
+    },
+    updateFieldMonster: (state: GameStore, card: CardInstance) => {
+        const extraIndex = state.field.extraMonsterZones.findIndex((e) => e?.id === card.id);
+        if (extraIndex !== -1) {
+            state.field.extraMonsterZones[extraIndex] = card;
+        }
+        const monsterIndex = state.field.monsterZones.findIndex((e) => e?.id === card.id);
+        if (monsterIndex !== -1) {
+            state.field.monsterZones[monsterIndex] = card;
+        }
+    },
     checkFafnirMuBetaGraveyardEffectInternal: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "竜輝巧－ファフμβ'") {
             return false;
@@ -162,37 +167,8 @@ export const helper = {
         });
         return true;
     },
-    sendMonsterToGraveyardInternal: (
-        state: GameStore,
-        monster: CardInstance,
-        fromLocation: "field" | "hand" | "deck"
-    ) => {
-        const graveyardCard = { ...monster, location: "graveyard" as const };
-        let effectOccurred = false;
-        if (fromLocation === "field") {
-            // フィールドのモンスターゾーンから削除
-            const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === monster.id);
-            if (zoneIndex !== -1) {
-                state.field.monsterZones[zoneIndex] = null;
-            }
-            // エクストラモンスターゾーンからも確認
-            const extraZoneIndex = state.field.extraMonsterZones.findIndex((c) => c?.id === monster.id);
-            if (extraZoneIndex !== -1) {
-                state.field.extraMonsterZones[extraZoneIndex] = null;
-            }
-            effectOccurred = helper.checkFafnirMuBetaGraveyardEffectInternal(state, monster);
-        } else if (fromLocation === "hand") {
-            state.hand = state.hand.filter((c) => c.id !== monster.id);
-        } else if (fromLocation === "deck") {
-            state.deck = state.deck.filter((c) => c.id !== monster.id);
-        }
-        // 墓地に追加
-
-        state.graveyard.push(graveyardCard);
-        return effectOccurred;
-    },
     sendMonsterToGraveyardInternalAnywhere: (state: GameStore, monster: CardInstance, context?: "release") => {
-        const graveyardCard = { ...monster, location: "graveyard" as const };
+        const graveyardCard = { ...monster, location: "graveyard" as const, position: undefined };
         let locate = "";
 
         // フィールドのモンスターゾーンから削除
@@ -216,7 +192,12 @@ export const helper = {
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
         monster.materials.forEach((e) => {
-            const graveyardCard = { ...e, buf: { attack: 0, level: 0, defence: 0 }, location: "graveyard" as const };
+            const graveyardCard = {
+                ...e,
+                buf: { attack: 0, level: 0, defence: 0 },
+                location: "graveyard" as const,
+                position: undefined,
+            };
             state.graveyard.push(graveyardCard);
         });
         graveyardCard.materials = [];
@@ -230,7 +211,12 @@ export const helper = {
         return locate;
     },
 
-    summonMonsterFromAnywhere: (state: GameStore, monster: CardInstance, targetZone: number | null = null) => {
+    summonMonsterFromAnywhere: (
+        state: GameStore,
+        monster: CardInstance,
+        targetZone: number | null = null,
+        position: "attack" | "defense" | "facedown" | "facedown_defense" = "attack"
+    ) => {
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
         state.extraDeck = state.extraDeck.filter((c) => c.id !== monster.id);
@@ -239,7 +225,7 @@ export const helper = {
                 const summonedMonster = {
                     ...monster,
                     location: "field_monster" as const,
-                    position: "defense" as const,
+                    position: position,
                     zone: targetZone,
                 };
                 state.field.extraMonsterZones[targetZone - 5] = summonedMonster;
@@ -247,7 +233,7 @@ export const helper = {
                 const summonedMonster = {
                     ...monster,
                     location: "field_monster" as const,
-                    position: "defense" as const,
+                    position: position,
                     zone: targetZone,
                 };
                 state.field.monsterZones[targetZone] = summonedMonster;
@@ -258,7 +244,7 @@ export const helper = {
                 const summonedMonster = {
                     ...monster,
                     location: "field_monster" as const,
-                    position: "defense" as const,
+                    position: position,
                     zone: emptyZone,
                 };
                 state.field.monsterZones[emptyZone] = summonedMonster;

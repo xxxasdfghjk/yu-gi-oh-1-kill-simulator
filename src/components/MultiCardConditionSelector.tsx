@@ -67,13 +67,13 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
                     <p className="text-center text-gray-600">{selectedCards.length} 枚選択中</p>
                 </div>
 
-                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mb-6">
+                <div className="grid grid-cols-6 md:grid-cols-6 lg:grid-cols-8  mb-6">
                     {availableCards.map((card) => {
                         const isSelected = selectedCards.some((c) => c.id === card.id);
                         const isSelectable = !filterFunction || filterFunction(card, selectedCards) || isSelected;
@@ -90,8 +90,9 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
                                 }`}
                                 onClick={() => isSelectable && handleCardClick(card)}
                             >
-                                <Card card={card} size="small" />
+                                <Card card={card} size="small" forceAttack />
                                 <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
+                                <div className="text-xs text-center mt-1 truncate">{card.location}</div>
                             </div>
                         );
                     })}

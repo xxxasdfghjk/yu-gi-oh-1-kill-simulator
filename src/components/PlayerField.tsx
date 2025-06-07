@@ -17,7 +17,6 @@ interface PlayerFieldProps {
     phase: string;
     isOpponentTurn: boolean;
     bonmawashiRestriction: boolean;
-    handleFieldZoneClick: (zoneType: "monster" | "spell", index: number) => void;
     handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
     setShowCardDetail: (card: CardInstance | null) => void;
     setShowGraveyard: (show: boolean) => void;
@@ -29,7 +28,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     deck,
     extraDeck,
     graveyard,
-    handleFieldZoneClick,
     handleFieldCardClick,
     setShowCardDetail,
     setShowGraveyard,
@@ -57,7 +55,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         key={`monster-${index}`}
                         card={card}
                         className={cardSizeClass}
-                        onClick={() => handleFieldZoneClick("monster", index)}
                         onCardClick={handleFieldCardClick}
                         onCardRightClick={(card) => setShowCardDetail(card)}
                     />
@@ -97,7 +94,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         key={`spell-${index}`}
                         card={card}
                         className={cardSizeClass}
-                        onClick={() => handleFieldZoneClick("spell", index)}
                         onCardClick={handleFieldCardClick}
                         onCardRightClick={(card) => setShowCardDetail(card)}
                     />

@@ -5,7 +5,6 @@ import { CARD_SIZE } from "@/const/card";
 
 interface ExtraMonsterZonesProps {
     extraMonsterZones: (CardInstance | null)[];
-    handleFieldZoneClick: (zoneType: "monster" | "spell", index: number) => void;
     handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
     setShowCardDetail: (card: CardInstance | null) => void;
     opponentField: {
@@ -19,7 +18,6 @@ interface ExtraMonsterZonesProps {
 
 export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
     extraMonsterZones,
-    handleFieldZoneClick,
     handleFieldCardClick,
     setShowCardDetail,
     opponentField,
@@ -39,7 +37,6 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                 <FieldZone
                     card={extraMonsterZones[0]}
                     className={`${cardSizeClass} border-4 border-red-400`}
-                    onClick={() => handleFieldZoneClick("monster", 5)}
                     onCardClick={handleFieldCardClick}
                     onCardRightClick={(card) => setShowCardDetail(card)}
                     type={"extra_zone"}
@@ -51,7 +48,6 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                 <FieldZone
                     card={extraMonsterZones[1]}
                     className={`${cardSizeClass} border-4 border-red-400`}
-                    onClick={() => handleFieldZoneClick("monster", 6)}
                     onCardClick={handleFieldCardClick}
                     onCardRightClick={(card) => setShowCardDetail(card)}
                     type={"extra_zone"}

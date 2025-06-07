@@ -10,18 +10,21 @@ interface CardProps {
     selected?: boolean;
     faceDown?: boolean;
     customSize?: string;
+    reverse?: boolean;
+    forceAttack?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
     card,
     size = "medium",
     onClick,
+    forceAttack,
     selected = false,
     faceDown = false,
     customSize = undefined,
 }) => {
     // カードが伏せ状態かどうかをチェック
-    const isFaceDown = faceDown || card.position === "facedown";
+    const isFaceDown = faceDown || card.position === "facedown" || card.position === "facedown_defense";
     const sizeClasses = {
         small: CARD_SIZE.SMALL,
         medium: CARD_SIZE.MEDIUM,
@@ -50,8 +53,8 @@ export const Card: React.FC<CardProps> = ({
 
     // 画像パスを取得
     const getImagePath = () => {
-        if (isFaceDown) {
-            return null; // 裏面はフォールバック表示を使用
+        if (isFaceDown && !forceAttack) {
+            return `/card_image/reverse.jpg`; // 裏面はフォールバック表示を使用
         }
         if (card.card.image) {
             // 拡張子を.pngに変更（処理済み画像を使用）
@@ -60,17 +63,16 @@ export const Card: React.FC<CardProps> = ({
         }
         return null;
     };
-
     const imagePath = getImagePath();
-
     return (
         <div
             className={`
         ${customSize ?? sizeClasses[size]} 
         ${selected ? "ring-4 ring-yellow-400" : ""}
-        rounded cursor-pointer hover:scale-105 transition-transform
+        z-50 rounded cursor-pointer hover:scale-105 transition-transform
         shadow-md border border-gray-600 overflow-hidden
         ${!imagePath ? getCardColor() + " flex flex-col items-center justify-center p-1 text-white" : "bg-transparent"}
+        ${(card.position === "defense" || card.position === "facedown_defense") && !forceAttack ? " -rotate-90" : ""}
       `}
             onClick={onClick}
         >

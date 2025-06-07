@@ -2,18 +2,9 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState, GamePhase } from "@/types/game";
 import { loadDeckData } from "@/data/cardLoader";
-import {
-    createCardInstance,
-    shuffleDeck,
-    drawCards,
-    isMonsterCard,
-    isSpellCard,
-    isTrapCard,
-    getLevel,
-} from "@/utils/gameUtils";
+import { createCardInstance, shuffleDeck, drawCards, isMonsterCard, isSpellCard, getLevel } from "@/utils/gameUtils";
 import {
     canNormalSummon,
-    findEmptyMonsterZone,
     canActivateSpell,
     findEmptySpellTrapZone,
     canSetSpellTrap,
@@ -48,9 +39,11 @@ export type EffectQueueItem =
       }
     | {
           id: string;
-          type: "link_summon";
+          type: "summon";
           cardInstance: CardInstance;
           effectType: string;
+          canSelectPosition: boolean;
+          optionPosition: ("attack" | "defense" | "facedown" | "facedown_defense")[];
       };
 
 export interface GameStore extends GameState {
@@ -59,49 +52,31 @@ export interface GameStore extends GameState {
     nextPhase: () => void;
     selectCard: (cardId: string) => void;
     playCard: (cardId: string, zone?: number) => void;
-    summonMonster: (cardId: string, position: "attack" | "facedown_defense", zone?: number) => void;
     setCard: (cardId: string, zone?: number) => void;
     activateFieldCard: (cardId: string) => void;
-    activateSetCard: (cardId: string) => void;
     activateSpellEffect: (card: CardInstance) => void;
-    selectForJackInHand: (selectedCards: CardInstance[]) => void;
-    continueJackInHand: () => void;
-    selectPlayerCardFromJack: (selectedCard: CardInstance) => void;
     selectExtravaganceCount: (count: 3 | 6) => void;
     selectCardFromExtravagance: (selectedCard: CardInstance) => void;
     selectCardFromRevealedCards: (selectedCard: CardInstance, remainingCards: CardInstance[]) => void;
     activateChickenRaceEffect: (effectType: "draw" | "destroy" | "heal") => void;
     setPhase: (phase: GamePhase) => void;
     activateTrapCard: (card: CardInstance) => void;
-    declineTrapActivation: () => void;
     selectHokyuyoinTargets: (selectedCards: CardInstance[]) => void;
     selectBonmawashiCards: (selectedCards: CardInstance[]) => void;
     selectBonmawashiForPlayer: (card: CardInstance) => void;
     checkBonmawashiRestriction: () => void;
-    activateOpponentFieldSpell: () => void;
     activateBanAlpha: (eruGanmaCard: CardInstance) => void;
     activateEruGanma: (eruGanmaCard: CardInstance) => void;
     activateAruZeta: (eruGanmaCard: CardInstance) => void;
-
-    selectBanAlphaRitualMonster: (ritualMonster: CardInstance) => void;
-    selectEruGanmaGraveyardMonster: (monster: CardInstance) => void;
-    checkCritterEffect: (card: CardInstance) => void;
     startLinkSummon: (linkMonster: CardInstance) => void;
-    selectLinkMaterials: (materials: CardInstance[]) => void;
-    summonLinkMonster: (zone: number) => void;
     startXyzSummon: (xyzMonster: CardInstance) => void;
-    selectXyzMaterials: (materials: CardInstance[]) => void;
-    summonXyzMonster: (zone: number) => void;
-    checkFafnirMuBetaXyzSummonEffect: () => void;
-    checkFafnirMuBetaGraveyardEffect: (card: CardInstance) => void;
-    activateMeteorKikougun: (card: CardInstance) => void;
     effectQueue: EffectQueueItem[];
     addEffectToQueue: (effect: EffectQueueItem) => void;
     processQueueTop: (
         payload:
             | { type: "cardSelect"; cardList: CardInstance[] }
             | { type: "option"; option: { name: string; value: string }[] }
-            | { type: "summon"; zone: number }
+            | { type: "summon"; zone: number; position: "attack" | "defense" | "facedown" | "facedown_defense" }
     ) => void;
     clearQueue: () => void;
     selectedCard: string | null;
@@ -444,10 +419,14 @@ export const useGameStore = create<GameStore>()(
                 if (isMonsterCard(card.card)) {
                     // モンスターの場合は召喚選択モードに移行
                     if (!canNormalSummon(state, card)) return;
-
-                    state.summonSelecting = {
-                        cardId: cardId,
-                    };
+                    state.effectQueue.unshift({
+                        id: "",
+                        type: "summon",
+                        cardInstance: card,
+                        effectType: "normal_summon",
+                        canSelectPosition: true,
+                        optionPosition: ["attack", "facedown_defense"],
+                    });
                     return;
                 } else if (isSpellCard(card.card)) {
                     // 魔法カードの発動処理
@@ -580,23 +559,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        summonMonster: (cardId: string, position: "attack" | "facedown_defense", zone?: number) => {
-            const card = get().hand.find((c) => c.id === cardId);
-            if (!card) {
-                return;
-            }
-
-            set((state) => {
-                if (!isMonsterCard(card.card)) return;
-                if (!canNormalSummon(state, card)) return;
-
-                const targetZone = zone ?? findEmptyMonsterZone(state);
-                if (targetZone === -1) return;
-                // 手札から削除
-                helper.summonMonsterFromAnywhere(state, card);
-            });
-        },
-
         activateFieldCard: (cardId: string) => {
             const gameState = get();
 
@@ -618,85 +580,6 @@ export const useGameStore = create<GameStore>()(
             }
 
             // 他のカードの効果もここに追加可能
-        },
-
-        activateSetCard: (cardId: string) => {
-            const gameState = get();
-
-            // フィールドにある伏せカードを探す
-            let setCard: CardInstance | null = null;
-            let zoneIndex = -1;
-
-            // 魔法・罠ゾーンから伏せカードを探す
-            for (let i = 0; i < gameState.field.spellTrapZones.length; i++) {
-                const card = gameState.field.spellTrapZones[i];
-                if (card?.id === cardId && card.position === "facedown") {
-                    setCard = card;
-                    zoneIndex = i;
-                    break;
-                }
-            }
-
-            if (!setCard) {
-                return;
-            }
-
-            set((state) => {
-                if (!setCard) return;
-
-                // 魔法カードの場合
-                if (isSpellCard(setCard.card)) {
-                    // メインフェイズでのみ発動可能（速攻魔法は例外）
-                    if (setCard.card.card_type !== "速攻魔法" && state.phase !== "main1" && state.phase !== "main2") {
-                        return;
-                    }
-
-                    // 永続魔法・装備魔法以外は墓地へ
-                    if (setCard.card.card_type === "通常魔法" || setCard.card.card_type === "速攻魔法") {
-                        // ゾーンから削除
-                        state.field.spellTrapZones[zoneIndex] = null;
-
-                        // 墓地へ送る
-                        const updatedCard = { ...setCard, location: "graveyard" as const, position: undefined };
-                        state.graveyard.push(updatedCard);
-
-                        // 効果処理を実行
-                        get().activateSpellEffect(setCard);
-                    } else {
-                        // 永続魔法・装備魔法は表向きにする
-                        const updatedCard = { ...setCard, position: undefined };
-                        state.field.spellTrapZones[zoneIndex] = updatedCard;
-                    }
-
-                    // TODO: カード固有の効果処理をここに追加
-                } else if (isTrapCard(setCard.card)) {
-                    // 罠カードはセットしたターンには発動できない
-                    if (setCard.setTurn === state.turn) {
-                        return;
-                    }
-
-                    // 補充要員の特別な発動条件チェック
-                    if (setCard.card.card_name === "補充要員" && !canActivateHokyuYoin(state)) {
-                        return;
-                    }
-
-                    // 通常罠は墓地へ、永続罠は表向きに
-                    if (setCard.card.card_type === "通常罠カード") {
-                        // ゾーンから削除
-                        state.field.spellTrapZones[zoneIndex] = null;
-
-                        // 墓地へ送る
-                        const updatedCard = { ...setCard, location: "graveyard" as const, position: undefined };
-                        state.graveyard.push(updatedCard);
-                    } else {
-                        // 永続罠・カウンター罠は表向きにする
-                        const updatedCard = { ...setCard, position: undefined };
-                        state.field.spellTrapZones[zoneIndex] = updatedCard;
-                    }
-
-                    // TODO: カード固有の効果処理をここに追加
-                }
-            });
         },
 
         activateSpellEffect: (card: CardInstance) => {
@@ -1064,68 +947,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        selectForJackInHand: (selectedCards: CardInstance[]) => {
-            set((state) => {
-                if (!state.jackInHandState || state.jackInHandState.phase !== "select_three") return;
-
-                // 相手がランダムに1枚選択
-                const randomIndex = Math.floor(Math.random() * selectedCards.length);
-                const opponentCard = selectedCards[randomIndex];
-                const remainingCards = selectedCards.filter((_, index) => index !== randomIndex);
-
-                // 選択されたカードをデッキから除外
-                selectedCards.forEach((card) => {
-                    state.deck = state.deck.filter((c) => c.id !== card.id);
-                });
-
-                state.jackInHandState = {
-                    phase: "player_selects",
-                    availableCards: selectedCards,
-                    selectedThree: selectedCards,
-                    opponentCard: opponentCard,
-                    remainingCards: remainingCards,
-                };
-
-                state.searchingEffect = null;
-            });
-        },
-
-        continueJackInHand: () => {
-            set((state) => {
-                if (!state.jackInHandState || state.jackInHandState.phase !== "opponent_takes") return;
-
-                state.jackInHandState.phase = "player_selects";
-            });
-        },
-
-        selectPlayerCardFromJack: (selectedCard: CardInstance) => {
-            set((state) => {
-                if (!state.jackInHandState || state.jackInHandState.phase !== "player_selects") return;
-
-                // ジャック・イン・ザ・ハンドは「手札に加える」効果なので金満制限を受けない
-
-                // プレイヤーが選択したカードを手札に加える
-                const updatedCard = { ...selectedCard, location: "hand" as const };
-                state.hand.push(updatedCard);
-                // hasDrawnByEffectフラグは立てない（ドロー効果ではないため）
-
-                // 残りのカードをデッキに戻してシャッフル
-                const remainingCards =
-                    state.jackInHandState.remainingCards?.filter((c) => c.id !== selectedCard.id) || [];
-                remainingCards.forEach((card) => {
-                    state.deck.push(card);
-                });
-
-                // デッキをシャッフル
-                for (let i = state.deck.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
-                }
-
-                state.jackInHandState = null;
-            });
-        },
-
         selectExtravaganceCount: (count: 3 | 6) => {
             set((state) => {
                 if (!state.extravaganceState || state.extravaganceState.phase !== "select_count") return;
@@ -1329,12 +1150,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        declineTrapActivation: () => {
-            set((state) => {
-                state.pendingTrapActivation = null;
-            });
-        },
-
         selectHokyuyoinTargets: (selectedCards: CardInstance[]) => {
             set((state) => {
                 // 選択されたカードを墓地から手札に移動
@@ -1439,19 +1254,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        activateOpponentFieldSpell: () => {
-            set((state) => {
-                if (!state.opponentField.fieldZone || state.opponentField.fieldZone.position !== "facedown") {
-                    return;
-                }
-
-                // 表側にする
-                state.opponentField.fieldZone.position = undefined;
-
-                // TODO: フィールド魔法の効果処理（チキンレースなど）
-            });
-        },
-
         activateBanAlpha: (banAlphaCard: CardInstance) => {
             // このターンに既に発動済みの場合は発動不可
             const currentState = get();
@@ -1551,43 +1353,6 @@ export const useGameStore = create<GameStore>()(
                 });
             });
         },
-        checkCritterEffect: (card: CardInstance) => {
-            const currentState = get();
-
-            // クリッターかどうかチェック
-            if (card.card.card_name !== "クリッター") {
-                return;
-            }
-
-            // フィールドから墓地へ送られたかチェック
-            if (card.location !== "field_monster") {
-                return;
-            }
-
-            // このターンに既に発動済みかチェック
-            if (currentState.hasActivatedCritter) {
-                return;
-            }
-
-            // 攻撃力1500以下のモンスターを探す
-            const targetMonsters = currentState.deck.filter((c) => {
-                if (!isMonsterCard(c.card)) return false;
-                const monster = c.card as { attack?: number };
-                return (monster.attack || 0) <= 1500;
-            });
-
-            if (targetMonsters.length > 0) {
-                set((state) => {
-                    state.hasActivatedCritter = true;
-                    state.searchingEffect = {
-                        cardName: "クリッター",
-                        availableCards: targetMonsters,
-                        effectType: "critter_search",
-                    };
-                });
-            }
-        },
-
         startLinkSummon: (linkMonster: CardInstance) => {
             const currentState = get();
 
@@ -1626,109 +1391,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        selectLinkMaterials: (materials: CardInstance[]) => {
-            const currentState = get();
-
-            if (!currentState.linkSummonState || currentState.linkSummonState.phase !== "select_materials") {
-                return;
-            }
-
-            const { linkMonster, requiredMaterials } = currentState.linkSummonState;
-
-            if (!linkMonster || materials.length !== requiredMaterials) {
-                return;
-            }
-
-            set((state) => {
-                let clearedSearchEffect = false;
-                materials.forEach((material) => {
-                    const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === material.id);
-                    if (zoneIndex !== -1) {
-                        clearedSearchEffect = helper.sendMonsterToGraveyardInternal(state, material, "field");
-                    }
-                });
-
-                // エクストラデッキからリンクモンスターを削除
-                state.extraDeck = state.extraDeck.filter((c) => c.id !== linkMonster.id);
-
-                // エクストラモンスターゾーン選択フェーズに移行
-                state.linkSummonState = {
-                    phase: "select_materials", // 実際にはゾーン選択だが、既存の型定義を使用
-                    linkMonster: linkMonster,
-                    requiredMaterials: requiredMaterials,
-                    selectedMaterials: materials,
-                    availableMaterials: [],
-                };
-
-                // サーチ効果をクリア（UI側でゾーン選択を処理）
-                state.searchingEffect = clearedSearchEffect ? state.searchingEffect : null;
-            });
-        },
-
-        summonLinkMonster: (zone: number) => {
-            const currentState = get();
-
-            if (!currentState.linkSummonState) {
-                return;
-            }
-
-            const { linkMonster } = currentState.linkSummonState;
-
-            if (!linkMonster) {
-                return;
-            }
-
-            // エクストラモンスターゾーンに配置（zone 5 = 左、zone 6 = 右）
-            const extraZoneIndex = zone === 5 ? 0 : 1;
-
-            if (currentState.field.extraMonsterZones[extraZoneIndex] !== null) {
-                return;
-            }
-
-            set((state) => {
-                const summonedMonster = {
-                    ...linkMonster,
-                    location: "field_monster" as const,
-                    position: "attack" as const,
-                    zone: zone,
-                };
-
-                // エクストラモンスターゾーンに配置
-                const newExtraZones = [...state.field.extraMonsterZones];
-                newExtraZones[extraZoneIndex] = summonedMonster;
-                state.field.extraMonsterZones = newExtraZones;
-
-                // リンク召喚状態をクリア
-                state.linkSummonState = null;
-                state.hasSpecialSummoned = true;
-            });
-
-            // リンクモンスターの召喚成功時効果を処理
-            setTimeout(() => {
-                const postSummonState = get();
-                const summonedCard = postSummonState.field.extraMonsterZones[extraZoneIndex];
-
-                if (summonedCard && summonedCard.card.card_name === "リンクリボー") {
-                    // リンクリボーの①効果：デッキからレベル1モンスター1体を墓地へ送る
-                    set((state) => {
-                        const level1Monsters = state.deck.filter((c) => {
-                            if (!isMonsterCard(c.card)) return false;
-                            const monster = c.card as { level?: number };
-                            return monster.level === 1;
-                        });
-
-                        if (level1Monsters.length > 0) {
-                            state.searchingEffect = {
-                                cardName: "リンクリボー（レベル1モンスター選択）",
-                                availableCards: level1Monsters,
-                                effectType: "link_riboh_mill",
-                            };
-                        }
-                    });
-                }
-            }, 100);
-        },
-
         startXyzSummon: (xyzMonster: CardInstance) => {
             set((state) => {
                 const rank = (xyzMonster.card as { rank?: number })?.rank;
@@ -1749,191 +1411,6 @@ export const useGameStore = create<GameStore>()(
                     effectType: "xyz_summon_select_materials",
                     canCancel: true,
                 });
-            });
-        },
-
-        selectXyzMaterials: (materials: CardInstance[]) => {
-            const currentState = get();
-
-            if (!currentState.xyzSummonState || currentState.xyzSummonState.phase !== "select_materials") {
-                return;
-            }
-
-            const { xyzMonster, requiredMaterials } = currentState.xyzSummonState;
-
-            if (!xyzMonster || materials.length !== requiredMaterials) {
-                return;
-            }
-
-            // 素材をフィールドから墓地へ送る
-            set((state) => {
-                materials.forEach((material) => {
-                    helper.sendMonsterToGraveyardInternalAnywhere(state, material);
-                });
-
-                // エクストラデッキからエクシーズモンスターを削除
-                state.extraDeck = state.extraDeck.filter((c) => c.id !== xyzMonster.id);
-
-                // モンスターゾーン選択フェーズに移行
-                state.xyzSummonState = {
-                    phase: "select_materials", // 実際にはゾーン選択だが、既存の型定義を使用
-                    xyzMonster: xyzMonster,
-                    requiredRank: state.xyzSummonState!.requiredRank,
-                    requiredMaterials: requiredMaterials,
-                    selectedMaterials: materials,
-                    availableMaterials: [],
-                };
-
-                // サーチ効果をクリア（UI側でゾーン選択を処理）
-                state.searchingEffect = null;
-            });
-        },
-
-        summonXyzMonster: (zone: number) => {
-            const currentState = get();
-
-            if (!currentState.xyzSummonState) {
-                return;
-            }
-
-            const { xyzMonster } = currentState.xyzSummonState;
-
-            if (!xyzMonster) {
-                return;
-            }
-
-            // 通常のモンスターゾーンまたはエクストラモンスターゾーンに配置
-            if (zone >= 5) {
-                // エクストラモンスターゾーン（zone 5 = 左、zone 6 = 右）
-                const extraZoneIndex = zone === 5 ? 0 : 1;
-
-                if (currentState.field.extraMonsterZones[extraZoneIndex] !== null) {
-                    return;
-                }
-
-                set((state) => {
-                    const summonedMonster = {
-                        ...xyzMonster,
-                        location: "field_monster" as const,
-                        position: "attack" as const,
-                        zone: zone,
-                    };
-
-                    // エクストラモンスターゾーンに配置
-                    const newExtraZones = [...state.field.extraMonsterZones];
-                    newExtraZones[extraZoneIndex] = summonedMonster;
-                    state.field.extraMonsterZones = newExtraZones;
-
-                    // エクシーズ召喚状態をクリア
-                    state.xyzSummonState = null;
-                    state.hasSpecialSummoned = true;
-                });
-
-                // ファフニューベータの登場時効果をチェック
-                if (xyzMonster.card.card_name === "竜輝巧－ファフμβ'") {
-                    get().checkFafnirMuBetaXyzSummonEffect();
-                }
-            } else {
-                // 通常のモンスターゾーン
-                if (currentState.field.monsterZones[zone] !== null) {
-                    return;
-                }
-
-                set((state) => {
-                    const summonedMonster = {
-                        ...xyzMonster,
-                        location: "field_monster" as const,
-                        position: "attack" as const,
-                        zone: zone,
-                    };
-
-                    // 通常モンスターゾーンに配置
-                    state.field.monsterZones[zone] = summonedMonster;
-
-                    // エクシーズ召喚状態をクリア
-                    state.xyzSummonState = null;
-                    state.hasSpecialSummoned = true;
-                });
-
-                // ファフニューベータの登場時効果をチェック
-                if (xyzMonster.card.card_name === "竜輝巧－ファフμβ'") {
-                    get().checkFafnirMuBetaXyzSummonEffect();
-                }
-            }
-        },
-
-        checkFafnirMuBetaXyzSummonEffect: () => {
-            const state = get();
-
-            // デッキからドライトロンカードを探す
-            const drytronCards = state.deck.filter(
-                (c) => c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")
-            );
-
-            if (drytronCards.length === 0) {
-                return;
-            }
-
-            // カード選択UIを表示
-            set((state) => {
-                state.searchingEffect = {
-                    cardName: "竜輝巧－ファフμβ'の登場時効果",
-                    availableCards: drytronCards,
-                    effectType: "fafnir_mu_beta_xyz_summon",
-                };
-            });
-        },
-
-        checkFafnirMuBetaGraveyardEffect: (card: CardInstance) => {
-            const state = get();
-            // ファフμβ'でない場合は何もしない
-            if (card.card.card_name !== "竜輝巧－ファフμβ'") {
-                return;
-            }
-
-            // 手札・デッキからドライトロンモンスターを探す
-            const handDrytronMonsters = state.hand.filter((c) => {
-                if (!isMonsterCard(c.card)) return false;
-                return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
-            });
-
-            const deckDrytronMonsters = state.deck.filter((c) => {
-                if (!isMonsterCard(c.card)) return false;
-                return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
-            });
-
-            const allDrytronMonsters = [...handDrytronMonsters, ...deckDrytronMonsters];
-
-            if (allDrytronMonsters.length === 0) {
-                console.log("No Drytron monsters found, effect cannot activate");
-                return;
-            }
-
-            console.log("Showing Fafnir μβ graveyard effect selection UI");
-            // カード選択UIを表示
-            set((state) => {
-                state.searchingEffect = {
-                    cardName: "竜輝巧－ファフμβ'の墓地送り時効果",
-                    availableCards: allDrytronMonsters,
-                    effectType: "fafnir_mu_beta_graveyard",
-                };
-            });
-        },
-
-        activateMeteorKikougun: (card: CardInstance) => {
-            // 流星輝巧群の発動処理は activateSpellEffect で行われる
-            get().activateSpellEffect(card);
-        },
-
-        selectBanAlphaRitualMonster: (ritualMonster: CardInstance) => {
-            set((state) => {
-                helper.selectBanAlphaRitualMonster(state, ritualMonster);
-            });
-        },
-
-        selectEruGanmaGraveyardMonster: (monster: CardInstance) => {
-            set((state) => {
-                helper.selectEruGanmaGraveyardMonster(state, monster);
             });
         },
 
@@ -1960,11 +1437,18 @@ export const useGameStore = create<GameStore>()(
                             state.hasActivatedCritter = true;
                             break;
                         case "ban_alpha_release_select":
-                            // リリース対象を墓地へ送る
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
-                            helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance);
-                            // バンαの効果を適用
+
                             state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                optionPosition: ["attack" as const, "defense" as const],
+                                canSelectPosition: true,
+                            });
+                            // バンαの効果を適用
+                            state.effectQueue.push({
                                 id: "",
                                 type: "select",
                                 effectName: "竜輝巧－バンα（儀式モンスター選択）",
@@ -1986,25 +1470,41 @@ export const useGameStore = create<GameStore>()(
                         case "send_to_graveyard":
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0]);
                             break;
-                        case "ban_alpha_ritual_select":
-                            helper.selectBanAlphaRitualMonster(state, selectedCard[0]);
-                            break;
-                        case "eru_ganma_graveyard_select":
-                            helper.summonMonsterFromAnywhere(state, selectedCard[0]);
-                            break;
                         case "get_hand_single":
                             helper.toHandFromAnywhere(state, selectedCard[0]);
                             break;
-                        case "release_summon":
-                            helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0]);
-                            helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance);
-                            break;
                         case "special_summon":
-                            helper.summonMonsterFromAnywhere(state, selectedCard[0]);
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: selectedCard[0],
+                                effectType: "",
+                                optionPosition: ["attack" as const, "defense" as const],
+                                canSelectPosition: true,
+                            });
+                            break;
+
+                        case "defense_special_summon":
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: selectedCard[0],
+                                effectType: "",
+                                optionPosition: ["defense" as const],
+                                canSelectPosition: false,
+                            });
                             break;
                         case "eru_ganma_release_select": {
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
-                            helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance);
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                optionPosition: ["attack" as const, "defense" as const],
+                                canSelectPosition: true,
+                            });
+
                             const target = state.graveyard.filter((c): c is CardInstance => {
                                 if (!c || !isMonsterCard(c.card)) return false;
                                 const isDrytron =
@@ -2015,7 +1515,7 @@ export const useGameStore = create<GameStore>()(
                                 return isDrytron;
                             });
                             if (target.length > 0) {
-                                state.effectQueue.unshift({
+                                state.effectQueue.push({
                                     id: "",
                                     type: "select",
                                     effectName: "竜輝巧－エルγ（召喚対象選択）",
@@ -2024,7 +1524,7 @@ export const useGameStore = create<GameStore>()(
                                     condition: (cards: CardInstance[]) => {
                                         return cards.length === 1;
                                     },
-                                    effectType: "special_summon",
+                                    effectType: "defense_special_summon",
                                     canCancel: true,
                                 });
                             }
@@ -2032,7 +1532,15 @@ export const useGameStore = create<GameStore>()(
                         }
                         case "aru_zeta_release_select": {
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
-                            helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance);
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                optionPosition: ["attack", "defense"],
+                                canSelectPosition: true,
+                            });
+
                             const target = state.deck.filter((c) => {
                                 return c.card.card_type === "儀式魔法";
                             });
@@ -2078,8 +1586,17 @@ export const useGameStore = create<GameStore>()(
                             break;
                         }
                         case "ritual_summon":
-                            helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance);
-                            selectedCard.forEach((e) => helper.sendMonsterToGraveyardInternalAnywhere(state, e));
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                optionPosition: ["attack", "defense"],
+                                canSelectPosition: true,
+                            });
+                            selectedCard.forEach((e) =>
+                                helper.sendMonsterToGraveyardInternalAnywhere(state, e, "release")
+                            );
                             break;
                         case "add_to_hand_from_deck": {
                             // デッキから選択したカードを手札に加える
@@ -2100,7 +1617,14 @@ export const useGameStore = create<GameStore>()(
                             const selectedMonster = selectedCard[0];
                             if (selectedMonster) {
                                 // helperを使って特殊召喚
-                                helper.summonMonsterFromAnywhere(state, selectedMonster);
+                                state.effectQueue.unshift({
+                                    id: "",
+                                    type: "summon",
+                                    cardInstance: selectedMonster,
+                                    effectType: "",
+                                    optionPosition: ["attack", "defense"],
+                                    canSelectPosition: true,
+                                });
                                 // エンドフェイズに破壊されるフラグを設定
                                 // TODO: エンドフェイズ破壊の実装が必要
                                 // 現在の実装では、summonMonsterFromAnywhereの後にフラグを設定する方法がないため、
@@ -2109,8 +1633,7 @@ export const useGameStore = create<GameStore>()(
                             break;
                         }
                         case "advanced_ritual_first_select": {
-                            const targetLevel = (selectedCard[0].card as { level?: number }).level ?? 0;
-                            console.log("target", targetLevel);
+                            const targetLevel = getLevel(selectedCard[0]);
                             state.effectQueue.unshift({
                                 id: "",
                                 type: "multiselect",
@@ -2125,10 +1648,7 @@ export const useGameStore = create<GameStore>()(
                                     });
                                 },
                                 condition: (cards: CardInstance[]) => {
-                                    const sumLevel = cards.reduce(
-                                        (prev, cur) => ((cur.card as { level?: number })?.level ?? 0) + prev,
-                                        0
-                                    );
+                                    const sumLevel = cards.reduce((prev, cur) => (getLevel(cur) ?? 0) + prev, 0);
 
                                     return sumLevel === targetLevel;
                                 },
@@ -2139,7 +1659,6 @@ export const useGameStore = create<GameStore>()(
                         }
                         case "meteor_first_select": {
                             const targetPower = (selectedCard[0].card as { attack?: number }).attack ?? 0;
-                            console.log("target", targetPower);
                             state.effectQueue.unshift({
                                 id: "",
                                 type: "multiselect",
@@ -2174,19 +1693,44 @@ export const useGameStore = create<GameStore>()(
                             });
                             break;
                         }
-                        case "xyz_summon_select_materials": {
-                            const xyzMonster = currentEffect.cardInstance;
-                            selectedCard.forEach((e) => helper.sendMonsterToGraveyardInternalAnywhere(state, e));
-                            helper.summonMonsterFromAnywhere(state, xyzMonster);
+                        case "fafnir_mu_beta_graveyard": {
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: selectedCard[0],
+                                effectType: "",
+                                optionPosition: ["attack", "defense"],
+                                canSelectPosition: true,
+                            });
                             break;
                         }
+                        case "xyz_summon_select_materials": {
+                            const xyzMonster = currentEffect.cardInstance;
+                            selectedCard.forEach((material) => {
+                                helper.monsterExcludeFromField(state, material);
+                            });
+                            const materials = selectedCard.map((e) => [e, ...e.materials]).flat();
+                            xyzMonster.materials = materials;
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: xyzMonster,
+                                effectType: "",
+                                optionPosition: ["attack", "defense"],
+                                canSelectPosition: true,
+                            });
+                            break;
+                        }
+
                         case "link_summon_select_materials": {
                             selectedCard.forEach((e) => helper.sendMonsterToGraveyardInternalAnywhere(state, e));
                             state.effectQueue.unshift({
                                 id: "",
-                                type: "link_summon",
+                                type: "summon",
                                 cardInstance: currentEffect.cardInstance,
-                                effectType: "link_summon",
+                                effectType: "summon",
+                                canSelectPosition: false,
+                                optionPosition: ["attack"],
                             });
                             break;
                         }
@@ -2251,20 +1795,9 @@ export const useGameStore = create<GameStore>()(
                         case "fafnir_summon_effect_option": {
                             if (payload.option[0].value === "use") {
                                 state.hasActivatedFafnirSummonEffect = true;
-                                const id = currentEffect.cardInstance.id;
-                                const extraIndex = state.field.extraMonsterZones.findIndex((e) => e?.id === id);
-                                if (extraIndex !== -1) {
-                                    state.field.extraMonsterZones[extraIndex]!.buf.level -= Math.floor(
-                                        getAttack(state.field.extraMonsterZones[extraIndex]!) / 1000
-                                    );
-                                }
-                                const monsterIndex = state.field.monsterZones.findIndex((e) => e?.id === id);
-                                if (monsterIndex !== -1) {
-                                    state.field.monsterZones[monsterIndex]!.buf.level -= Math.floor(
-                                        getAttack(state.field.monsterZones[monsterIndex]!) / 1000
-                                    );
-                                    return;
-                                }
+                                const newInstance = { ...currentEffect.cardInstance };
+                                newInstance.buf.level -= getAttack(newInstance);
+                                helper.updateFieldMonster(state, newInstance);
                             }
                             break;
                         }
@@ -2275,7 +1808,7 @@ export const useGameStore = create<GameStore>()(
                     if (state.effectQueue.length === 0) return;
                     const currentEffect = state.effectQueue[0];
                     state.effectQueue.shift(); // Remove the processed effect
-                    helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance, payload.zone);
+                    helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance, payload.zone, payload.position);
                 });
             }
         },

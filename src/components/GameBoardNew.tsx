@@ -31,23 +31,14 @@ export const GameBoardNew: React.FC = () => {
         nextPhase,
         playCard,
         setCard,
-        summonMonster,
         activateFieldCard,
         activateSetCard,
-        summonSelecting,
         activateChickenRaceEffect,
         isOpponentTurn,
-        pendingTrapActivation,
-        activateTrapCard,
-        declineTrapActivation,
         bonmawashiRestriction,
         activateBanAlpha,
-        linkSummonState,
-        xyzSummonState,
         startLinkSummon,
-        summonLinkMonster,
         startXyzSummon,
-        summonXyzMonster,
         activateEruGanma,
         opponentField,
         activateOpponentFieldSpell,
@@ -73,6 +64,7 @@ export const GameBoardNew: React.FC = () => {
         e.preventDefault();
         setShowCardDetail(card);
     };
+    console.log(gameState.field.monsterZones);
 
     const handleBanAlphaClick = (card: CardInstance) => {
         if (card.card.card_name === "竜輝巧－バンα") {
@@ -87,17 +79,6 @@ export const GameBoardNew: React.FC = () => {
 
     const handleCardHoverLeave = () => {
         // マウスがモーダルの方向に移動している場合は非表示にしない
-    };
-
-    const handleFieldZoneClick = (zoneType: "monster" | "spell", index: number) => {
-        if (linkSummonState && linkSummonState.selectedMaterials && linkSummonState.selectedMaterials.length > 0) {
-            // リンク召喚のゾーン選択
-            if (zoneType === "monster" && (index === 5 || index === 6)) {
-                summonLinkMonster(index);
-            }
-        } else if (selectedCard) {
-            playCard(selectedCard, index);
-        }
     };
 
     const isLinkMonster = (card: CardInstance): boolean => {
@@ -190,7 +171,6 @@ export const GameBoardNew: React.FC = () => {
                 {/* エクストラモンスターゾーン（相手と自分の間） */}
                 <ExtraMonsterZones
                     extraMonsterZones={field.extraMonsterZones}
-                    handleFieldZoneClick={handleFieldZoneClick}
                     handleFieldCardClick={handleFieldCardClick}
                     setShowCardDetail={setShowCardDetail}
                     opponentField={opponentField}
@@ -208,7 +188,6 @@ export const GameBoardNew: React.FC = () => {
                     phase={phase}
                     isOpponentTurn={isOpponentTurn}
                     bonmawashiRestriction={bonmawashiRestriction}
-                    handleFieldZoneClick={handleFieldZoneClick}
                     handleFieldCardClick={handleFieldCardClick}
                     setShowCardDetail={setShowCardDetail}
                     setShowGraveyard={setShowGraveyard}
@@ -296,11 +275,12 @@ export const GameBoardNew: React.FC = () => {
                                     condition={currentEffect.condition}
                                 />
                             );
-                        case "link_summon":
+                        case "summon":
                             return (
                                 <SummonSelector
+                                    optionPosition={currentEffect.optionPosition}
                                     cardInstance={currentEffect.cardInstance}
-                                    onSelect={(zone) => processQueueTop({ type: "summon", zone })}
+                                    onSelect={(zone, position) => processQueueTop({ type: "summon", zone, position })}
                                     state={gameState}
                                 ></SummonSelector>
                             );
@@ -314,43 +294,6 @@ export const GameBoardNew: React.FC = () => {
             {/* エクストラデッキのカード選択 */}
 
             {/* モンスター召喚選択 */}
-            {summonSelecting && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-bold mb-4 text-center">召喚方法を選択してください</h3>
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => {
-                                    summonMonster(summonSelecting.cardId, "attack");
-                                }}
-                                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded"
-                            >
-                                攻撃表示で召喚
-                            </button>
-                            <button
-                                onClick={() => {
-                                    summonMonster(summonSelecting.cardId, "facedown_defense");
-                                }}
-                                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded"
-                            >
-                                セット（裏側守備表示）
-                            </button>
-                            <button
-                                onClick={() => {
-                                    useGameStore.setState((state) => ({
-                                        ...state,
-                                        summonSelecting: null,
-                                    }));
-                                }}
-                                className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
-                            >
-                                キャンセル
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* 墓地確認モーダル */}
             {showGraveyard && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -564,143 +507,6 @@ export const GameBoardNew: React.FC = () => {
                                 {gameState.hasActivatedChickenRace ? "このターンは既に効果を発動済みです" : ""}
                             </p>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {/* エクシーズ召喚ゾーン選択 */}
-            {xyzSummonState &&
-                xyzSummonState.selectedMaterials &&
-                xyzSummonState.selectedMaterials.length > 0 &&
-                effectQueue.length === 0 && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                            <h3 className="text-lg font-bold mb-4 text-center">エクシーズ召喚</h3>
-                            <div className="mb-4 p-4 bg-purple-100 rounded text-center">
-                                <p className="font-bold">{xyzSummonState.xyzMonster?.card.card_name}</p>
-                                <p className="text-sm text-gray-600 mt-2">
-                                    素材: {xyzSummonState.selectedMaterials.map((m) => m.card.card_name).join(", ")}
-                                </p>
-                            </div>
-                            <p className="text-center mb-6">召喚先のゾーンを選択してください</p>
-
-                            {/* モンスターゾーン選択ボタン */}
-                            <div className="grid grid-cols-5 gap-2 mb-4">
-                                {[0, 1, 2, 3, 4].map((zoneIndex) => (
-                                    <button
-                                        key={zoneIndex}
-                                        onClick={() => summonXyzMonster(zoneIndex)}
-                                        disabled={field.monsterZones[zoneIndex] !== null}
-                                        className={`px-2 py-3 rounded font-bold border-2 text-xs ${
-                                            field.monsterZones[zoneIndex] !== null
-                                                ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                                                : "bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-400"
-                                        }`}
-                                    >
-                                        M{zoneIndex + 1}
-                                        {field.monsterZones[zoneIndex] !== null && (
-                                            <div className="text-xs">使用中</div>
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* エクストラモンスターゾーン選択ボタン */}
-                            <div className="flex justify-center gap-4 mb-6">
-                                <button
-                                    onClick={() => summonXyzMonster(5)}
-                                    disabled={field.extraMonsterZones[0] !== null}
-                                    className={`px-4 py-3 rounded font-bold border-2 ${
-                                        field.extraMonsterZones[0] !== null
-                                            ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                                            : "bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-400"
-                                    }`}
-                                >
-                                    左のEXゾーン
-                                    {field.extraMonsterZones[0] !== null && <div className="text-xs">使用中</div>}
-                                </button>
-
-                                <button
-                                    onClick={() => summonXyzMonster(6)}
-                                    disabled={field.extraMonsterZones[1] !== null}
-                                    className={`px-4 py-3 rounded font-bold border-2 ${
-                                        field.extraMonsterZones[1] !== null
-                                            ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                                            : "bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-400"
-                                    }`}
-                                >
-                                    右のEXゾーン
-                                    {field.extraMonsterZones[1] !== null && <div className="text-xs">使用中</div>}
-                                </button>
-                            </div>
-
-                            <div className="flex justify-center">
-                                <button
-                                    onClick={() => {
-                                        useGameStore.setState((state) => ({
-                                            ...state,
-                                            xyzSummonState: null,
-                                        }));
-                                    }}
-                                    className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                                >
-                                    キャンセル
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-            {/* 補充要員発動確認モーダル */}
-            {pendingTrapActivation && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-bold mb-4 text-center">罠カード発動確認</h3>
-                        <div className="mb-4 p-4 bg-blue-100 rounded text-center">
-                            <div className="mb-2">
-                                <Card card={pendingTrapActivation} size="medium" />
-                            </div>
-                            <p className="font-bold">{pendingTrapActivation.card.card_name}</p>
-                            <p className="text-sm text-gray-600 mt-2">{pendingTrapActivation.card.text}</p>
-                            {pendingTrapActivation.card.card_name === "補充要員" && (
-                                <div className="mt-3 p-2 bg-green-100 rounded">
-                                    <p className="text-xs text-green-800 mb-1">
-                                        墓地のモンスター: {graveyard.filter((c) => isMonsterCard(c.card)).length}体
-                                        (発動条件: 5体以上)
-                                    </p>
-                                    <p className="text-xs text-green-800">
-                                        選択可能なモンスター:{" "}
-                                        {
-                                            graveyard.filter((c) => {
-                                                if (!isMonsterCard(c.card)) return false;
-                                                const monster = c.card as { card_type?: string; attack?: number };
-                                                return (
-                                                    monster.card_type !== "効果モンスター" &&
-                                                    (monster.attack || 0) <= 1500
-                                                );
-                                            }).length
-                                        }
-                                        体 (効果モンスター以外で攻撃力1500以下)
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                        <p className="text-center mb-6">このカードを発動しますか？</p>
-
-                        <div className="flex justify-center space-x-4">
-                            <button
-                                onClick={() => activateTrapCard(pendingTrapActivation)}
-                                className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded font-bold"
-                            >
-                                発動する
-                            </button>
-                            <button
-                                onClick={declineTrapActivation}
-                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                            >
-                                発動しない
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}

@@ -13,6 +13,7 @@ interface FieldZoneProps {
     disabled?: boolean;
     selected?: boolean;
     customSize?: string;
+    reverse?: boolean;
 }
 
 export const FieldZone: React.FC<FieldZoneProps> = ({
