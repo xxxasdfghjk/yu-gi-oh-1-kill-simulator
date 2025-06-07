@@ -36,6 +36,7 @@ export interface GameState {
     hasActivatedJackInTheHand: boolean;
     hasActivatedFafnirSummonEffect: boolean;
     hasActivatedDreitronNova: boolean;
+    hasActivatedDivinerSummonEffect: boolean;
     isOpponentTurn: boolean;
     pendingTrapActivation: CardInstance | null;
     bonmawashiRestriction: boolean;

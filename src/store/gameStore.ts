@@ -195,6 +195,7 @@ const initialState: GameState = {
     hasActivatedEmergencyCyber: false,
     hasActivatedFafnirSummonEffect: false,
     hasActivatedDreitronNova: false,
+    hasActivatedDivinerSummonEffect: false,
     isOpponentTurn: false,
     pendingTrapActivation: null,
     bonmawashiRestriction: false,
@@ -302,6 +303,7 @@ export const useGameStore = create<GameStore>()(
                 state.oneForOneTarget = null;
                 state.hasActivatedFafnirSummonEffect = false;
                 state.hasActivatedDreitronNova = false;
+                state.hasActivatedDivinerSummonEffect = false;
             });
 
             // 初期手札15枚をドロー（デバッグ用）
@@ -367,6 +369,16 @@ export const useGameStore = create<GameStore>()(
                     state.hasActivatedCritter = false;
                     state.hasActivatedEmergencyCyber = false;
                     state.hasActivatedJackInTheHand = false;
+                    state.hasActivatedDivinerSummonEffect = false;
+                    
+                    // ターン終了時の効果をリセット（レベルバフなど）
+                    [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                        .filter((monster): monster is CardInstance => monster !== null)
+                        .forEach(monster => {
+                            if (monster.buf) {
+                                monster.buf.level = 0; // レベルバフをリセット
+                            }
+                        });
                 });
 
                 // プレイヤーターンのドローフェイズ
@@ -1077,6 +1089,37 @@ export const useGameStore = create<GameStore>()(
                             }
                             break;
                         }
+                        case "diviner_summon_effect": {
+                            // 宣告者の神巫の召喚効果: 選択した天使族モンスターを墓地へ送り、そのレベル分だけ宣告者の神巫のレベルを上げる
+                            const selectedAngel = selectedCard[0];
+                            if (selectedAngel && isMonsterCard(selectedAngel.card)) {
+                                const angelLevel = (selectedAngel.card as { level?: number })?.level || 0;
+                                
+                                // 選択したモンスターを墓地へ送る
+                                helper.sendMonsterToGraveyardInternalAnywhere(state, selectedAngel);
+                                
+                                // 宣告者の神巫のレベルを上げる（ターン終了時まで）
+                                const divinerOnField = [
+                                    ...state.field.monsterZones,
+                                    ...state.field.extraMonsterZones
+                                ].find(monster => 
+                                    monster && monster.card.card_name === "宣告者の神巫" && 
+                                    monster.id === currentEffect.cardInstance.id
+                                );
+                                
+                                if (divinerOnField) {
+                                    // バフ情報を追加（既存のバフシステムを使用）
+                                    if (!divinerOnField.buf) {
+                                        divinerOnField.buf = { level: 0, attack: 0, defense: 0 };
+                                    }
+                                    divinerOnField.buf.level = (divinerOnField.buf.level || 0) + angelLevel;
+                                }
+                                
+                                // 1ターンに1度の制限フラグを立てる
+                                state.hasActivatedDivinerSummonEffect = true;
+                            }
+                            break;
+                        }
                         case "special_summon_from_deck_with_destruction": {
                             // デッキから選択したモンスターを特殊召喚（エンドフェイズに破壊）
                             const selectedMonster = selectedCard[0];
@@ -1339,6 +1382,12 @@ export const useGameStore = create<GameStore>()(
                     if (state.effectQueue.length === 0) return;
                     const currentEffect = state.effectQueue[0];
                     state.effectQueue.shift(); // Remove the processed effect
+                    
+                    // 通常召喚の場合はフラグを設定
+                    if (currentEffect.effectType === "normal_summon") {
+                        state.hasNormalSummoned = true;
+                    }
+                    
                     helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance, payload.zone, payload.position);
                 });
             } else if (payload.type === "activate_spell") {

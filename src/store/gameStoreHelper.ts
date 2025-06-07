@@ -103,6 +103,35 @@ export const helper = {
         });
     },
 
+    checkDivinerSummonEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "宣告者の神巫") {
+            return false;
+        }
+        
+        // 1ターンに1度の制限チェック
+        if (state.hasActivatedDivinerSummonEffect) {
+            return false;
+        }
+
+        // デッキ・エクストラデッキから天使族モンスターを選択
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "宣告者の神巫（デッキ・EXデッキから天使族モンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return [...state.deck, ...state.extraDeck].filter((e) => {
+                    if (!isMonsterCard(e.card)) return false;
+                    const monster = e.card as { race?: string };
+                    return monster.race === "天使族";
+                });
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
+            effectType: "diviner_summon_effect",
+        });
+    },
+
     checkCyberAngelIdatenReleaseEffect: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "サイバー・エンジェル－韋駄天－") {
             return false;
@@ -121,6 +150,7 @@ export const helper = {
         helper.checkLinkliboSummonEffect(state, card);
         helper.checkFafnirSummonEffect(state, card);
         helper.checkCyberAngelIdatenSummonEffect(state, card);
+        helper.checkDivinerSummonEffect(state, card);
     },
     checkReleaseEffect: (state: GameStore, card: CardInstance) => {
         helper.checkCyberAngelBentenReleaseEffect(state, card);
