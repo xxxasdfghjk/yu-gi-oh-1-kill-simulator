@@ -11,6 +11,7 @@ import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
+import { getLevel } from "../utils/gameUtils";
 
 export const GameBoardNew: React.FC = () => {
     const {
@@ -73,7 +74,10 @@ export const GameBoardNew: React.FC = () => {
     const canPerformLinkSummon = (linkMonster: CardInstance): boolean => {
         const linkCard = linkMonster.card as { link?: number };
         const requiredMaterials = linkCard.link || 1;
-        const availableMaterials = field.monsterZones.filter((c) => c !== null).length;
+        const availableMaterials = field.monsterZones
+            .filter((c) => c !== null)
+            .map((e) => (e.card as { link?: number })?.link || 1)
+            .reduce((prev, cur) => prev + cur, 0);
         return availableMaterials >= requiredMaterials;
     };
 
@@ -90,9 +94,8 @@ export const GameBoardNew: React.FC = () => {
 
         const availableMaterials = field.monsterZones.filter((c): c is CardInstance => {
             if (!c || !isMonsterCard(c.card)) return false;
-            const monster = c.card as { rank?: number; level?: number };
-            const cardRankOrLevel = monster.rank || monster.level || 0;
-            return cardRankOrLevel === requiredRank;
+            const cardLevel = getLevel(c) || 0;
+            return cardLevel === requiredRank;
         });
 
         return availableMaterials.length >= requiredMaterials;

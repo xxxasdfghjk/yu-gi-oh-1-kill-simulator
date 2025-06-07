@@ -370,11 +370,11 @@ export const useGameStore = create<GameStore>()(
                     state.hasActivatedEmergencyCyber = false;
                     state.hasActivatedJackInTheHand = false;
                     state.hasActivatedDivinerSummonEffect = false;
-                    
+
                     // ターン終了時の効果をリセット（レベルバフなど）
                     [...state.field.monsterZones, ...state.field.extraMonsterZones]
                         .filter((monster): monster is CardInstance => monster !== null)
-                        .forEach(monster => {
+                        .forEach((monster) => {
                             if (monster.buf) {
                                 monster.buf.level = 0; // レベルバフをリセット
                             }
@@ -880,7 +880,7 @@ export const useGameStore = create<GameStore>()(
                     getAvailableCards: (state: GameStore) => {
                         return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter((c) => {
                             if (!c || !isMonsterCard(c.card)) return false;
-                            return (c.card as { level?: number })?.level === rank;
+                            return getLevel(c) === rank;
                         }) as CardInstance[];
                     },
                     condition: (cards: CardInstance[]) => {
@@ -1094,19 +1094,21 @@ export const useGameStore = create<GameStore>()(
                             const selectedAngel = selectedCard[0];
                             if (selectedAngel && isMonsterCard(selectedAngel.card)) {
                                 const angelLevel = (selectedAngel.card as { level?: number })?.level || 0;
-                                
+
                                 // 選択したモンスターを墓地へ送る
                                 helper.sendMonsterToGraveyardInternalAnywhere(state, selectedAngel);
-                                
+
                                 // 宣告者の神巫のレベルを上げる（ターン終了時まで）
                                 const divinerOnField = [
                                     ...state.field.monsterZones,
-                                    ...state.field.extraMonsterZones
-                                ].find(monster => 
-                                    monster && monster.card.card_name === "宣告者の神巫" && 
-                                    monster.id === currentEffect.cardInstance.id
+                                    ...state.field.extraMonsterZones,
+                                ].find(
+                                    (monster) =>
+                                        monster &&
+                                        monster.card.card_name === "宣告者の神巫" &&
+                                        monster.id === currentEffect.cardInstance.id
                                 );
-                                
+
                                 if (divinerOnField) {
                                     // バフ情報を追加（既存のバフシステムを使用）
                                     if (!divinerOnField.buf) {
@@ -1114,9 +1116,90 @@ export const useGameStore = create<GameStore>()(
                                     }
                                     divinerOnField.buf.level = (divinerOnField.buf.level || 0) + angelLevel;
                                 }
-                                
+
                                 // 1ターンに1度の制限フラグを立てる
                                 state.hasActivatedDivinerSummonEffect = true;
+                            }
+                            break;
+                        }
+                        case "meteor_kikougun_select_ritual_monster": {
+                            // 流星輝巧群: 選択された儀式モンスターに対して機械族モンスターを選択
+                            const selectedRitualMonster = selectedCard[0];
+                            if (selectedRitualMonster && isMonsterCard(selectedRitualMonster.card)) {
+                                const requiredAttack = (selectedRitualMonster.card as { attack?: number })?.attack || 0;
+
+                                // 手札・フィールドの機械族モンスターを素材として選択
+                                state.effectQueue.unshift({
+                                    id: "",
+                                    type: "multiselect",
+                                    effectName: `流星輝巧群（機械族モンスター選択 - 必要攻撃力: ${requiredAttack}）`,
+                                    cardInstance: currentEffect.cardInstance,
+                                    getAvailableCards: (state: GameStore) => {
+                                        const handMachineMonsters = state.hand.filter((c) => {
+                                            if (!isMonsterCard(c.card)) return false;
+                                            const monster = c.card as { race?: string };
+                                            return monster.race === "機械族";
+                                        });
+                                        const fieldMachineMonsters = state.field.monsterZones.filter(
+                                            (c): c is CardInstance => {
+                                                if (!c || !isMonsterCard(c.card)) return false;
+                                                const monster = c.card as { race?: string };
+                                                return monster.race === "機械族";
+                                            }
+                                        );
+                                        return [...handMachineMonsters, ...fieldMachineMonsters];
+                                    },
+                                    condition: (cards: CardInstance[]) => {
+                                        // 選択されたモンスターの攻撃力合計が必要攻撃力以上であることを確認
+                                        const totalAttack = cards.reduce((sum, c) => {
+                                            return sum + getAttack(c);
+                                        }, 0);
+                                        return cards.length >= 1 && totalAttack >= requiredAttack;
+                                    },
+                                    effectType: "meteor_kikougun_select_materials",
+                                    canCancel: false,
+                                });
+
+                                // 選択された儀式モンスターの情報を保存
+                                state.meteorKikougunState = {
+                                    phase: "select_materials",
+                                    selectedRitualMonster: selectedRitualMonster,
+                                    requiredAttack: requiredAttack,
+                                };
+                            }
+                            break;
+                        }
+                        case "meteor_kikougun_select_materials": {
+                            // 流星輝巧群: 機械族モンスターをリリースして儀式召喚
+                            const selectedMaterials = selectedCard;
+                            const ritualMonster = state.meteorKikougunState?.selectedRitualMonster;
+
+                            if (ritualMonster && selectedMaterials.length > 0) {
+                                // 選択された素材をリリース（墓地へ送る）
+                                selectedMaterials.forEach((material) => {
+                                    helper.sendMonsterToGraveyardInternalAnywhere(state, material, "release");
+                                });
+
+                                // 儀式モンスターに素材情報を追加
+                                const ritualInstanceWithMaterials = {
+                                    ...ritualMonster,
+                                    materials: selectedMaterials,
+                                };
+
+                                // 儀式召喚
+                                state.effectQueue.unshift({
+                                    id: "",
+                                    type: "summon",
+                                    cardInstance: ritualInstanceWithMaterials,
+                                    effectType: "ritual_summon",
+                                    optionPosition: ["attack", "defense"],
+                                    canSelectPosition: true,
+                                });
+
+                                // 状態をリセット
+                                state.meteorKikougunState = null;
+
+                                console.log("Meteor Kikougun ritual summon initiated");
                             }
                             break;
                         }
@@ -1382,12 +1465,12 @@ export const useGameStore = create<GameStore>()(
                     if (state.effectQueue.length === 0) return;
                     const currentEffect = state.effectQueue[0];
                     state.effectQueue.shift(); // Remove the processed effect
-                    
+
                     // 通常召喚の場合はフラグを設定
                     if (currentEffect.effectType === "normal_summon") {
                         state.hasNormalSummoned = true;
                     }
-                    
+
                     helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance, payload.zone, payload.position);
                 });
             } else if (payload.type === "activate_spell") {
@@ -1723,34 +1806,32 @@ export const useGameStore = create<GameStore>()(
                             console.log("Activating Meteor Kikougun effect...");
 
                             // 手札・墓地から儀式モンスターを選択させる
-                            const handRitualMonsters = state.hand.filter(
-                                (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
-                            );
-                            const graveyardRitualMonsters = state.graveyard.filter(
-                                (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
-                            );
-
-                            const allRitualMonsters = [...handRitualMonsters, ...graveyardRitualMonsters];
-
-                            console.log(
-                                "Available ritual monsters for Meteor Kikougun:",
-                                allRitualMonsters.map((c) => c.card.card_name)
-                            );
-
-                            if (allRitualMonsters.length > 0) {
-                                console.log("Setting up ritual monster selection UI");
-                                state.meteorKikougunState = {
-                                    phase: "select_ritual_monster",
-                                    availableRitualMonsters: allRitualMonsters,
-                                };
-                                state.searchingEffect = {
-                                    cardName: "流星輝巧群（儀式モンスター選択）",
-                                    availableCards: allRitualMonsters,
-                                    effectType: "meteor_kikougun_select_monster",
-                                };
-                            } else {
-                                console.log("No ritual monsters available for Meteor Kikougun");
-                            }
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "流星輝巧群（儀式モンスター選択）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    const handRitualMonsters = state.hand.filter(
+                                        (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
+                                    );
+                                    const graveyardRitualMonsters = state.graveyard.filter(
+                                        (c) => isMonsterCard(c.card) && c.card.card_type === "儀式・効果モンスター"
+                                    );
+                                    return [...handRitualMonsters, ...graveyardRitualMonsters];
+                                },
+                                condition: (cards: CardInstance[]) => {
+                                    return cards.length === 1;
+                                },
+                                effectType: "meteor_kikougun_select_ritual_monster",
+                                canCancel: false,
+                            });
+                            state.effectQueue.push({
+                                type: "spell_end",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                id: "",
+                            });
                             break;
                         }
                     }

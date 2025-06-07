@@ -331,11 +331,9 @@ export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
     if (handRitualMonsters.length === 0 && graveyardRitualMonsters.length === 0) {
         return false;
     }
+    const allRitualMonsters = [...handRitualMonsters, ...graveyardRitualMonsters];
     const ritualMonstersMinAttack = Math.min(
-        ...handRitualMonsters.map(
-            (c) => (c.card as { attack: number }).attack,
-            ...graveyardRitualMonsters.map((c) => (c.card as { attack: number }).attack)
-        )
+        ...allRitualMonsters.map((c) => (c.card as { attack: number }).attack)
     );
 
     // 手札・フィールドに機械族モンスターが1体以上必要
