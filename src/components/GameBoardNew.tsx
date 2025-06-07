@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useGameStore } from "@/store/gameStore";
 import { Card } from "./Card";
 import { CardDetail } from "./CardDetail";
-import { AdvancedRitualSelector } from "./AdvancedRitualSelector";
 import { ActionListSelector, HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
@@ -12,6 +11,7 @@ import { canActivateBanAlpha } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { MultiCardConditionSelector } from "./MultiCardConditionSelector";
 import { MultiOptionSelector } from "./MultiOptionSelector";
+import SummonSelector from "./SummonSelector";
 
 export const GameBoardNew: React.FC = () => {
     const {
@@ -35,8 +35,6 @@ export const GameBoardNew: React.FC = () => {
         activateFieldCard,
         activateSetCard,
         summonSelecting,
-        selectNormalMonstersForRitual,
-        advancedRitualState,
         activateChickenRaceEffect,
         isOpponentTurn,
         pendingTrapActivation,
@@ -258,6 +256,7 @@ export const GameBoardNew: React.FC = () => {
             {effectQueue.length > 0 &&
                 (() => {
                     const currentEffect = effectQueue[0];
+                    console.log(currentEffect);
                     // 通常のカード選択
                     switch (currentEffect.type) {
                         case "option":
@@ -296,6 +295,14 @@ export const GameBoardNew: React.FC = () => {
                                     getAvailableCards={currentEffect.getAvailableCards}
                                     condition={currentEffect.condition}
                                 />
+                            );
+                        case "link_summon":
+                            return (
+                                <SummonSelector
+                                    cardInstance={currentEffect.cardInstance}
+                                    onSelect={(zone) => processQueueTop({ type: "summon", zone })}
+                                    state={gameState}
+                                ></SummonSelector>
                             );
                         default:
                             return null;
@@ -343,16 +350,6 @@ export const GameBoardNew: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            {/* ジャック・イン・ザ・ハンド効果 - 現在はキューシステムで処理 */}
-
-            {/* 補充要員効果 - 現在はキューシステムで処理 */}
-
-            {/* 盆回し効果 - 現在はキューシステムで処理 */}
-
-            {/* ジャック・イン・ザ・ハンドプレイヤー選択 - 現在はキューシステムで処理 */}
-
-            {/* 金満で謙虚な壺効果 - 現在はキューシステムで処理 */}
 
             {/* 墓地確認モーダル */}
             {showGraveyard && (
@@ -570,68 +567,6 @@ export const GameBoardNew: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            {/* リンク召喚ゾーン選択 */}
-            {linkSummonState &&
-                linkSummonState.selectedMaterials &&
-                linkSummonState.selectedMaterials.length > 0 &&
-                effectQueue.length === 0 && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                            <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>
-                            <div className="mb-4 p-4 bg-blue-100 rounded text-center">
-                                <p className="font-bold">{linkSummonState.linkMonster?.card.card_name}</p>
-                                <p className="text-sm text-gray-600 mt-2">
-                                    素材: {linkSummonState.selectedMaterials.map((m) => m.card.card_name).join(", ")}
-                                </p>
-                            </div>
-                            <p className="text-center mb-6">エクストラモンスターゾーンを選択してください</p>
-
-                            {/* エクストラモンスターゾーン選択ボタン */}
-                            <div className="flex justify-center gap-4 mb-6">
-                                <button
-                                    onClick={() => summonLinkMonster(5)}
-                                    disabled={field.extraMonsterZones[0] !== null}
-                                    className={`px-4 py-3 rounded font-bold border-2 ${
-                                        field.extraMonsterZones[0] !== null
-                                            ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                                            : "bg-red-100 hover:bg-red-200 text-red-800 border-red-400"
-                                    }`}
-                                >
-                                    左のEXゾーン
-                                    {field.extraMonsterZones[0] !== null && <div className="text-xs">使用中</div>}
-                                </button>
-
-                                <button
-                                    onClick={() => summonLinkMonster(6)}
-                                    disabled={field.extraMonsterZones[1] !== null}
-                                    className={`px-4 py-3 rounded font-bold border-2 ${
-                                        field.extraMonsterZones[1] !== null
-                                            ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                                            : "bg-red-100 hover:bg-red-200 text-red-800 border-red-400"
-                                    }`}
-                                >
-                                    右のEXゾーン
-                                    {field.extraMonsterZones[1] !== null && <div className="text-xs">使用中</div>}
-                                </button>
-                            </div>
-
-                            <div className="flex justify-center">
-                                <button
-                                    onClick={() => {
-                                        useGameStore.setState((state) => ({
-                                            ...state,
-                                            linkSummonState: null,
-                                        }));
-                                    }}
-                                    className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                                >
-                                    キャンセル
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
             {/* エクシーズ召喚ゾーン選択 */}
             {xyzSummonState &&

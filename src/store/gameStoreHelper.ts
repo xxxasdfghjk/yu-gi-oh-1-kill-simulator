@@ -15,106 +15,126 @@ export const helper = {
         // Clear the effect states in a separate update to ensure UI refresh
         state.banAlphaState = null;
     },
-
-    selectEruGanmaReleaseTarget: (state: GameStore, targetCard: CardInstance) => {
-        if (!state.eruGanmaState || state.eruGanmaState.phase !== "select_release_target") {
-            return;
-        }
-        const eruGanmaCard = state.eruGanmaState.eruGanmaCard!;
-
-        // Try multiple separate state updates to isolate the issue
-        if (targetCard.location === "hand") {
-            helper.sendMonsterToGraveyardInternal(state, targetCard, "hand");
-        } else if (targetCard.location === "field_monster") {
-            const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === targetCard.id);
-            if (zoneIndex !== -1) {
-                helper.sendMonsterToGraveyardInternal(state, targetCard, "field");
-            }
-        }
-        if (eruGanmaCard.location === "hand") {
-            state.hand = state.hand.filter((c) => c.id !== eruGanmaCard.id);
-        } else if (eruGanmaCard.location === "graveyard") {
-            state.graveyard = state.graveyard.filter((c) => c.id !== eruGanmaCard.id);
-        }
-
-        const emptyZone = state.field.monsterZones.findIndex((zone) => zone === null);
-
-        if (emptyZone !== -1) {
-            // Create new summoned monster object
-            const summonedMonster = {
-                id: eruGanmaCard.id,
-                card: eruGanmaCard.card,
-                location: "field_monster" as const,
-                position: "defense" as const,
-                zone: emptyZone,
-            };
-
-            // Force array update
-            const newMonsterZones = [...state.field.monsterZones];
-            newMonsterZones[emptyZone] = summonedMonster;
-            state.field.monsterZones = newMonsterZones;
-            state.hasSpecialSummoned = true;
-
-            // エルγ特殊召喚後の効果：墓地から攻撃力2000の「ドライトロン」モンスター（エルγ以外）を特殊召喚
-            const graveyardMonsters = state.graveyard.filter((c: CardInstance) => {
-                const card = c.card;
-
-                // モンスターカードかチェック
-                const isMonster =
-                    card.card_type &&
-                    (card.card_type.includes("モンスター") ||
-                        card.card_type === "通常モンスター" ||
-                        card.card_type === "効果モンスター" ||
-                        card.card_type === "儀式・効果モンスター");
-
-                if (!isMonster) return false;
-
-                // 攻撃力2000かチェック
-                const monster = card as { attack?: number };
-                if (monster.attack !== 2000) return false;
-
-                // ドライトロンモンスターかチェック（エルγ以外）
-                const isDrytron = card.card_name.includes("竜輝巧") || card.card_name.includes("ドライトロン");
-                const isNotEruGanma = card.card_name !== "竜輝巧－エルγ";
-
-                return isDrytron && isNotEruGanma;
-            });
-
-            if (graveyardMonsters.length > 0) {
-                // 墓地からモンスター選択をキューに追加
-                state.effectQueue.push({
-                    id: `eru_ganma_graveyard_${Date.now()}`,
-                    type: "select",
-                    effectName: "墓地からモンスター1体を選んで特殊召喚してください",
-                    cardName: "竜輝巧－エルγ",
-                    availableCards: graveyardMonsters,
-                    effectType: "eru_ganma_graveyard_select",
-                });
-                state.eruGanmaState = null; // リリース状態は終了
-            } else {
-                state.eruGanmaState = null;
-            }
-        }
-    },
-    checkFafnirMuBetaGraveyardEffectInternal: (state: GameStore, card: CardInstance) => {
+    checkFafnirMuBetaSummonEffect: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "竜輝巧－ファフμβ'") {
             return false;
         }
-
-        // 手札・デッキからドライトロンモンスターを探す
-        const handDrytronMonsters = state.hand.filter((c) => {
-            if (!isMonsterCard(c.card)) return false;
-            return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "竜輝巧－ファフμβ'（墓地に送るモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return state.deck.filter((e) => e.card.card_name.includes("竜輝巧"));
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
+            effectType: "send_to_graveyard",
         });
+    },
 
-        const deckDrytronMonsters = state.deck.filter((c) => {
-            if (!isMonsterCard(c.card)) return false;
-            return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
+    checkLinkliboSummonEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "リンクリボー") {
+            return false;
+        }
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "リンクリボー（墓地に送るモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return state.deck.filter((e) => (e.card as { level?: number })?.level === 1);
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
+            effectType: "send_to_graveyard",
         });
+    },
+    checkCyberAngelBentenReleaseEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "サイバー・エンジェル－弁天－") {
+            return false;
+        }
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "サイバー・エンジェル－弁天－（手札に加えるモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return state.deck.filter((e) => {
+                    const { attribute, race } = e.card as { attribute?: string; race?: string };
+                    return attribute === "光属性" && race === "天使族";
+                });
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
+            effectType: "get_hand_single",
+        });
+    },
 
-        const allDrytronMonsters = [...handDrytronMonsters, ...deckDrytronMonsters];
+    checkFafnirSummonEffect: (state: GameStore, card: CardInstance) => {
+        console.log("hasActivatedFafnirSummonEffect", state.hasActivatedFafnirSummonEffect);
+        if (
+            state.field.fieldZone?.card.card_name !== "竜輝巧－ファフニール" ||
+            state.hasActivatedFafnirSummonEffect === true
+        ) {
+            return false;
+        }
+        console.log("fffff");
+        const existingDreitron = !![...state.field.extraMonsterZones, ...state.field.monsterZones].find(
+            (e) => e?.id !== card.id && e?.card.card_name.includes("竜輝巧")
+        );
+        console.log(existingDreitron);
 
-        if (allDrytronMonsters.length === 0) {
+        if (!existingDreitron) {
+            return false;
+        }
+        state.effectQueue.push({
+            id: "",
+            type: "option",
+            effectName:
+                "竜輝巧－ファフニール（効果の発動を選択）レベルをその攻撃力１０００につき１つ下げる（最小１まで）",
+            cardInstance: card,
+            canCancel: true,
+            option: [{ name: "発動する", value: "use" }],
+            effectType: "fafnir_summon_effect_option",
+        });
+    },
+
+    checkFieldSummonEffect: (state: GameStore, card: CardInstance) => {
+        helper.checkFafnirMuBetaSummonEffect(state, card);
+        helper.checkLinkliboSummonEffect(state, card);
+        helper.checkFafnirSummonEffect(state, card);
+    },
+    checkReleaseEffect: (state: GameStore, card: CardInstance) => {
+        helper.checkCyberAngelBentenReleaseEffect(state, card);
+    },
+
+    checkFieldDestoryEffect: (state: GameStore, card: CardInstance) => {
+        helper.checkFafnirMuBetaGraveyardEffectInternal(state, card);
+    },
+    checkClitterGraveyardEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "クリッター" && state.hasActivatedCritter) {
+            return false;
+        }
+        // カード選択をキューに追加
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "クリッター（モンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return state.deck.filter(
+                    (e) => isMonsterCard(e.card) && ((e.card as { attack?: number })?.attack ?? 9999) <= 1500
+                );
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
+            effectType: "clitter_effect_search",
+        });
+        return true;
+    },
+    checkFafnirMuBetaGraveyardEffectInternal: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "竜輝巧－ファフμβ'") {
             return false;
         }
 
@@ -122,9 +142,22 @@ export const helper = {
         state.effectQueue.push({
             id: `fafnir_mu_beta_graveyard_${Date.now()}`,
             type: "select",
-            effectName: "手札・デッキからドライトロンモンスター1体を選んで特殊召喚してください",
-            cardName: "竜輝巧－ファフμβ'",
-            availableCards: allDrytronMonsters,
+            effectName: "竜輝巧－ファフμβ'（特殊召喚するモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                const handDrytronMonsters = state.hand.filter((c) => {
+                    if (!isMonsterCard(c.card)) return false;
+                    return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
+                });
+
+                const deckDrytronMonsters = state.deck.filter((c) => {
+                    if (!isMonsterCard(c.card)) return false;
+                    return c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン");
+                });
+                return [...handDrytronMonsters, ...deckDrytronMonsters];
+            },
+            canCancel: true,
+            condition: (card) => card.length === 1,
             effectType: "fafnir_mu_beta_graveyard",
         });
         return true;
@@ -158,41 +191,80 @@ export const helper = {
         state.graveyard.push(graveyardCard);
         return effectOccurred;
     },
-    sendMonsterToGraveyardInternalAnywhere: (state: GameStore, monster: CardInstance) => {
+    sendMonsterToGraveyardInternalAnywhere: (state: GameStore, monster: CardInstance, context?: "release") => {
         const graveyardCard = { ...monster, location: "graveyard" as const };
-        let effectOccurred = false;
+        let locate = "";
 
         // フィールドのモンスターゾーンから削除
         const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === monster.id);
         if (zoneIndex !== -1) {
             state.field.monsterZones[zoneIndex] = null;
+            locate = "field";
         }
         // エクストラモンスターゾーンからも確認
         const extraZoneIndex = state.field.extraMonsterZones.findIndex((c) => c?.id === monster.id);
         if (extraZoneIndex !== -1) {
             state.field.extraMonsterZones[extraZoneIndex] = null;
+            locate = "field";
         }
-        effectOccurred = helper.checkFafnirMuBetaGraveyardEffectInternal(state, monster);
+        if (state.hand.findIndex((c) => c.id === monster.id) !== -1) {
+            locate = "hand";
+        }
+        if (state.deck.findIndex((c) => c.id === monster.id) !== -1) {
+            locate = "deck";
+        }
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
-
+        monster.materials.forEach((e) => {
+            const graveyardCard = { ...e, buf: { attack: 0, level: 0, defence: 0 }, location: "graveyard" as const };
+            state.graveyard.push(graveyardCard);
+        });
+        graveyardCard.materials = [];
         state.graveyard.push(graveyardCard);
-        return effectOccurred;
+        if (locate === "field") {
+            helper.checkFieldDestoryEffect(state, monster);
+        }
+        if (context === "release") {
+            helper.checkReleaseEffect(state, monster);
+        }
+        return locate;
     },
 
     summonMonsterFromAnywhere: (state: GameStore, monster: CardInstance, targetZone: number | null = null) => {
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
-        const emptyZone = targetZone ? targetZone : state.field.monsterZones.findIndex((zone) => zone === null);
-        if (emptyZone !== -1) {
-            const summonedMonster = {
-                ...monster,
-                location: "field_monster" as const,
-                position: "defense" as const,
-                zone: emptyZone,
-            };
-            state.field.monsterZones[emptyZone] = summonedMonster;
+        state.extraDeck = state.extraDeck.filter((c) => c.id !== monster.id);
+        if (targetZone !== null) {
+            if (targetZone === 5 || targetZone === 6) {
+                const summonedMonster = {
+                    ...monster,
+                    location: "field_monster" as const,
+                    position: "defense" as const,
+                    zone: targetZone,
+                };
+                state.field.extraMonsterZones[targetZone - 5] = summonedMonster;
+            } else {
+                const summonedMonster = {
+                    ...monster,
+                    location: "field_monster" as const,
+                    position: "defense" as const,
+                    zone: targetZone,
+                };
+                state.field.monsterZones[targetZone] = summonedMonster;
+            }
+        } else {
+            const emptyZone = targetZone ? targetZone : state.field.monsterZones.findIndex((zone) => zone === null);
+            if (emptyZone !== -1) {
+                const summonedMonster = {
+                    ...monster,
+                    location: "field_monster" as const,
+                    position: "defense" as const,
+                    zone: emptyZone,
+                };
+                state.field.monsterZones[emptyZone] = summonedMonster;
+            }
         }
+        helper.checkFieldSummonEffect(state, monster);
     },
     toHandFromAnywhere: (state: GameStore, card: CardInstance) => {
         state.deck = state.deck.filter((c) => c.id !== card.id);

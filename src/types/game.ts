@@ -34,6 +34,7 @@ export interface GameState {
     hasActivatedEruGanma: boolean;
     hasActivatedAruZeta: boolean;
     hasActivatedJackInTheHand: boolean;
+    hasActivatedFafnirSummonEffect: boolean;
     isOpponentTurn: boolean;
     pendingTrapActivation: CardInstance | null;
     bonmawashiRestriction: boolean;
