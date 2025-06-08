@@ -4,7 +4,7 @@ import type { GameState } from "@/types/game";
 import { v4 as uuidv4 } from "uuid";
 import { getLinkMonsterSummonalble } from "@/components/SummonSelector";
 
-export const createCardInstance = (card: Card, location: CardInstance["location"]): CardInstance => {
+export const createCardInstance = (card: Card, location: CardInstance["location"], isToken?: boolean): CardInstance => {
     return {
         card,
         id: uuidv4(),
@@ -15,6 +15,7 @@ export const createCardInstance = (card: Card, location: CardInstance["location"
         counters: 0,
         materials: [],
         buf: { attack: 0, defense: 0, level: 0 },
+        isToken,
     };
 };
 

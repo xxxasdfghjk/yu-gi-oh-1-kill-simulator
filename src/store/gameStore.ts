@@ -8,14 +8,15 @@ import {
     drawCards,
     isMonsterCard,
     isSpellCard,
+    isTrapCard,
     getLevel,
+    getAttack,
     canLinkSummonByMaterials,
     canLinkSummonAfterRelease,
 } from "@/utils/gameUtils";
 import { canNormalSummon, findEmptySpellTrapZone, canSetSpellTrap, canActivateHokyuYoin } from "@/utils/summonUtils";
 import type { CardInstance, MonsterCard } from "@/types/card";
 import { helper } from "./gameStoreHelper";
-import { getAttack } from "../utils/gameUtils";
 
 export type EffectQueueItem =
     | {
@@ -152,6 +153,7 @@ const initialState: GameState = {
     hasActivatedAuroradonEffect: false,
     hasActivatedUnionCarrierEffect: false,
     hasActivatedMeteorKikougunGraveyardEffect: false,
+    isLinkSummonProhibited: false,
     isOpponentTurn: false,
     pendingTrapActivation: null,
     bonmawashiRestriction: false,
@@ -220,6 +222,7 @@ export const useGameStore = create<GameStore>()(
                 state.hasActivatedExtravagance = false;
                 state.hasActivatedChickenRace = false;
                 state.hasActivatedFafnir = false;
+                state.isLinkSummonProhibited = false;
                 state.hasActivatedBanAlpha = false;
                 state.hasActivatedCritter = false;
                 state.hasActivatedEmergencyCyber = false;
@@ -246,7 +249,7 @@ export const useGameStore = create<GameStore>()(
                 state.hasActivatedUnionCarrierEffect = false;
                 state.hasActivatedMeteorKikougunGraveyardEffect = false;
             });
-            get().drawCard(5);
+            get().drawCard(15);
         },
 
         drawCard: (count = 1) => {
@@ -621,9 +624,11 @@ export const useGameStore = create<GameStore>()(
                     effectName: `${dreitronCard.card.card_name}（リリース対象選択）`,
                     cardInstance: dreitronCard,
                     getAvailableCards: (state: GameStore) => {
-                        return [...state.hand, ...state.field.monsterZones].filter((c) => {
+                        const noEmpty = state.field.monsterZones.filter((e) => e === null).length === 0;
+                        return [...(noEmpty ? [] : state.hand), ...state.field.monsterZones].filter((c) => {
                             if (!c || !isMonsterCard(c.card)) return false;
                             if (!isMonsterCard(c.card)) return false;
+
                             const isDrytron =
                                 (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
                                 c.card.card_name !== dreitronCard.card.card_name;
@@ -642,6 +647,10 @@ export const useGameStore = create<GameStore>()(
 
         startLinkSummon: (linkMonster: CardInstance) => {
             set((state) => {
+                // アウローラドンの効果でリンク召喚制限がある場合
+                if (state.isLinkSummonProhibited) {
+                    return;
+                }
                 state.effectQueue.unshift({
                     id: "",
                     type: "multiselect",
@@ -939,11 +948,7 @@ export const useGameStore = create<GameStore>()(
                                     // X素材を1つ墓地へ送る
                                     const removedMaterial = beatriceOnField.materials.pop();
                                     if (removedMaterial) {
-                                        const graveyardMaterial = {
-                                            ...removedMaterial,
-                                            location: "graveyard" as const,
-                                        };
-                                        state.graveyard.push(graveyardMaterial);
+                                        helper.sendMonsterToGraveyardInternalAnywhere(state, removedMaterial);
                                     }
                                 }
 
@@ -982,45 +987,93 @@ export const useGameStore = create<GameStore>()(
                             }
                             break;
                         }
-                        case "auroradon_tribute_select": {
-                            // アウローラドンの効果: 他のモンスターを選択してリリース
-                            const selectedTributeMonster = selectedCard[0];
-                            if (selectedTributeMonster) {
-                                // アウローラドン自身を墓地へ送る
-                                const auroradonOnField = [
-                                    ...state.field.monsterZones,
-                                    ...state.field.extraMonsterZones,
-                                ].find((monster) => monster && monster.card.card_name === "幻獣機アウローラドン");
+                        case "auroradon_release_1": {
+                            // 1体リリース: フィールドのカード1枚を破壊
+                            selectedCard.forEach((monster) => {
+                                helper.sendMonsterToGraveyardInternalAnywhere(state, monster, "release");
+                            });
 
-                                if (auroradonOnField) {
-                                    helper.sendMonsterToGraveyardInternalAnywhere(state, auroradonOnField, "release");
-                                }
+                            // フィールドのカード選択
+                            const fieldCards = [
+                                ...state.field.monsterZones.filter((card) => card !== null),
+                                ...state.field.extraMonsterZones.filter((card) => card !== null),
+                                ...state.field.spellTrapZones.filter((card) => card !== null),
+                                state.field.fieldZone,
+                                ...state.opponentField.monsterZones.filter((card) => card !== null),
+                                ...state.opponentField.spellTrapZones.filter((card) => card !== null),
+                                state.opponentField.fieldZone,
+                            ].filter((card) => card !== null) as CardInstance[];
 
-                                // 選択したモンスターもリリース
-                                helper.sendMonsterToGraveyardInternalAnywhere(state, selectedTributeMonster, "release");
-
-                                // デッキから機械族モンスターを特殊召喚する選択肢を表示
+                            if (fieldCards.length > 0) {
                                 state.effectQueue.unshift({
                                     id: "",
                                     type: "select",
-                                    effectName: "幻獣機アウローラドン（デッキから機械族モンスターを特殊召喚）",
+                                    effectName: "幻獣機アウローラドン（破壊するカードを選択）",
                                     cardInstance: currentEffect.cardInstance,
-                                    getAvailableCards: (state: GameStore) => {
-                                        return state.deck.filter((c) => {
-                                            if (!isMonsterCard(c.card)) return false;
-                                            const monster = c.card as { race?: string };
-                                            return monster.race === "機械族";
-                                        });
-                                    },
-                                    condition: (cards: CardInstance[]) => {
-                                        return cards.length === 1;
-                                    },
-                                    effectType: "special_summon",
+                                    getAvailableCards: () => fieldCards,
+                                    condition: (cards: CardInstance[]) => cards.length === 1,
+                                    effectType: "auroradon_destroy",
                                     canCancel: false,
                                 });
+                            }
 
-                                // 1ターンに1度の制限フラグを立てる
-                                state.hasActivatedAuroradonEffect = true;
+                            state.hasActivatedAuroradonEffect = true;
+                            break;
+                        }
+
+                        case "auroradon_release_3": {
+                            // 3体リリース: 墓地から罠カード1枚を手札に加える
+                            selectedCard.forEach((monster) => {
+                                helper.sendMonsterToGraveyardInternalAnywhere(state, monster, "release");
+                            });
+
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "select",
+                                effectName: "幻獣機アウローラドン（墓地から罠カードを手札に加える）",
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return state.graveyard.filter((c) => isTrapCard(c.card));
+                                },
+                                condition: (cards: CardInstance[]) => cards.length === 1,
+                                effectType: "get_hand_single",
+                                canCancel: false,
+                            });
+
+                            state.hasActivatedAuroradonEffect = true;
+                            break;
+                        }
+
+                        case "auroradon_destroy": {
+                            // アウローラドンの破壊効果
+                            const targetCard = selectedCard[0];
+                            if (targetCard) {
+                                if (isMonsterCard(targetCard.card)) {
+                                    helper.sendMonsterToGraveyardInternalAnywhere(state, targetCard);
+                                } else if (isSpellCard(targetCard.card) || isTrapCard(targetCard.card)) {
+                                    // 魔法・罠カードの破壊処理
+                                    const spellIndex = state.field.spellTrapZones.findIndex(
+                                        (zone) => zone?.id === targetCard.id
+                                    );
+                                    if (spellIndex !== -1) {
+                                        state.field.spellTrapZones[spellIndex] = null;
+                                    }
+                                    if (state.field.fieldZone?.id === targetCard.id) {
+                                        state.field.fieldZone = null;
+                                    }
+                                    const oppSpellIndex = state.opponentField.spellTrapZones.findIndex(
+                                        (zone) => zone?.id === targetCard.id
+                                    );
+                                    if (oppSpellIndex !== -1) {
+                                        state.opponentField.spellTrapZones[oppSpellIndex] = null;
+                                    }
+                                    if (state.opponentField.fieldZone?.id === targetCard.id) {
+                                        state.opponentField.fieldZone = null;
+                                    }
+                                    targetCard.location = "graveyard";
+                                    targetCard.position = undefined;
+                                    helper.sendMonsterToGraveyardInternalAnywhere(state, targetCard);
+                                }
                             }
                             break;
                         }
@@ -1091,26 +1144,17 @@ export const useGameStore = create<GameStore>()(
                             const targetDrytron = selectedCard[0];
                             if (targetDrytron && isMonsterCard(targetDrytron.card)) {
                                 // ドライトロンモンスターの攻撃力を1000ダウン（相手ターン終了時まで）
-                                if (!targetDrytron.buf) {
-                                    targetDrytron.buf = { attack: 0, defense: 0, level: 0 };
-                                }
-                                targetDrytron.buf.attack -= 1000;
+                                const newInstance = {
+                                    ...targetDrytron,
+                                    buf: { ...targetDrytron.buf, attack: targetDrytron.buf.attack - 1000 },
+                                };
 
                                 // フィールドのモンスターを更新
-                                helper.updateFieldMonster(state, targetDrytron);
+                                helper.updateFieldMonster(state, newInstance);
+                                console.log(currentEffect.cardInstance);
 
                                 // 流星輝巧群を墓地から手札に加える
-                                const meteorCard = state.graveyard.find(
-                                    (card) =>
-                                        card.card.card_name === "流星輝巧群" &&
-                                        card.id === currentEffect.cardInstance.id
-                                );
-
-                                if (meteorCard) {
-                                    state.graveyard = state.graveyard.filter((c) => c.id !== meteorCard.id);
-                                    const handCard = { ...meteorCard, location: "hand" as const };
-                                    state.hand.push(handCard);
-                                }
+                                helper.toHandFromAnywhere(state, currentEffect.cardInstance);
 
                                 // 1ターンに1度の制限フラグを立てる
                                 state.hasActivatedMeteorKikougunGraveyardEffect = true;
@@ -1152,6 +1196,11 @@ export const useGameStore = create<GameStore>()(
                                         return [...handMachineMonsters, ...fieldMachineMonsters, ...myu];
                                     },
                                     condition: (cards: CardInstance[], state: GameStore) => {
+                                        const noEmpty = state.field.monsterZones.filter((e) => e === null).length === 0;
+                                        if (noEmpty && cards.find((e) => e.location === "field_monster") === null) {
+                                            return false;
+                                        }
+
                                         // 選択されたモンスターの攻撃力合計が必要攻撃力以上であることを確認
                                         const totalAttack = cards.reduce((sum, c) => {
                                             return sum + getAttack(state, c);
@@ -1275,7 +1324,14 @@ export const useGameStore = create<GameStore>()(
                             const materials = selectedCard
                                 .map((e) => [e, ...e.materials])
                                 .flat()
-                                .map((e) => ({ ...e, location: "material" as const }));
+                                .map((e) => ({
+                                    ...e,
+                                    location: "material" as const,
+                                    position: undefined,
+                                    summonedBy: undefined,
+                                    equipped: undefined,
+                                    buf: { attack: 0, defense: 0, level: 0 },
+                                }));
                             xyzMonster.materials = materials;
                             state.effectQueue.unshift({
                                 id: "",
@@ -1294,7 +1350,7 @@ export const useGameStore = create<GameStore>()(
                                 id: "",
                                 type: "summon",
                                 cardInstance: currentEffect.cardInstance,
-                                effectType: "summon",
+                                effectType: "link_summon",
                                 canSelectPosition: false,
                                 optionPosition: ["attack"],
                             });
@@ -1427,6 +1483,28 @@ export const useGameStore = create<GameStore>()(
                             }
                             break;
                         }
+
+                        case "auroradon_select_effect": {
+                            const selectedOption = payload.option[0].value;
+                            const releaseCount = parseInt(selectedOption.split("_")[1]);
+
+                            // リリースするモンスターを選択
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "multiselect",
+                                effectName: `幻獣機アウローラドン（リリースする${releaseCount}体を選択）`,
+                                cardInstance: currentEffect.cardInstance,
+                                getAvailableCards: (state: GameStore) => {
+                                    return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                                        (monster) => monster !== null
+                                    ) as CardInstance[];
+                                },
+                                condition: (cards: CardInstance[]) => cards.length === releaseCount,
+                                effectType: `auroradon_release_${releaseCount}`,
+                                canCancel: false,
+                            });
+                            break;
+                        }
                     }
                 });
             } else if (payload.type === "summon") {
@@ -1445,7 +1523,11 @@ export const useGameStore = create<GameStore>()(
                         currentEffect.cardInstance,
                         payload.zone,
                         payload.position,
-                        currentEffect.effectType === "normal_summon" ? "normal" : "special"
+                        currentEffect.effectType === "normal_summon"
+                            ? "normal"
+                            : currentEffect.effectType === "link_summon"
+                            ? "link"
+                            : "special"
                     );
                 });
             } else if (payload.type === "activate_spell") {
@@ -1914,25 +1996,44 @@ export const useGameStore = create<GameStore>()(
                     return;
                 }
 
-                // フィールドに他のモンスターがいるかチェック（自分自身以外）
-                const otherMonstersOnField = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                    (monster) => monster !== null && monster.id !== card.id
+                // フィールドのモンスター数を確認
+                const allMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                    (monster) => monster !== null
                 );
 
-                if (otherMonstersOnField.length === 0) {
+                if (allMonsters.length === 0) {
                     return;
                 }
 
-                // アウローラドンと他のモンスターをリリースして機械族を特殊召喚
+                // 利用可能なオプションを構築
+                const options: { name: string; value: string }[] = [];
+
+                // 1体リリース可能
+                if (allMonsters.length >= 1) {
+                    options.push({ name: "1体リリース：フィールドのカード1枚を破壊", value: "release_1" });
+                }
+
+                // 3体リリース可能（墓地に罠カードがある場合）
+                if (allMonsters.length >= 3) {
+                    const hasTrapInGraveyard = state.graveyard.some((card) => isTrapCard(card.card));
+                    if (hasTrapInGraveyard) {
+                        options.push({ name: "3体リリース：墓地から罠カード1枚を手札に加える", value: "release_3" });
+                    }
+                }
+
+                if (options.length === 0) {
+                    return;
+                }
+
+                // オプション選択をキューに追加
                 state.effectQueue.push({
                     id: ``,
-                    type: "select",
-                    effectName: "幻獣機アウローラドン（リリースする他のモンスターを選択）",
+                    type: "option",
+                    effectName: "幻獣機アウローラドン（効果を選択）",
                     cardInstance: card,
-                    getAvailableCards: () => otherMonstersOnField as CardInstance[],
+                    option: options,
+                    effectType: "auroradon_select_effect",
                     canCancel: true,
-                    condition: (cards) => cards.length === 1,
-                    effectType: "auroradon_tribute_select",
                 });
             });
         },
@@ -2012,7 +2113,14 @@ export const useGameStore = create<GameStore>()(
                     type: "select",
                     effectName: "流星輝巧群（攻撃力を1000ダウンするドライトロンモンスターを選択）",
                     cardInstance: card,
-                    getAvailableCards: () => drytronMonstersOnField as CardInstance[],
+                    getAvailableCards: (state) =>
+                        [...state.field.monsterZones, ...state.field.extraMonsterZones].filter((monster) => {
+                            if (!monster || !isMonsterCard(monster.card)) return false;
+                            return (
+                                monster.card.card_name.includes("竜輝巧") ||
+                                monster.card.card_name.includes("ドライトロン")
+                            );
+                        }) as CardInstance[],
                     canCancel: true,
                     condition: (cards) => cards.length === 1,
                     effectType: "meteor_kikougun_graveyard_effect",

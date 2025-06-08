@@ -21,7 +21,6 @@ import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
 import { getLevel } from "../utils/gameUtils";
-import { getLinkMonsterSummonalble } from "./SummonSelector";
 
 export const GameBoardNew: React.FC = () => {
     const {
@@ -72,6 +71,11 @@ export const GameBoardNew: React.FC = () => {
     };
 
     const canPerformLinkSummon = (linkMonster: CardInstance): boolean => {
+        // アウローラドンの効果でリンク召喚制限がある場合
+        if (gameState.isLinkSummonProhibited) {
+            return false;
+        }
+
         return searchCombinationLinkSummon(
             linkMonster,
             gameState.field.extraMonsterZones,

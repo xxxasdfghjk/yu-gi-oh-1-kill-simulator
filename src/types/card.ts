@@ -98,5 +98,6 @@ export interface CardInstance {
         attack: number;
         defense: number;
     };
-    summonedBy?: "normal" | "special";
+    summonedBy?: "normal" | "special" | "link";
+    isToken?: boolean;
 }

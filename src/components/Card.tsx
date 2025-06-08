@@ -60,8 +60,7 @@ export const Card: React.FC<CardProps> = ({
             return `/card_image/reverse.jpg`; // 裏面はフォールバック表示を使用
         }
         if (card.card.image) {
-            // 拡張子を.pngに変更（処理済み画像を使用）
-            const imageName = card.card.image.replace(/\.(jpg|jpeg)$/i, ".png");
+            const imageName = card.card.image;
             return `/card_image/${imageName}`;
         }
         return null;

@@ -16,11 +16,7 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                         {/* カード画像 */}
                         <div className="flex justify-center mb-4">
                             <img
-                                src={
-                                    hoveredCard.card.image
-                                        ? `/card_image/${hoveredCard.card.image.replace(/\.(jpg|jpeg)$/i, ".png")}`
-                                        : ""
-                                }
+                                src={hoveredCard.card.image ? `/card_image/${hoveredCard.card.image}` : ""}
                                 alt={hoveredCard.card.card_name}
                                 className="w-48 h-auto rounded-lg shadow-md"
                                 onError={(e) => {

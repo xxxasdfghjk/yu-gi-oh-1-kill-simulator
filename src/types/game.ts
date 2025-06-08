@@ -42,6 +42,7 @@ export interface GameState {
     hasActivatedAuroradonEffect: boolean;
     hasActivatedUnionCarrierEffect: boolean;
     hasActivatedMeteorKikougunGraveyardEffect: boolean;
+    isLinkSummonProhibited: boolean;
     isOpponentTurn: boolean;
     pendingTrapActivation: CardInstance | null;
     bonmawashiRestriction: boolean;

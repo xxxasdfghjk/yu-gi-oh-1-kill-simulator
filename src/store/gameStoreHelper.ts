@@ -1,5 +1,6 @@
-import type { CardInstance } from "@/types/card";
-import { isMonsterCard } from "@/utils/gameUtils";
+import type { Card, CardInstance } from "@/types/card";
+import { isMonsterCard, createCardInstance } from "@/utils/gameUtils";
+import { getTokenCard } from "@/data/cardLoader";
 import type { GameStore } from "./gameStore";
 
 export const helper = {
@@ -157,6 +158,37 @@ export const helper = {
             condition: (card) => card.length === 1,
             effectType: "diviner_summon_effect",
         });
+    },
+
+    checkAuroradonLinkSummonEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "幻獣機アウローラドン") {
+            return false;
+        }
+
+        // トークンを召喚できる空きゾーンをチェック
+        const emptyZones = state.field.monsterZones
+            .map((zone, index) => ({ zone, index }))
+            .filter(({ zone }) => zone === null);
+
+        if (emptyZones.length < 3) {
+            return false;
+        }
+
+        // トークン3体を召喚（最大で空きゾーンの数まで）
+        const tokenCount = 3;
+
+        // トークンカードを取得
+        const tokenCard = getTokenCard("幻獣機トークン")! as Card;
+
+        // トークンを空きゾーンに配置
+        for (let i = 0; i < tokenCount; i++) {
+            const token = createCardInstance(tokenCard, "field_monster", true);
+            helper.summonMonsterFromAnywhere(state, token);
+        }
+        // このターンリンク召喚できない制限を設定
+        state.isLinkSummonProhibited = true;
+
+        return true;
     },
 
     checkBeatriceEffect: (state: GameStore, card: CardInstance) => {
@@ -357,6 +389,7 @@ export const helper = {
         helper.checkFafnirSummonEffect(state, card);
         helper.checkCyberAngelIdatenSummonEffect(state, card);
         helper.checkDivinerSummonEffect(state, card);
+        helper.checkAuroradonLinkSummonEffect(state, card);
     },
     checkReleaseEffect: (state: GameStore, card: CardInstance) => {
         helper.checkCyberAngelBentenReleaseEffect(state, card);
@@ -397,6 +430,12 @@ export const helper = {
         if (monsterIndex !== -1) {
             state.field.monsterZones[monsterIndex] = null;
         }
+        card.equipped?.forEach((e) => {
+            const equipment = state.field.spellTrapZones.find((equip) => equip?.id === e);
+            if (equipment) {
+                helper.sendMonsterToGraveyardInternalAnywhere(state, equipment);
+            }
+        });
     },
     updateFieldMonster: (state: GameStore, card: CardInstance) => {
         const extraIndex = state.field.extraMonsterZones.findIndex((e) => e?.id === card.id);
@@ -520,11 +559,15 @@ export const helper = {
                 buf: { attack: 0, level: 0, defense: 0 },
                 location: "graveyard" as const,
                 position: undefined,
+                equipped: undefined,
+                summonnedBy: undefined,
             };
             state.graveyard.push(graveyardCard);
         });
         graveyardCard.materials = [];
-        state.graveyard.push(graveyardCard);
+        if (!monster.isToken) {
+            state.graveyard.push(graveyardCard);
+        }
         if (locate === "field") {
             helper.checkFieldDestoryEffect(state, monster);
         }
@@ -540,7 +583,7 @@ export const helper = {
         monster: CardInstance,
         targetZone: number | null = null,
         position: "attack" | "defense" | "facedown" | "facedown_defense" = "attack",
-        context: "normal" | "special" = "special"
+        context: "normal" | "special" | "link" = "special"
     ) => {
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
@@ -555,6 +598,7 @@ export const helper = {
                 zone: targetZone,
                 summonedBy: context,
             };
+            console.log(context);
             if (targetZone === 5 || targetZone === 6) {
                 state.field.extraMonsterZones[targetZone - 5] = summonedMonster;
             } else {

@@ -355,7 +355,9 @@ export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
     const canActivate =
         handMachineMonsters.length + fieldMachineMonsters.length >= 1 && sumPower >= ritualMonstersMinAttack;
 
-    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
+    const hasEmpty =
+        gameState.field.monsterZones.filter((e) => e === null).length > 0 ||
+        (gameState.field.monsterZones.filter((e) => e === null).length === 0 ? fieldMachineMonsters.length > 0 : false);
 
     return canActivate && hasEmpty;
 };
@@ -386,7 +388,10 @@ export const canActivateDreitrons = (gameState: GameStore, dreitronName: string)
         return isDrytron || isRitual;
     });
 
-    return handTargets.length + fieldTargets.length >= 1;
+    const hasEmpty =
+        gameState.field.monsterZones.filter((e) => e === null).length > 0 ||
+        (gameState.field.monsterZones.filter((e) => e === null).length === 0 && fieldTargets.length > 0);
+    return handTargets.length + fieldTargets.length >= 1 && hasEmpty;
 };
 
 export const canActivateAruZeta = (gameState: GameStore): boolean => {
@@ -480,11 +485,9 @@ export const canActivatePtolemyM7 = (gameState: GameState): boolean => {
         ...gameState.field.extraMonsterZones,
         ...gameState.opponentField.monsterZones,
     ].filter((monster) => monster !== null);
-    
-    const graveyardMonsters = gameState.graveyard.filter((card) => 
-        card.card.card_type?.includes("モンスター")
-    );
-    
+
+    const graveyardMonsters = gameState.graveyard.filter((card) => card.card.card_type?.includes("モンスター"));
+
     return fieldMonsters.length > 0 || graveyardMonsters.length > 0;
 };
 
@@ -502,22 +505,15 @@ export const canActivateAuroradon = (gameState: GameState): boolean => {
     }
 
     // 他のモンスターがフィールドにいるかチェック
-    const otherMonsters = [
-        ...gameState.field.monsterZones,
-        ...gameState.field.extraMonsterZones,
-    ].filter((monster) => monster !== null && monster.id !== auroradonOnField.id);
+    const otherMonsters = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].filter(
+        (monster) => monster !== null
+    );
 
     if (otherMonsters.length === 0) {
         return false;
     }
 
-    // デッキに機械族モンスターがあるかチェック
-    const machineMonsters = gameState.deck.filter((card) => {
-        const monster = card.card as { race?: string };
-        return monster.race === "機械族";
-    });
-
-    return machineMonsters.length > 0;
+    return true;
 };
 
 export const canActivateUnionCarrier = (gameState: GameState): boolean => {
@@ -534,16 +530,12 @@ export const canActivateUnionCarrier = (gameState: GameState): boolean => {
     }
 
     // フィールドに表側表示モンスターがあるかチェック
-    const faceUpMonsters = [
-        ...gameState.field.monsterZones,
-        ...gameState.field.extraMonsterZones,
-    ].filter((monster) => 
-        monster !== null && 
-        monster.position !== "facedown" && 
-        monster.position !== "facedown_defense"
+    const faceUpMonsters = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].filter(
+        (monster) => monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense"
     );
+    const hasEmpty = gameState.field.spellTrapZones.filter((e) => e === null).length > 0;
 
-    return faceUpMonsters.length > 0;
+    return faceUpMonsters.length > 0 && hasEmpty;
 };
 
 export const canActivateMeteorKikougunGraveyard = (gameState: GameState): boolean => {
@@ -552,22 +544,19 @@ export const canActivateMeteorKikougunGraveyard = (gameState: GameState): boolea
     }
 
     // 墓地に流星輝巧群があるかチェック
-    const meteorInGraveyard = gameState.graveyard.find(
-        (card) => card.card.card_name === "流星輝巧群"
-    );
+    const meteorInGraveyard = gameState.graveyard.find((card) => card.card.card_name === "流星輝巧群");
 
     if (!meteorInGraveyard) {
         return false;
     }
 
     // フィールドにドライトロンモンスターがあるかチェック
-    const drytronMonstersOnField = [
-        ...gameState.field.monsterZones,
-        ...gameState.field.extraMonsterZones,
-    ].filter((monster) => {
-        if (!monster) return false;
-        return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
-    });
+    const drytronMonstersOnField = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].filter(
+        (monster) => {
+            if (!monster) return false;
+            return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
+        }
+    );
 
     return drytronMonstersOnField.length > 0;
 };
