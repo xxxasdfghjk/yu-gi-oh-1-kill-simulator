@@ -460,3 +460,114 @@ export const canActivateBeatrice = (gameState: GameState): boolean => {
 
     return true;
 };
+
+export const canActivatePtolemyM7 = (gameState: GameState): boolean => {
+    if (gameState.hasActivatedPtolemyM7Effect) {
+        return false;
+    }
+
+    const ptolemyOnField = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].find(
+        (monster) => monster && monster.card.card_name === "セイクリッド・トレミスM7"
+    );
+
+    if (!ptolemyOnField || !ptolemyOnField.materials || ptolemyOnField.materials.length === 0) {
+        return false;
+    }
+
+    // フィールド・墓地にモンスターがあるかチェック
+    const fieldMonsters = [
+        ...gameState.field.monsterZones,
+        ...gameState.field.extraMonsterZones,
+        ...gameState.opponentField.monsterZones,
+    ].filter((monster) => monster !== null);
+    
+    const graveyardMonsters = gameState.graveyard.filter((card) => 
+        card.card.card_type?.includes("モンスター")
+    );
+    
+    return fieldMonsters.length > 0 || graveyardMonsters.length > 0;
+};
+
+export const canActivateAuroradon = (gameState: GameState): boolean => {
+    if (gameState.hasActivatedAuroradonEffect) {
+        return false;
+    }
+
+    const auroradonOnField = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].find(
+        (monster) => monster && monster.card.card_name === "幻獣機アウローラドン"
+    );
+
+    if (!auroradonOnField) {
+        return false;
+    }
+
+    // 他のモンスターがフィールドにいるかチェック
+    const otherMonsters = [
+        ...gameState.field.monsterZones,
+        ...gameState.field.extraMonsterZones,
+    ].filter((monster) => monster !== null && monster.id !== auroradonOnField.id);
+
+    if (otherMonsters.length === 0) {
+        return false;
+    }
+
+    // デッキに機械族モンスターがあるかチェック
+    const machineMonsters = gameState.deck.filter((card) => {
+        const monster = card.card as { race?: string };
+        return monster.race === "機械族";
+    });
+
+    return machineMonsters.length > 0;
+};
+
+export const canActivateUnionCarrier = (gameState: GameState): boolean => {
+    if (gameState.hasActivatedUnionCarrierEffect) {
+        return false;
+    }
+
+    const unionCarrierOnField = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].find(
+        (monster) => monster && monster.card.card_name === "ユニオン・キャリアー"
+    );
+
+    if (!unionCarrierOnField) {
+        return false;
+    }
+
+    // フィールドに表側表示モンスターがあるかチェック
+    const faceUpMonsters = [
+        ...gameState.field.monsterZones,
+        ...gameState.field.extraMonsterZones,
+    ].filter((monster) => 
+        monster !== null && 
+        monster.position !== "facedown" && 
+        monster.position !== "facedown_defense"
+    );
+
+    return faceUpMonsters.length > 0;
+};
+
+export const canActivateMeteorKikougunGraveyard = (gameState: GameState): boolean => {
+    if (gameState.hasActivatedMeteorKikougunGraveyardEffect) {
+        return false;
+    }
+
+    // 墓地に流星輝巧群があるかチェック
+    const meteorInGraveyard = gameState.graveyard.find(
+        (card) => card.card.card_name === "流星輝巧群"
+    );
+
+    if (!meteorInGraveyard) {
+        return false;
+    }
+
+    // フィールドにドライトロンモンスターがあるかチェック
+    const drytronMonstersOnField = [
+        ...gameState.field.monsterZones,
+        ...gameState.field.extraMonsterZones,
+    ].filter((monster) => {
+        if (!monster) return false;
+        return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
+    });
+
+    return drytronMonstersOnField.length > 0;
+};

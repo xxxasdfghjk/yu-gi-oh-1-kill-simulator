@@ -38,6 +38,10 @@ export interface GameState {
     hasActivatedDreitronNova: boolean;
     hasActivatedDivinerSummonEffect: boolean;
     hasActivatedBeatriceEffect: boolean;
+    hasActivatedPtolemyM7Effect: boolean;
+    hasActivatedAuroradonEffect: boolean;
+    hasActivatedUnionCarrierEffect: boolean;
+    hasActivatedMeteorKikougunGraveyardEffect: boolean;
     isOpponentTurn: boolean;
     pendingTrapActivation: CardInstance | null;
     bonmawashiRestriction: boolean;

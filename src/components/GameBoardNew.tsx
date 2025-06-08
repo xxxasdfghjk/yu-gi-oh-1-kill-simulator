@@ -6,7 +6,7 @@ import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { isMonsterCard } from "@/utils/gameUtils";
 import { helper } from "@/store/gameStoreHelper";
-import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma, canActivateBeatrice } from "@/utils/summonUtils";
+import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma, canActivateBeatrice, canActivatePtolemyM7, canActivateAuroradon, canActivateUnionCarrier, canActivateMeteorKikougunGraveyard } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
@@ -105,6 +105,11 @@ export const GameBoardNew: React.FC = () => {
                 return;
             }
             activateDreitrons(card);
+        } else if (card.card.card_name === "流星輝巧群") {
+            if (!canActivateMeteorKikougunGraveyard(gameState)) {
+                return;
+            }
+            helper.checkMeteorKikougunGraveyardEffect(gameState, card);
         }
     };
 
@@ -121,6 +126,15 @@ export const GameBoardNew: React.FC = () => {
         } else if (card.card.card_name === "永遠の淑女 ベアトリーチェ" && canActivateBeatrice(gameState)) {
             // ベアトリーチェの効果発動
             helper.checkBeatriceEffect(gameState, card);
+        } else if (card.card.card_name === "セイクリッド・トレミスM7" && canActivatePtolemyM7(gameState)) {
+            // トレミスM7の効果発動
+            helper.checkPtolemyM7Effect(gameState, card);
+        } else if (card.card.card_name === "幻獣機アウローラドン" && canActivateAuroradon(gameState)) {
+            // アウローラドンの効果発動
+            helper.checkAuroradonEffect(gameState, card);
+        } else if (card.card.card_name === "ユニオン・キャリアー" && canActivateUnionCarrier(gameState)) {
+            // ユニオン・キャリアーの効果発動
+            helper.checkUnionCarrierEffect(gameState, card);
         }
     };
     useEffect(() => {

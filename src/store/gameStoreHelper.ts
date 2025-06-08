@@ -156,9 +156,156 @@ export const helper = {
             getAvailableCards: (state) => {
                 return state.deck; // デッキから任意のカード1枚
             },
-            canCancel: true,
+            canCancel: false,
             condition: (cards) => cards.length === 1,
             effectType: "beatrice_mill_effect",
+        });
+        return true;
+    },
+
+    checkPtolemyM7Effect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "セイクリッド・トレミスM7") {
+            return false;
+        }
+
+        // 1ターンに1度の制限チェック
+        if (state.hasActivatedPtolemyM7Effect) {
+            return false;
+        }
+
+        // X素材があるかチェック
+        if (!card.materials || card.materials.length === 0) {
+            return false;
+        }
+
+        // フィールド・墓地のモンスターを手札に戻す効果
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "セイクリッド・トレミスM7（フィールド・墓地のモンスター1体を手札に戻す）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                const fieldMonsters = [
+                    ...state.field.monsterZones,
+                    ...state.field.extraMonsterZones,
+                    ...state.opponentField.monsterZones,
+                ].filter((monster): monster is CardInstance => monster !== null && isMonsterCard(monster.card));
+                
+                const graveyardMonsters = state.graveyard.filter((monster) => isMonsterCard(monster.card));
+                
+                return [...fieldMonsters, ...graveyardMonsters];
+            },
+            canCancel: true,
+            condition: (cards) => cards.length === 1,
+            effectType: "ptolemy_m7_return_effect",
+        });
+        return true;
+    },
+
+    checkAuroradonEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "幻獣機アウローラドン") {
+            return false;
+        }
+
+        // 1ターンに1度の制限チェック
+        if (state.hasActivatedAuroradonEffect) {
+            return false;
+        }
+
+        // フィールドに他のモンスターがいるかチェック（自分自身以外）
+        const otherMonstersOnField = [
+            ...state.field.monsterZones,
+            ...state.field.extraMonsterZones,
+        ].filter((monster) => monster !== null && monster.id !== card.id);
+
+        if (otherMonstersOnField.length === 0) {
+            return false;
+        }
+
+        // アウローラドンと他のモンスターをリリースして機械族を特殊召喚
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "幻獣機アウローラドン（リリースする他のモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: () => otherMonstersOnField as CardInstance[],
+            canCancel: true,
+            condition: (cards) => cards.length === 1,
+            effectType: "auroradon_tribute_select",
+        });
+        return true;
+    },
+
+    checkUnionCarrierEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "ユニオン・キャリアー") {
+            return false;
+        }
+
+        // 1ターンに1度の制限チェック
+        if (state.hasActivatedUnionCarrierEffect) {
+            return false;
+        }
+
+        // フィールドの表側表示モンスターを装備対象として選択
+        const faceUpMonsters = [
+            ...state.field.monsterZones,
+            ...state.field.extraMonsterZones,
+        ].filter((monster) => monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense");
+
+        if (faceUpMonsters.length === 0) {
+            return false;
+        }
+
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "ユニオン・キャリアー（装備対象のモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: () => faceUpMonsters as CardInstance[],
+            canCancel: true,
+            condition: (cards) => cards.length === 1,
+            effectType: "union_carrier_target_select",
+        });
+        return true;
+    },
+
+    checkMeteorKikougunGraveyardEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "流星輝巧群") {
+            return false;
+        }
+
+        // 1ターンに1度の制限チェック
+        if (state.hasActivatedMeteorKikougunGraveyardEffect) {
+            return false;
+        }
+
+        // カードが墓地にあるかチェック
+        if (card.location !== "graveyard") {
+            return false;
+        }
+
+        // フィールドのドライトロンモンスターを対象として選択
+        const drytronMonstersOnField = [
+            ...state.field.monsterZones,
+            ...state.field.extraMonsterZones,
+        ].filter((monster) => {
+            if (!monster || !isMonsterCard(monster.card)) return false;
+            return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
+        });
+
+        if (drytronMonstersOnField.length === 0) {
+            return false;
+        }
+
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "流星輝巧群（攻撃力を1000ダウンするドライトロンモンスターを選択）",
+            cardInstance: card,
+            getAvailableCards: () => drytronMonstersOnField as CardInstance[],
+            canCancel: true,
+            condition: (cards) => cards.length === 1,
+            effectType: "meteor_kikougun_graveyard_effect",
         });
         return true;
     },
