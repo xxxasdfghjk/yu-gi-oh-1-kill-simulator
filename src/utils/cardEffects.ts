@@ -104,6 +104,25 @@ export const cardEffects: CardEffect[] = [
       return {};
     }
   },
+
+  // 神聖なる魂
+  {
+    cardName: '神聖なる魂',
+    effectType: 'summon',
+    canActivate: (gameState) => {
+      // 墓地に光属性モンスターが2体以上いる
+      const lightMonsters = gameState.graveyard.filter(card => {
+        if (!('level' in card.card || 'rank' in card.card || 'link' in card.card)) return false;
+        const monsterCard = card.card as MonsterCard;
+        return monsterCard.attribute === '光属性';
+      });
+      return lightMonsters.length >= 2;
+    },
+    execute: () => {
+      // TODO: 実装 - 墓地から光属性モンスター2体を除外して特殊召喚
+      return {};
+    }
+  },
 ];
 
 export const getCardEffect = (cardName: string): CardEffect | undefined => {

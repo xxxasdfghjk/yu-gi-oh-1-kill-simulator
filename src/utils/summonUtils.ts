@@ -5,6 +5,8 @@ import type { GameStore } from "@/store/gameStore";
 
 export const canNormalSummon = (gameState: GameState, card: CardInstance): boolean => {
     if (!isMonsterCard(card.card)) return false;
+    if (card.card.card_name === "神聖なる魂") return false;
+
     if (gameState.hasNormalSummoned) return false;
     if (gameState.phase !== "main1" && gameState.phase !== "main2") return false;
 
@@ -63,6 +65,20 @@ export const findEmptySpellTrapZone = (gameState: GameState): number => {
         }
     }
     return -1;
+};
+
+export const canActivateSacredSoul = (gameState: GameStore) => {
+    return (
+        gameState.hand.find((e) => e.card.card_name === "神聖なる魂") &&
+        gameState.graveyard.filter((e) => {
+            if (!isMonsterCard(e.card)) {
+                return false;
+            }
+            const typed = e.card as MonsterCard;
+            return typed.attribute === "光属性";
+        }).length >= 2 &&
+        gameState.field.monsterZones.filter((e) => e === null).length > 0
+    );
 };
 
 export const canActivateSpell = (gameState: GameState, card: Card): boolean => {
@@ -291,7 +307,7 @@ export const canActivateHokyuYoin = (gameState: GameState): boolean => {
     const targetMonsters = gameState.graveyard.filter((c) => {
         if (!isMonsterCard(c.card)) return false;
         const monster = c.card as { card_type?: string; attack?: number };
-        return monster.card_type !== "効果モンスター" && (monster.attack || 0) <= 1500;
+        return monster.card_type === "通常モンスター" && (monster.attack || 9999) <= 1500;
     });
 
     return targetMonsters.length >= 1;
@@ -342,11 +358,13 @@ export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
         return monster.race === "機械族";
     });
 
-    const fieldMachineMonsters = gameState.field.monsterZones.filter((c): c is CardInstance => {
-        if (!c || !isMonsterCard(c.card)) return false;
-        const monster = c.card as { race?: string };
-        return monster.race === "機械族";
-    });
+    const fieldMachineMonsters = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].filter(
+        (c): c is CardInstance => {
+            if (!c || !isMonsterCard(c.card)) return false;
+            const monster = c.card as { race?: string };
+            return monster.race === "機械族";
+        }
+    );
 
     const sumPower =
         handMachineMonsters.reduce((sum, c) => sum + (c.card as { attack: number }).attack, 0) +

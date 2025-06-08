@@ -14,6 +14,7 @@ import {
     canActivateAuroradon,
     canActivateUnionCarrier,
     canActivateMeteorKikougunGraveyard,
+    canActivateSacredSoul,
 } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
@@ -53,6 +54,12 @@ export const GameBoardNew: React.FC = () => {
         activateAuroradonEffect,
         activateUnionCarrierEffect,
         activateMeteorKikougunGraveyardEffect,
+        activateSacredSoulEffect,
+        gameOver,
+        winner,
+        checkExodiaWin,
+        endGame,
+        judgeWin,
     } = useGameStore();
 
     const [showGraveyard, setShowGraveyard] = useState(false);
@@ -121,6 +128,11 @@ export const GameBoardNew: React.FC = () => {
                 return;
             }
             activateDreitrons(card);
+        } else if (card.card.card_name === "神聖なる魂") {
+            if (!canActivateSacredSoul(gameState)) {
+                return;
+            }
+            activateSacredSoulEffect(card);
         } else if (card.card.card_name === "流星輝巧群") {
             if (!canActivateMeteorKikougunGraveyard(gameState)) {
                 return;
@@ -155,8 +167,6 @@ export const GameBoardNew: React.FC = () => {
     };
     useEffect(() => {
         const currentEffect = effectQueue?.[0];
-        console.log(currentEffect);
-        console.log(effectQueue);
         if (currentEffect?.type === "activate_spell") {
             processQueueTop({ type: "activate_spell" });
         }
@@ -164,7 +174,22 @@ export const GameBoardNew: React.FC = () => {
             sendSpellToGraveyard(currentEffect.cardInstance);
             popQueue();
         }
+        if (currentEffect?.type === "notify") {
+            if (currentEffect.effectType === "judge") {
+                judgeWin();
+            }
+        }
     }, [effectQueue, gameState.effectQueue, popQueue, processQueueTop, sendSpellToGraveyard]);
+
+    useEffect(() => {
+        checkExodiaWin();
+    }, [checkExodiaWin, gameState.hand]);
+
+    useEffect(() => {
+        if (phase === "draw") {
+            endGame();
+        }
+    }, [phase]);
 
     return (
         <div className="min-h-screen min-w-[1920px] bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
@@ -355,6 +380,24 @@ export const GameBoardNew: React.FC = () => {
                                     {gameState.hasActivatedChickenRace ? "このターンは既に効果を発動済みです" : ""}
                                 </p>
                             )}
+                        </div>
+                    </div>
+                )}
+
+                {/* YOU WIN オーバーレイ */}
+                {gameOver && winner === "player" && (
+                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                        <div className="text-center">
+                            <h1 className="text-8xl font-bold text-yellow-400 mb-4 animate-pulse">YOU WIN</h1>
+                            <p className="text-2xl text-white">エクゾディアの5つのパーツが揃いました！</p>
+                        </div>
+                    </div>
+                )}
+                {gameOver && winner === "timeout" && (
+                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                        <div className="text-center">
+                            <h1 className="text-8xl font-bold text-yellow-400 mb-4 animate-pulse">YOU LOSE</h1>
+                            <p className="text-2xl text-white">あなたの負けです！</p>
                         </div>
                     </div>
                 )}

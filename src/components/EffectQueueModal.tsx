@@ -92,6 +92,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
         case "summon":
             return (
                 <SummonSelector
+                    popQueue={popQueue}
                     optionPosition={currentEffect.optionPosition}
                     cardInstance={currentEffect.cardInstance}
                     onSelect={(zone, position) =>

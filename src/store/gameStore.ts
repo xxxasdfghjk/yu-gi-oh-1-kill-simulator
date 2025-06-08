@@ -13,6 +13,7 @@ import {
     getAttack,
     canLinkSummonByMaterials,
     canLinkSummonAfterRelease,
+    checkExodiaWin,
 } from "@/utils/gameUtils";
 import { canNormalSummon, findEmptySpellTrapZone, canSetSpellTrap, canActivateHokyuYoin } from "@/utils/summonUtils";
 import type { CardInstance, MonsterCard } from "@/types/card";
@@ -60,6 +61,12 @@ export type EffectQueueItem =
           type: "spell_end";
           cardInstance: CardInstance;
           effectType: string;
+      }
+    | {
+          id: string;
+          type: "notify";
+          cardInstance: CardInstance;
+          effectType: string;
       };
 
 export interface GameStore extends GameState {
@@ -90,6 +97,10 @@ export interface GameStore extends GameState {
     activateAuroradonEffect: (card: CardInstance) => void;
     activateUnionCarrierEffect: (card: CardInstance) => void;
     activateMeteorKikougunGraveyardEffect: (card: CardInstance) => void;
+    activateSacredSoulEffect: (card: CardInstance) => void;
+    checkExodiaWin: () => void;
+    endGame: () => void;
+    judgeWin: () => void;
     selectedCard: string | null;
     // 個別のサーチ効果状態
     hokyuyoinState: {
@@ -248,10 +259,40 @@ export const useGameStore = create<GameStore>()(
                 state.hasActivatedAuroradonEffect = false;
                 state.hasActivatedUnionCarrierEffect = false;
                 state.hasActivatedMeteorKikougunGraveyardEffect = false;
+                state.hasActivatedJackInTheHand = false;
             });
-            get().drawCard(15);
+            get().drawCard(5);
         },
-
+        endGame: () => {
+            set((state) => {
+                helper.tryActivateHokyuYoin(state);
+                state.effectQueue.push({
+                    id: "",
+                    type: "notify",
+                    effectType: "judge",
+                    cardInstance: state.graveyard?.[0] ?? undefined,
+                });
+            });
+        },
+        judgeWin: () => {
+            set((state) => {
+                if (checkExodiaWin(state.hand)) {
+                    state.winner = "player";
+                    state.gameOver = true;
+                } else {
+                    state.winner = "timeout";
+                    state.gameOver = true;
+                }
+            });
+        },
+        checkExodiaWin: () => {
+            set((state) => {
+                if (checkExodiaWin(state.hand)) {
+                    state.winner = "player";
+                    state.gameOver = true;
+                }
+            });
+        },
         drawCard: (count = 1) => {
             set((state) => {
                 const newState = drawCards(state, count);
@@ -267,80 +308,13 @@ export const useGameStore = create<GameStore>()(
 
         nextPhase: () => {
             const currentState = get();
-
-            if (currentState.isOpponentTurn) {
-                // 相手ターン中の場合、プレイヤーターンに戻る
-                set((state) => {
-                    state.isOpponentTurn = false;
-                    state.phase = "draw";
-                    state.turn += 1;
-                    state.hasNormalSummoned = false;
-                    state.hasSpecialSummoned = false;
-                    state.hasDrawnByEffect = false;
-                    state.hasActivatedExtravagance = false;
-                    state.hasActivatedChickenRace = false;
-                    state.hasActivatedFafnir = false;
-                    state.hasActivatedBanAlpha = false;
-                    state.hasActivatedCritter = false;
-                    state.hasActivatedEmergencyCyber = false;
-                    state.hasActivatedJackInTheHand = false;
-                    state.hasActivatedDivinerSummonEffect = false;
-                    state.hasActivatedDreitronNova = false;
-                    state.hasActivatedEruGanma = false;
-                    state.hasActivatedAruZeta = false;
-                    state.hasActivatedBeatriceEffect = false;
-                    state.hasActivatedPtolemyM7Effect = false;
-                    state.hasActivatedAuroradonEffect = false;
-                    state.hasActivatedUnionCarrierEffect = false;
-                    state.hasActivatedMeteorKikougunGraveyardEffect = false;
-
-                    // ターン終了時の効果をリセット（レベルバフなど）
-                    [...state.field.monsterZones, ...state.field.extraMonsterZones]
-                        .filter((monster): monster is CardInstance => monster !== null)
-                        .forEach((monster) => {
-                            if (monster.buf) {
-                                monster.buf.level = 0; // レベルバフをリセット
-                            }
-                        });
-                });
-
-                // プレイヤーターンのドローフェイズ
-                get().drawCard(1);
-                return;
-            }
-
             const currentPhaseIndex = phaseOrder.indexOf(currentState.phase);
             const nextPhaseIndex = (currentPhaseIndex + 1) % phaseOrder.length;
             const nextPhase = phaseOrder[nextPhaseIndex];
-
-            if (nextPhase === "draw") {
-                // エンドフェーズ後、相手ターンに移行
-                set((state) => {
-                    state.isOpponentTurn = true;
-                    state.phase = "main1"; // 相手のメインフェーズ
-                });
-
-                // 補充要員の確認（セットしたターンではない場合のみ、かつ発動条件を満たす場合のみ）
-                const hokyuYoin = currentState.field.spellTrapZones.find(
-                    (card) =>
-                        card &&
-                        card.card.card_name === "補充要員" &&
-                        card.position === "facedown" &&
-                        card.setTurn !== currentState.turn && // セットしたターンではない
-                        canActivateHokyuYoin(currentState) // 墓地にモンスター5体以上
-                );
-
-                if (hokyuYoin) {
-                    set((state) => {
-                        state.pendingTrapActivation = hokyuYoin;
-                    });
-                }
-            } else {
-                // 通常のフェーズ移行
-                set((state) => {
-                    state.phase = nextPhase;
-                });
-            }
+            // 通常のフェーズ移行
+            set((state) => {
+                state.phase = nextPhase;
+            });
         },
 
         playCard: (cardId: string, zone?: number) => {
@@ -553,7 +527,6 @@ export const useGameStore = create<GameStore>()(
                 state.phase = phase;
             });
         },
-
         activateTrapCard: (card: CardInstance) => {
             set((state) => {
                 if (card.card.card_name === "補充要員") {
@@ -563,44 +536,27 @@ export const useGameStore = create<GameStore>()(
                         return;
                     }
 
-                    // 補充要員の効果: 墓地から効果モンスター以外の攻撃力1500以下のモンスターを3体まで選択
-                    const targetMonsters = state.graveyard.filter((c) => {
-                        if (!isMonsterCard(c.card)) return false;
-                        const monster = c.card as { card_type?: string; attack?: number };
-                        return monster.card_type !== "効果モンスター" && (monster.attack || 0) <= 1500;
+                    state.effectQueue.unshift({
+                        id: "",
+                        type: "multiselect",
+                        effectName: `補充要員（回収対象選択）`,
+                        cardInstance: card,
+                        getAvailableCards: (state: GameStore) => {
+                            return state.graveyard.filter((e) => {
+                                if (!isMonsterCard(e.card)) {
+                                    return false;
+                                }
+                                const typed = e.card as MonsterCard;
+                                return typed.attack <= 1500 && typed.card_type === "通常モンスター";
+                            });
+                        },
+                        condition: (cards: CardInstance[]) => {
+                            return cards.length >= 1 && cards.length <= 3; // リリース対象が1枚選択された場合のみ有効
+                        },
+                        effectType: "get_hand_multi",
+                        canCancel: true,
                     });
-
-                    if (targetMonsters.length > 0) {
-                        // 補充要員の選択状態を設定
-                        state.hokyuyoinState = {
-                            availableCards: targetMonsters,
-                        };
-                    }
-
-                    // カードをフィールドから墓地へ
-                    const cardIndex = state.field.spellTrapZones.findIndex((c) => c?.id === card.id);
-                    if (cardIndex !== -1) {
-                        state.field.spellTrapZones[cardIndex] = null;
-                        const graveyardCard = { ...card, location: "graveyard" as const, position: undefined };
-                        state.graveyard.push(graveyardCard);
-                    }
                 }
-
-                state.pendingTrapActivation = null;
-            });
-        },
-
-        selectHokyuyoinTargets: (selectedCards: CardInstance[]) => {
-            set((state) => {
-                // 選択されたカードを墓地から手札に移動
-                selectedCards.forEach((card) => {
-                    state.graveyard = state.graveyard.filter((c) => c.id !== card.id);
-                    const updatedCard = { ...card, location: "hand" as const };
-                    state.hand.push(updatedCard);
-                });
-
-                // サーチ効果を終了
-                state.hokyuyoinState = null;
             });
         },
 
@@ -719,6 +675,21 @@ export const useGameStore = create<GameStore>()(
                             helper.toHandFromAnywhere(state, selectedCard[0]);
                             state.hasActivatedCritter = true;
                             break;
+                        case "sacred_soul_banish": {
+                            selectedCard.forEach((monster) => {
+                                helper.banishCardFromGraveyard(state, monster);
+                            });
+
+                            state.effectQueue.unshift({
+                                id: "",
+                                type: "summon",
+                                cardInstance: currentEffect.cardInstance,
+                                effectType: "",
+                                optionPosition: ["attack", "defense"],
+                                canSelectPosition: true,
+                            });
+                            break;
+                        }
                         case "dreitron_release_select": {
                             if (currentEffect.cardInstance.card.card_name === "竜輝巧－バンα") {
                                 state.hasActivatedBanAlpha = true;
@@ -828,6 +799,11 @@ export const useGameStore = create<GameStore>()(
                             break;
                         case "get_hand_single":
                             helper.toHandFromAnywhere(state, selectedCard[0]);
+                            break;
+                        case "get_hand_multi":
+                            selectedCard.forEach((e) => {
+                                helper.toHandFromAnywhere(state, e);
+                            });
                             break;
                         case "special_summon":
                             state.effectQueue.unshift({
@@ -2124,6 +2100,29 @@ export const useGameStore = create<GameStore>()(
                     canCancel: true,
                     condition: (cards) => cards.length === 1,
                     effectType: "meteor_kikougun_graveyard_effect",
+                });
+            });
+        },
+
+        activateSacredSoulEffect: (card: CardInstance) => {
+            set((state) => {
+                state.effectQueue.unshift({
+                    id: "",
+                    type: "multiselect",
+                    effectName: "神聖なる魂（除外対象選択）",
+                    cardInstance: card,
+                    getAvailableCards: (state: GameStore) => {
+                        return state.graveyard.filter((c) => {
+                            if (!isMonsterCard(c.card)) return false;
+                            const monster = c.card as MonsterCard;
+                            return monster.attribute === "光属性";
+                        });
+                    },
+                    condition: (cards: CardInstance[]) => {
+                        return cards.length === 2;
+                    },
+                    effectType: "sacred_soul_banish",
+                    canCancel: false,
                 });
             });
         },

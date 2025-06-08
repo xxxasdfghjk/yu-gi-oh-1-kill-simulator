@@ -1,9 +1,57 @@
-import type { Card, CardInstance } from "@/types/card";
+import type { Card, CardInstance, MonsterCard } from "@/types/card";
 import { isMonsterCard, createCardInstance } from "@/utils/gameUtils";
 import { getTokenCard } from "@/data/cardLoader";
 import type { GameStore } from "./gameStore";
+import { canActivateHokyuYoin } from "@/utils/summonUtils";
 
 export const helper = {
+    banishCardFromGraveyard: (state: GameStore, card: CardInstance) => {
+        state.graveyard = state.graveyard.filter((c) => c.id !== card.id);
+        const banishedCard = {
+            ...card,
+            location: "banished" as const,
+            position: undefined,
+            buf: { attack: 0, defense: 0, level: 0 },
+            equipped: undefined,
+            summonedBy: undefined,
+        };
+        state.banished.push(banishedCard);
+    },
+    tryActivateHokyuYoin: (state: GameStore) => {
+        const hokyuYoinExisting = state.field.spellTrapZones.find((e) => e?.card.card_name === "補充要員");
+        console.log("aaaa");
+        if (hokyuYoinExisting === null || hokyuYoinExisting === undefined) {
+            return;
+        }
+        console.log("aaaakokoko");
+
+        if (!canActivateHokyuYoin(state)) {
+            return;
+        }
+        console.log("aaaakokokojjjjjjjjj");
+
+        state.effectQueue.unshift({
+            id: "",
+            type: "multiselect",
+            effectName: `補充要員（回収対象選択）`,
+            cardInstance: hokyuYoinExisting,
+            getAvailableCards: (state: GameStore) => {
+                return state.graveyard.filter((e) => {
+                    if (!isMonsterCard(e.card)) {
+                        return false;
+                    }
+                    const typed = e.card as MonsterCard;
+                    return typed.attack <= 1500 && typed.card_type === "通常モンスター";
+                });
+            },
+            condition: (cards: CardInstance[]) => {
+                return cards.length >= 1 && cards.length <= 3;
+            },
+            effectType: "get_hand_multi",
+            canCancel: false,
+        });
+    },
+
     checkFafnirMuBetaSummonEffect: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "竜輝巧－ファフμβ'") {
             return false;
@@ -553,6 +601,8 @@ export const helper = {
         }
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
+        state.extraDeck = state.extraDeck.filter((c) => c.id !== monster.id);
+
         monster.materials.forEach((e) => {
             const graveyardCard = {
                 ...e,
@@ -598,7 +648,6 @@ export const helper = {
                 zone: targetZone,
                 summonedBy: context,
             };
-            console.log(context);
             if (targetZone === 5 || targetZone === 6) {
                 state.field.extraMonsterZones[targetZone - 5] = summonedMonster;
             } else {

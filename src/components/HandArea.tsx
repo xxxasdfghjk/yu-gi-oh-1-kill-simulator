@@ -11,6 +11,7 @@ import {
     canActivateEruGanma,
     canActivateAruZeta,
     canActivateMeteorKikougunGraveyard,
+    canActivateSacredSoul,
 } from "@/utils/summonUtils";
 
 interface HandAreaProps {
@@ -82,6 +83,9 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
         actions.push("effect");
     }
     if (card.card.card_name === "竜輝巧－アルζ" && canActivateAruZeta(gameState)) {
+        actions.push("effect");
+    }
+    if (card.card.card_name === "神聖なる魂" && canActivateSacredSoul(gameState)) {
         actions.push("effect");
     }
     if (card.card.card_name === "流星輝巧群" && canActivateMeteorKikougunGraveyard(gameState)) {

@@ -10,6 +10,7 @@ type Props = {
     optionPosition: ("attack" | "defense" | "facedown" | "facedown_defense")[];
     onCancel?: () => void;
     isOpen?: boolean;
+    popQueue: () => void;
 };
 
 const except = (a: number[], b: number[]) => {
@@ -73,7 +74,15 @@ export const getLinkMonsterSummonalble = (
     }
 };
 
-const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPosition, isOpen = true }: Props) => {
+const SummonSelector = ({
+    cardInstance,
+    state,
+    onSelect,
+    onCancel,
+    optionPosition,
+    isOpen = true,
+    popQueue,
+}: Props) => {
     const cardSizeClass = "w-20 h-32";
     const positionSizeClass = "w-20 h-32";
     const isLinkMonster = cardInstance.card.card_type === "リンクモンスター";
@@ -214,7 +223,7 @@ const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPositio
                             if (onCancel) {
                                 onCancel();
                             } else {
-                                state.popQueue();
+                                popQueue();
                             }
                         }}
                         className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
