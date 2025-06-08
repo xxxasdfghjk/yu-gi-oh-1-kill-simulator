@@ -25,11 +25,9 @@ export const GameBoardNew: React.FC = () => {
         turn,
         initializeGame,
         selectedCard,
-        selectCard,
         nextPhase,
         playCard,
         setCard,
-        activateFieldCard,
         activateChickenRaceEffect,
         isOpponentTurn,
         bonmawashiRestriction,
@@ -119,9 +117,6 @@ export const GameBoardNew: React.FC = () => {
                     y: event.clientY,
                 });
             }
-        } else {
-            // その他の表向きカードの場合は既存の効果処理
-            activateFieldCard(card.id);
         }
     };
     useEffect(() => {
@@ -184,7 +179,6 @@ export const GameBoardNew: React.FC = () => {
                             hand={hand}
                             selectedCard={selectedCard}
                             lifePoints={lifePoints}
-                            selectCard={selectCard}
                             playCard={playCard}
                             setCard={setCard}
                             onCardHoverLeave={() => 1}

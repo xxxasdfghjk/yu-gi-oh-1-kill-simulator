@@ -56,15 +56,10 @@ export interface GameStore extends GameState {
     initializeGame: () => void;
     drawCard: (count?: number) => void;
     nextPhase: () => void;
-    selectCard: (cardId: string) => void;
     playCard: (cardId: string, zone?: number) => void;
     setCard: (cardId: string, zone?: number) => void;
-    activateFieldCard: (cardId: string) => void;
-    selectCardFromRevealedCards: (selectedCard: CardInstance, remainingCards: CardInstance[]) => void;
     activateChickenRaceEffect: (effectType: "draw" | "destroy" | "heal") => void;
     setPhase: (phase: GamePhase) => void;
-    activateTrapCard: (card: CardInstance) => void;
-    selectHokyuyoinTargets: (selectedCards: CardInstance[]) => void;
     startLinkSummon: (linkMonster: CardInstance) => void;
     startXyzSummon: (xyzMonster: CardInstance) => void;
     effectQueue: EffectQueueItem[];
@@ -82,67 +77,12 @@ export interface GameStore extends GameState {
     activateDreitrons: (dreitrons: CardInstance) => void;
     selectedCard: string | null;
     // 個別のサーチ効果状態
-    foolishBurialState: {
-        availableCards: CardInstance[];
-    } | null;
-    deckSearchState: {
-        cardName: string;
-        availableCards: CardInstance[];
-        effectType: string;
-    } | null;
-    fafnirMuBetaState: {
-        availableCards: CardInstance[];
-        effectType: "xyz_summon" | "graveyard";
-    } | null;
     hokyuyoinState: {
         availableCards: CardInstance[];
-    } | null;
-    linkRibohState: {
-        availableCards: CardInstance[];
-    } | null;
-    meteorKikougunMonsterSelectState: {
-        availableCards: CardInstance[];
-    } | null;
-    // 一時的に残す（段階的移行のため）
-    searchingEffect: {
-        cardName: string;
-        availableCards: CardInstance[];
-        effectType: string;
-    } | null;
-    summonSelecting: {
-        cardId: string;
-    } | null;
-    jackInHandState: {
-        phase: "select_three" | "opponent_takes" | "player_selects";
-        availableCards: CardInstance[];
-        selectedThree: CardInstance[];
-        opponentCard?: CardInstance;
-        remainingCards?: CardInstance[];
-    } | null;
-    extravaganceState: {
-        phase: "select_count" | "select_card_from_deck";
-        revealedCards?: CardInstance[];
-        banishedCount?: number;
-    } | null;
-    advancedRitualState: {
-        phase: "select_ritual_monster" | "select_normal_monsters";
-        selectedRitualMonster?: CardInstance;
-        requiredLevel?: number;
-        availableNormals?: CardInstance[];
     } | null;
     bonmawashiState: {
         phase: "select_two" | "select_for_player";
         selectedCards?: CardInstance[];
-    } | null;
-    banAlphaState: {
-        phase: "select_release_target" | "select_ritual_monster";
-        banAlphaCard?: CardInstance;
-        availableTargets?: CardInstance[];
-    } | null;
-    eruGanmaState: {
-        phase: "select_release_target" | "select_ritual_monster";
-        eruGanmaCard?: CardInstance;
-        availableTargets?: CardInstance[];
     } | null;
     linkSummonState: {
         phase: "select_materials";
@@ -159,7 +99,6 @@ export interface GameStore extends GameState {
         selectedMaterials?: CardInstance[];
         availableMaterials?: CardInstance[];
     } | null;
-    oneForOneTarget: CardInstance | null;
 }
 
 const initialState: GameState = {
@@ -215,24 +154,12 @@ export const useGameStore = create<GameStore>()(
     immer((set, get) => ({
         ...initialState,
         selectedCard: null,
-        foolishBurialState: null,
-        deckSearchState: null,
-        fafnirMuBetaState: null,
         hokyuyoinState: null,
-        linkRibohState: null,
-        meteorKikougunMonsterSelectState: null,
         effectQueue: [],
-        summonSelecting: null,
-        jackInHandState: null,
-        extravaganceState: null,
-        advancedRitualState: null,
         bonmawashiState: null,
-        banAlphaState: null,
         linkSummonState: null,
         xyzSummonState: null,
         meteorKikougunState: null,
-        oneForOneTarget: null,
-        eruGanmaState: null,
         initializeGame: () => {
             const deckData = loadDeckData();
 
@@ -287,18 +214,10 @@ export const useGameStore = create<GameStore>()(
                 state.gameOver = false;
                 state.winner = null;
                 state.selectedCard = null;
-                state.searchingEffect = null;
-                state.summonSelecting = null;
-                state.jackInHandState = null;
-                state.extravaganceState = null;
-                state.advancedRitualState = null;
                 state.bonmawashiState = null;
-                state.banAlphaState = null;
-                state.eruGanmaState = null;
                 state.linkSummonState = null;
                 state.xyzSummonState = null;
                 state.meteorKikougunState = null;
-                state.oneForOneTarget = null;
                 state.hasActivatedFafnirSummonEffect = false;
                 state.hasActivatedDreitronNova = false;
                 state.hasActivatedDivinerSummonEffect = false;
@@ -421,12 +340,6 @@ export const useGameStore = create<GameStore>()(
             }
         },
 
-        selectCard: (cardId: string) => {
-            set((state) => {
-                state.selectedCard = state.selectedCard === cardId ? null : cardId;
-            });
-        },
-
         playCard: (cardId: string, zone?: number) => {
             const card = get().hand.find((c) => c.id === cardId);
             if (!card) {
@@ -541,54 +454,6 @@ export const useGameStore = create<GameStore>()(
                 state.field.spellTrapZones[targetZone] = updatedCard;
 
                 state.selectedCard = null;
-            });
-        },
-
-        activateFieldCard: (cardId: string) => {
-            const gameState = get();
-
-            // フィールドにあるカードを探す
-            const fieldCard =
-                gameState.field.fieldZone?.id === cardId
-                    ? gameState.field.fieldZone
-                    : gameState.field.spellTrapZones.find((card) => card?.id === cardId) ||
-                      gameState.field.monsterZones.find((card) => card?.id === cardId);
-
-            if (!fieldCard) {
-                return;
-            }
-
-            // チキンレースの効果はUI側で選択肢を表示して処理
-            if (fieldCard.card.card_name === "チキンレース") {
-                // 実際の効果はactivateChickenRaceEffect関数で処理
-                return; // UI側で処理するため、ここでは何もしない
-            }
-
-            // 他のカードの効果もここに追加可能
-        },
-
-        selectCardFromRevealedCards: (selectedCard: CardInstance, remainingCards: CardInstance[]) => {
-            set((state) => {
-                if (!state.extravaganceState || state.extravaganceState.phase !== "select_card_from_deck") return;
-
-                // 選択されたカードを手札に加える
-                const cardToHand = { ...selectedCard, location: "hand" as const };
-                state.hand.push(cardToHand);
-                state.hasDrawnByEffect = true; // カードの効果で手札に加えたフラグを立てる
-
-                // 残りのカードをデッキの一番下に戻す
-                remainingCards.forEach((card) => {
-                    state.deck.push(card);
-                });
-
-                // 効果終了
-                state.extravaganceState = null;
-
-                // エクゾディア勝利判定（デバッグ用に一時無効）
-                // if (checkExodiaWin(state.hand)) {
-                //     state.gameOver = true;
-                //     state.winner = "player";
-                // }
             });
         },
 
@@ -732,7 +597,6 @@ export const useGameStore = create<GameStore>()(
                 });
 
                 // サーチ効果を終了
-                state.searchingEffect = null;
                 state.hokyuyoinState = null;
             });
         },
@@ -1764,11 +1628,6 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        getCardFieldZone: (card: CardInstance) => {
-            return get().field.spellTrapZones.findIndex((e) => e?.id === card.id);
-        },
 
-        // Keep searchingEffect for backward compatibility during migration
-        searchingEffect: null,
     }))
 );

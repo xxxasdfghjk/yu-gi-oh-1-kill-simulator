@@ -8,11 +8,8 @@ interface HandProps {
 }
 
 export const Hand: React.FC<HandProps> = ({ cards }) => {
-  const { selectedCard, selectCard } = useGameStore();
+  const { selectedCard } = useGameStore();
 
-  const handleCardClick = (card: CardInstance) => {
-    selectCard(card.id);
-  };
 
   return (
     <div className="bg-gray-800 dark:bg-gray-900 p-4 rounded-lg shadow-inner">
@@ -24,7 +21,7 @@ export const Hand: React.FC<HandProps> = ({ cards }) => {
               card={card}
               size="medium"
               selected={selectedCard === card.id}
-              onClick={() => handleCardClick(card)}
+              onClick={() => {}}
             />
           </div>
         ))}

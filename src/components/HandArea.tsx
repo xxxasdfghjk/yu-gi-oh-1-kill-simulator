@@ -16,7 +16,6 @@ interface HandAreaProps {
     hand: CardInstance[];
     selectedCard: string | null;
     lifePoints: number;
-    selectCard: (cardId: string) => void;
     playCard: (cardId: string) => void;
     setCard: (cardId: string) => void;
     onCardHoverLeave: () => void;
@@ -90,7 +89,6 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
 
 export const HandArea: React.FC<HandAreaProps> = ({
     hand,
-    selectedCard,
     lifePoints,
     playCard,
     setCard,
@@ -116,9 +114,8 @@ export const HandArea: React.FC<HandAreaProps> = ({
                             onCardHoverLeave();
                             setHoveringCard(null);
                         }}
-                        className={`cursor-pointer transition-transform hover:-translate-y-2 ${
-                            selectedCard === card.id ? "ring-4 ring-yellow-400 -translate-y-4" : ""
-                        }`}
+                        className={`cursor-pointer transition-transform hover:-translate-y-2 
+                        `}
                     >
                         {hoveringCard?.id === card.id && actionList.length > 0 && (
                             <ActionListSelector

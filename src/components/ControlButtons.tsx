@@ -140,9 +140,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
                                         })()}
                                     </div>
                                     <div className="text-xs">EffectQueue: {gameState.effectQueue.length}</div>
-                                    <div className="text-xs">
-                                        AdvancedRitualState: {gameState.advancedRitualState?.phase || "null"}
-                                    </div>
                                 </div>
                             )}
                             {selectedCardInstance.card.card_name === "竜輝巧－ファフニール" && (

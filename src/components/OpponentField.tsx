@@ -9,14 +9,10 @@ interface OpponentFieldProps {
         spellTrapZones: (CardInstance | null)[];
         fieldZone: CardInstance | null;
     };
-    activateOpponentFieldSpell: () => void;
-    setChickenRaceHover: (hover: { card: CardInstance; x: number; y: number } | null) => void;
 }
 
 export const OpponentField: React.FC<OpponentFieldProps> = ({
     opponentField,
-    activateOpponentFieldSpell,
-    setChickenRaceHover,
 }) => {
     return (
         <div className="mb-2 relative">
