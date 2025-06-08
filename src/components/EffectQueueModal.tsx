@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { MultiCardConditionSelector } from "./MultiCardConditionSelector";
 import { MultiOptionSelector } from "./MultiOptionSelector";
 import SummonSelector from "./SummonSelector";
-import type { GameStore } from "@/store/gameStore";
+import type { EffectQueueItem, GameStore } from "@/store/gameStore";
 
 interface EffectQueueModalProps {
-    effectQueue: any[];
+    effectQueue: EffectQueueItem[];
     gameState: GameStore;
     processQueueTop: (action: any) => void;
     popQueue: () => void;
@@ -23,7 +23,12 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
     useEffect(() => {
         if (effectQueue.length > 0 && !isClosing) {
             const effect = effectQueue[0];
-            if (effect.type === "option" || effect.type === "select" || effect.type === "multiselect" || effect.type === "summon") {
+            if (
+                effect.type === "option" ||
+                effect.type === "select" ||
+                effect.type === "multiselect" ||
+                effect.type === "summon"
+            ) {
                 setCurrentEffect(effect);
             } else {
                 setCurrentEffect(null);

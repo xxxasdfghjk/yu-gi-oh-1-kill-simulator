@@ -5,7 +5,6 @@ import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { isMonsterCard } from "@/utils/gameUtils";
-import { helper } from "@/store/gameStoreHelper";
 import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma, canActivateBeatrice, canActivatePtolemyM7, canActivateAuroradon, canActivateUnionCarrier, canActivateMeteorKikougunGraveyard } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
@@ -40,6 +39,11 @@ export const GameBoardNew: React.FC = () => {
         sendSpellToGraveyard,
         popQueue,
         activateDreitrons,
+        activateBeatriceEffect,
+        activatePtolemyM7Effect,
+        activateAuroradonEffect,
+        activateUnionCarrierEffect,
+        activateMeteorKikougunGraveyardEffect,
     } = useGameStore();
 
     const [showGraveyard, setShowGraveyard] = useState(false);
@@ -109,7 +113,7 @@ export const GameBoardNew: React.FC = () => {
             if (!canActivateMeteorKikougunGraveyard(gameState)) {
                 return;
             }
-            helper.checkMeteorKikougunGraveyardEffect(gameState, card);
+            activateMeteorKikougunGraveyardEffect(card);
         }
     };
 
@@ -125,16 +129,16 @@ export const GameBoardNew: React.FC = () => {
             }
         } else if (card.card.card_name === "永遠の淑女 ベアトリーチェ" && canActivateBeatrice(gameState)) {
             // ベアトリーチェの効果発動
-            helper.checkBeatriceEffect(gameState, card);
+            activateBeatriceEffect(card);
         } else if (card.card.card_name === "セイクリッド・トレミスM7" && canActivatePtolemyM7(gameState)) {
             // トレミスM7の効果発動
-            helper.checkPtolemyM7Effect(gameState, card);
+            activatePtolemyM7Effect(card);
         } else if (card.card.card_name === "幻獣機アウローラドン" && canActivateAuroradon(gameState)) {
             // アウローラドンの効果発動
-            helper.checkAuroradonEffect(gameState, card);
+            activateAuroradonEffect(card);
         } else if (card.card.card_name === "ユニオン・キャリアー" && canActivateUnionCarrier(gameState)) {
             // ユニオン・キャリアーの効果発動
-            helper.checkUnionCarrierEffect(gameState, card);
+            activateUnionCarrierEffect(card);
         }
     };
     useEffect(() => {

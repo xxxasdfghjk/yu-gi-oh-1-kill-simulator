@@ -190,9 +190,9 @@ export const helper = {
                     ...state.field.extraMonsterZones,
                     ...state.opponentField.monsterZones,
                 ].filter((monster): monster is CardInstance => monster !== null && isMonsterCard(monster.card));
-                
+
                 const graveyardMonsters = state.graveyard.filter((monster) => isMonsterCard(monster.card));
-                
+
                 return [...fieldMonsters, ...graveyardMonsters];
             },
             canCancel: true,
@@ -213,10 +213,9 @@ export const helper = {
         }
 
         // フィールドに他のモンスターがいるかチェック（自分自身以外）
-        const otherMonstersOnField = [
-            ...state.field.monsterZones,
-            ...state.field.extraMonsterZones,
-        ].filter((monster) => monster !== null && monster.id !== card.id);
+        const otherMonstersOnField = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+            (monster) => monster !== null && monster.id !== card.id
+        );
 
         if (otherMonstersOnField.length === 0) {
             return false;
@@ -247,10 +246,9 @@ export const helper = {
         }
 
         // フィールドの表側表示モンスターを装備対象として選択
-        const faceUpMonsters = [
-            ...state.field.monsterZones,
-            ...state.field.extraMonsterZones,
-        ].filter((monster) => monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense");
+        const faceUpMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+            (monster) => monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense"
+        );
 
         if (faceUpMonsters.length === 0) {
             return false;
@@ -261,7 +259,11 @@ export const helper = {
             type: "select",
             effectName: "ユニオン・キャリアー（装備対象のモンスターを選択）",
             cardInstance: card,
-            getAvailableCards: () => faceUpMonsters as CardInstance[],
+            getAvailableCards: (state) =>
+                [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                    (monster) =>
+                        monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense"
+                ) as CardInstance[],
             canCancel: true,
             condition: (cards) => cards.length === 1,
             effectType: "union_carrier_target_select",
@@ -285,13 +287,12 @@ export const helper = {
         }
 
         // フィールドのドライトロンモンスターを対象として選択
-        const drytronMonstersOnField = [
-            ...state.field.monsterZones,
-            ...state.field.extraMonsterZones,
-        ].filter((monster) => {
-            if (!monster || !isMonsterCard(monster.card)) return false;
-            return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
-        });
+        const drytronMonstersOnField = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+            (monster) => {
+                if (!monster || !isMonsterCard(monster.card)) return false;
+                return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
+            }
+        );
 
         if (drytronMonstersOnField.length === 0) {
             return false;
@@ -421,6 +422,12 @@ export const helper = {
             state.field.spellTrapZones[trapZoneIndex] = null;
             locate = "field";
         }
+        monster.equipped?.forEach((e) => {
+            const equipment = state.field.spellTrapZones.find((equip) => equip?.id === e);
+            if (equipment) {
+                helper.sendMonsterToGraveyardInternalAnywhere(state, equipment);
+            }
+        });
 
         // フィールドのモンスターゾーンから削除
         const zoneIndex = state.field.monsterZones.findIndex((c) => c?.id === monster.id);
@@ -528,6 +535,37 @@ export const helper = {
         state.deck = state.deck.filter((c) => c.id !== card.id);
         state.graveyard = state.graveyard.filter((c) => c.id !== card.id);
         state.field.monsterZones = state.field.monsterZones.filter((c) => c?.card.id !== card.id);
-        state.hand.push({ ...card, location: "hand" });
+        state.field.extraMonsterZones = state.field.extraMonsterZones.filter((c) => c?.card.id !== card.id);
+
+        card.materials.forEach((e) => {
+            helper.sendMonsterToGraveyardInternalAnywhere(state, e);
+        });
+        card.equipped?.forEach((e) => {
+            const equipment = state.field.spellTrapZones.find((equip) => equip?.id === e);
+            if (equipment) {
+                helper.sendMonsterToGraveyardInternalAnywhere(state, equipment);
+            }
+        });
+
+        if (
+            card.card.card_type === "エクシーズモンスター" ||
+            card.card.card_type === "リンクモンスター" ||
+            card.card.card_type === "融合モンスター" ||
+            card.card.card_type === "シンクロモンスター"
+        ) {
+            state.extraDeck.push({
+                ...card,
+                location: "extra_deck",
+                buf: { attack: 0, level: 0, defense: 0 },
+                equipped: undefined,
+            });
+        } else {
+            state.hand.push({
+                ...card,
+                location: "hand",
+                buf: { attack: 0, level: 0, defense: 0 },
+                equipped: undefined,
+            });
+        }
     },
 };

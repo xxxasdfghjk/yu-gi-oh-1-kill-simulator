@@ -11,7 +11,7 @@ interface MultiCardConditionSelectorProps {
     title: string;
     onSelect: (selectedCards: CardInstance[]) => void;
     onCancel?: () => void;
-    condition: (selectedCards: CardInstance[]) => boolean;
+    condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
     filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
     isOpen?: boolean;
 }
@@ -60,7 +60,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
         return filterFunction(card, selectedCards);
     });
 
-    const canConfirm = condition(selectedCards);
+    const canConfirm = condition(selectedCards, state);
     const handleConfirm = () => {
         if (canConfirm) {
             onSelect(selectedCards);

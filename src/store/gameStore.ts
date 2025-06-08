@@ -18,7 +18,7 @@ export type EffectQueueItem =
           effectType: string;
           filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
           getAvailableCards: (state: GameStore) => CardInstance[];
-          condition: (selectedCards: CardInstance[]) => boolean;
+          condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
           canCancel: boolean;
       }
     | {
@@ -75,6 +75,11 @@ export interface GameStore extends GameState {
     clearQueue: () => void;
     popQueue: () => void;
     activateDreitrons: (dreitrons: CardInstance) => void;
+    activateBeatriceEffect: (card: CardInstance) => void;
+    activatePtolemyM7Effect: (card: CardInstance) => void;
+    activateAuroradonEffect: (card: CardInstance) => void;
+    activateUnionCarrierEffect: (card: CardInstance) => void;
+    activateMeteorKikougunGraveyardEffect: (card: CardInstance) => void;
     selectedCard: string | null;
     // 個別のサーチ効果状態
     hokyuyoinState: {
@@ -946,13 +951,13 @@ export const useGameStore = create<GameStore>()(
                                 const beatriceOnField = [
                                     ...state.field.monsterZones,
                                     ...state.field.extraMonsterZones,
-                                ].find(
-                                    (monster) =>
-                                        monster &&
-                                        monster.card.card_name === "永遠の淑女 ベアトリーチェ"
-                                );
+                                ].find((monster) => monster && monster.card.card_name === "永遠の淑女 ベアトリーチェ");
 
-                                if (beatriceOnField && beatriceOnField.materials && beatriceOnField.materials.length > 0) {
+                                if (
+                                    beatriceOnField &&
+                                    beatriceOnField.materials &&
+                                    beatriceOnField.materials.length > 0
+                                ) {
                                     // X素材を1つ墓地へ送る
                                     const removedMaterial = beatriceOnField.materials.pop();
                                     if (removedMaterial) {
@@ -980,11 +985,7 @@ export const useGameStore = create<GameStore>()(
                                 const ptolemyOnField = [
                                     ...state.field.monsterZones,
                                     ...state.field.extraMonsterZones,
-                                ].find(
-                                    (monster) =>
-                                        monster &&
-                                        monster.card.card_name === "セイクリッド・トレミスM7"
-                                );
+                                ].find((monster) => monster && monster.card.card_name === "セイクリッド・トレミスM7");
 
                                 if (ptolemyOnField && ptolemyOnField.materials && ptolemyOnField.materials.length > 0) {
                                     // X素材を1つ墓地へ送る
@@ -1011,11 +1012,7 @@ export const useGameStore = create<GameStore>()(
                                 const auroradonOnField = [
                                     ...state.field.monsterZones,
                                     ...state.field.extraMonsterZones,
-                                ].find(
-                                    (monster) =>
-                                        monster &&
-                                        monster.card.card_name === "幻獣機アウローラドン"
-                                );
+                                ].find((monster) => monster && monster.card.card_name === "幻獣機アウローラドン");
 
                                 if (auroradonOnField) {
                                     helper.sendMonsterToGraveyardInternalAnywhere(state, auroradonOnField, "release");
@@ -1060,8 +1057,10 @@ export const useGameStore = create<GameStore>()(
                                 state.effectQueue.unshift({
                                     id: "",
                                     type: "select",
-                                    effectName: `ユニオン・キャリアー（${targetRace || targetAttribute}のモンスターを装備）`,
-                                    cardInstance: currentEffect.cardInstance,
+                                    effectName: `ユニオン・キャリアー（${
+                                        targetRace || targetAttribute
+                                    }のモンスターを装備）`,
+                                    cardInstance: targetMonster,
                                     getAvailableCards: (state: GameStore) => {
                                         return [...state.hand, ...state.deck].filter((c) => {
                                             if (!isMonsterCard(c.card)) return false;
@@ -1087,9 +1086,16 @@ export const useGameStore = create<GameStore>()(
                             if (equipMonster) {
                                 // モンスターを装備カード扱いにする（簡易実装）
                                 // 実際には装備システムの実装が必要だが、ここでは攻撃力アップのみ実装
-                                
+
                                 // TODO: 完全な装備システムの実装
-                                console.log(`${equipMonster.card.card_name}を装備カード扱いで装備しました`);
+                                const emptyIndex = state.field.spellTrapZones.findIndex((e) => e === null);
+                                state.field.spellTrapZones[emptyIndex] = selectedCard[0];
+                                state.field.spellTrapZones[emptyIndex].buf = { attack: 1000, defense: 0, level: 0 };
+
+                                const target = [...state.field.spellTrapZones, ...state.field.extraMonsterZones].find(
+                                    (e) => e?.id === currentEffect.cardInstance.id
+                                )!;
+                                target.equipped = [...(target.equipped ?? []), equipMonster.id];
 
                                 // 手札・デッキからカードを除去
                                 state.hand = state.hand.filter((c) => c.id !== equipMonster.id);
@@ -1115,11 +1121,11 @@ export const useGameStore = create<GameStore>()(
 
                                 // 流星輝巧群を墓地から手札に加える
                                 const meteorCard = state.graveyard.find(
-                                    (card) => 
+                                    (card) =>
                                         card.card.card_name === "流星輝巧群" &&
                                         card.id === currentEffect.cardInstance.id
                                 );
-                                
+
                                 if (meteorCard) {
                                     state.graveyard = state.graveyard.filter((c) => c.id !== meteorCard.id);
                                     const handCard = { ...meteorCard, location: "hand" as const };
@@ -1165,10 +1171,10 @@ export const useGameStore = create<GameStore>()(
                                                 ) ?? [];
                                         return [...handMachineMonsters, ...fieldMachineMonsters, ...myu];
                                     },
-                                    condition: (cards: CardInstance[]) => {
+                                    condition: (cards: CardInstance[], state: GameStore) => {
                                         // 選択されたモンスターの攻撃力合計が必要攻撃力以上であることを確認
                                         const totalAttack = cards.reduce((sum, c) => {
-                                            return sum + getAttack(c);
+                                            return sum + getAttack(state, c);
                                         }, 0);
                                         return cards.length >= 1 && totalAttack >= requiredAttack;
                                     },
@@ -1436,7 +1442,7 @@ export const useGameStore = create<GameStore>()(
                             if (payload.option[0].value === "use") {
                                 state.hasActivatedFafnirSummonEffect = true;
                                 const newInstance = { ...currentEffect.cardInstance };
-                                newInstance.buf.level -= Math.floor(getAttack(newInstance) / 1000);
+                                newInstance.buf.level -= Math.floor(getAttack(state, newInstance) / 1000);
                                 helper.updateFieldMonster(state, newInstance);
                             }
                             break;
@@ -1839,6 +1845,187 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
+        activateBeatriceEffect: (card: CardInstance) => {
+            set((state) => {
+                if (card.card.card_name !== "永遠の淑女 ベアトリーチェ") {
+                    return;
+                }
 
+                // 1ターンに1度の制限チェック
+                if (state.hasActivatedBeatriceEffect) {
+                    return;
+                }
+
+                // X素材があるかチェック
+                if (!card.materials || card.materials.length === 0) {
+                    return;
+                }
+
+                // デッキからカード1枚を選んで墓地へ送る効果
+                state.effectQueue.push({
+                    id: ``,
+                    type: "select",
+                    effectName: "永遠の淑女 ベアトリーチェ（デッキからカード1枚を墓地へ送る）",
+                    cardInstance: card,
+                    getAvailableCards: (state) => {
+                        return state.deck; // デッキから任意のカード1枚
+                    },
+                    canCancel: false,
+                    condition: (cards) => cards.length === 1,
+                    effectType: "beatrice_mill_effect",
+                });
+            });
+        },
+
+        activatePtolemyM7Effect: (card: CardInstance) => {
+            set((state) => {
+                if (card.card.card_name !== "セイクリッド・トレミスM7") {
+                    return;
+                }
+
+                // 1ターンに1度の制限チェック
+                if (state.hasActivatedPtolemyM7Effect) {
+                    return;
+                }
+
+                // X素材があるかチェック
+                if (!card.materials || card.materials.length === 0) {
+                    return;
+                }
+
+                // フィールド・墓地のモンスターを手札に戻す効果
+                state.effectQueue.push({
+                    id: ``,
+                    type: "select",
+                    effectName: "セイクリッド・トレミスM7（フィールド・墓地のモンスター1体を手札に戻す）",
+                    cardInstance: card,
+                    getAvailableCards: (state) => {
+                        const fieldMonsters = [
+                            ...state.field.monsterZones,
+                            ...state.field.extraMonsterZones,
+                            ...state.opponentField.monsterZones,
+                        ].filter((monster): monster is CardInstance => monster !== null && isMonsterCard(monster.card));
+                        
+                        const graveyardMonsters = state.graveyard.filter((monster) => isMonsterCard(monster.card));
+                        
+                        return [...fieldMonsters, ...graveyardMonsters];
+                    },
+                    canCancel: true,
+                    condition: (cards) => cards.length === 1,
+                    effectType: "ptolemy_m7_return_effect",
+                });
+            });
+        },
+
+        activateAuroradonEffect: (card: CardInstance) => {
+            set((state) => {
+                if (card.card.card_name !== "幻獣機アウローラドン") {
+                    return;
+                }
+
+                // 1ターンに1度の制限チェック
+                if (state.hasActivatedAuroradonEffect) {
+                    return;
+                }
+
+                // フィールドに他のモンスターがいるかチェック（自分自身以外）
+                const otherMonstersOnField = [
+                    ...state.field.monsterZones,
+                    ...state.field.extraMonsterZones,
+                ].filter((monster) => monster !== null && monster.id !== card.id);
+
+                if (otherMonstersOnField.length === 0) {
+                    return;
+                }
+
+                // アウローラドンと他のモンスターをリリースして機械族を特殊召喚
+                state.effectQueue.push({
+                    id: ``,
+                    type: "select",
+                    effectName: "幻獣機アウローラドン（リリースする他のモンスターを選択）",
+                    cardInstance: card,
+                    getAvailableCards: () => otherMonstersOnField as CardInstance[],
+                    canCancel: true,
+                    condition: (cards) => cards.length === 1,
+                    effectType: "auroradon_tribute_select",
+                });
+            });
+        },
+
+        activateUnionCarrierEffect: (card: CardInstance) => {
+            set((state) => {
+                if (card.card.card_name !== "ユニオン・キャリアー") {
+                    return;
+                }
+
+                // 1ターンに1度の制限チェック
+                if (state.hasActivatedUnionCarrierEffect) {
+                    return;
+                }
+
+                // フィールドの表側表示モンスターを装備対象として選択
+                const faceUpMonsters = [
+                    ...state.field.monsterZones,
+                    ...state.field.extraMonsterZones,
+                ].filter((monster) => monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense");
+
+                if (faceUpMonsters.length === 0) {
+                    return;
+                }
+
+                state.effectQueue.push({
+                    id: ``,
+                    type: "select",
+                    effectName: "ユニオン・キャリアー（装備対象のモンスターを選択）",
+                    cardInstance: card,
+                    getAvailableCards: () => faceUpMonsters as CardInstance[],
+                    canCancel: true,
+                    condition: (cards) => cards.length === 1,
+                    effectType: "union_carrier_target_select",
+                });
+            });
+        },
+
+        activateMeteorKikougunGraveyardEffect: (card: CardInstance) => {
+            set((state) => {
+                if (card.card.card_name !== "流星輝巧群") {
+                    return;
+                }
+
+                // 1ターンに1度の制限チェック
+                if (state.hasActivatedMeteorKikougunGraveyardEffect) {
+                    return;
+                }
+
+                // カードが墓地にあるかチェック
+                if (card.location !== "graveyard") {
+                    return;
+                }
+
+                // フィールドのドライトロンモンスターを対象として選択
+                const drytronMonstersOnField = [
+                    ...state.field.monsterZones,
+                    ...state.field.extraMonsterZones,
+                ].filter((monster) => {
+                    if (!monster || !isMonsterCard(monster.card)) return false;
+                    return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
+                });
+
+                if (drytronMonstersOnField.length === 0) {
+                    return;
+                }
+
+                state.effectQueue.push({
+                    id: ``,
+                    type: "select",
+                    effectName: "流星輝巧群（攻撃力を1000ダウンするドライトロンモンスターを選択）",
+                    cardInstance: card,
+                    getAvailableCards: () => drytronMonstersOnField as CardInstance[],
+                    canCancel: true,
+                    condition: (cards) => cards.length === 1,
+                    effectType: "meteor_kikougun_graveyard_effect",
+                });
+            });
+        },
     }))
 );

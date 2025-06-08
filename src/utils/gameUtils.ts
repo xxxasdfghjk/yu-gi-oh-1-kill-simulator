@@ -1,3 +1,4 @@
+import type { GameStore } from "@/store/gameStore";
 import type { Card, CardInstance } from "@/types/card";
 import type { GameState } from "@/types/game";
 import { v4 as uuidv4 } from "uuid";
@@ -21,9 +22,15 @@ export const getLevel = (cardInstance: CardInstance) => {
     return cardInstance.buf.level + level;
 };
 
-export const getAttack = (cardInstance: CardInstance) => {
+export const getAttack = (state: GameStore, cardInstance: CardInstance) => {
     const attack = (cardInstance.card as { attack?: number })?.attack ?? -9999;
-    return cardInstance.buf.level + attack;
+    const equip = (cardInstance.equipped ?? [])
+        .map((id) => {
+            return state.field.spellTrapZones.find((equip) => equip?.id === id)?.buf.attack ?? 0;
+        })
+        .reduce((prev, cur) => prev + cur, 0);
+
+    return cardInstance.buf.level + attack + equip;
 };
 
 export const shuffleDeck = (deck: CardInstance[]): CardInstance[] => {
