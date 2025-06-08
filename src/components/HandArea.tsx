@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
-import { useGameStore } from "@/store/gameStore";
+import { useGameStore, type GameStore } from "@/store/gameStore";
 import { isMonsterCard, isSpellCard, isTrapCard } from "@/utils/gameUtils";
 import {
     canNormalSummon,
@@ -19,10 +19,8 @@ interface HandAreaProps {
     selectCard: (cardId: string) => void;
     playCard: (cardId: string) => void;
     setCard: (cardId: string) => void;
-    activateBanAlpha: (card: CardInstance) => void;
-    activateEruGanma: (card: CardInstance) => void;
-    activateAruZeta: (card: CardInstance) => void;
     onCardHoverLeave: () => void;
+    handleEffect: (cardInstance: CardInstance) => void;
 }
 
 export type Action = "summon" | "activate" | "set" | "effect";
@@ -65,66 +63,43 @@ export const ActionListSelector = ({
     );
 };
 
+export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
+    const actions: string[] = [];
+
+    if (isMonsterCard(card.card) && canNormalSummon(gameState, card)) {
+        actions.push("summon");
+    }
+    if (isSpellCard(card.card) && canActivateSpell(gameState, card.card)) {
+        actions.push("activate");
+    }
+    if ((isSpellCard(card.card) || isTrapCard(card.card)) && canSetSpellTrap(gameState, card.card)) {
+        actions.push("set");
+    }
+    if (card.card.card_name === "竜輝巧－バンα" && canActivateBanAlpha(gameState)) {
+        actions.push("effect");
+    }
+    if (card.card.card_name === "竜輝巧－エルγ" && canActivateEruGanma(gameState)) {
+        actions.push("effect");
+    }
+    if (card.card.card_name === "竜輝巧－アルζ" && canActivateAruZeta(gameState)) {
+        actions.push("effect");
+    }
+
+    return actions;
+};
+
 export const HandArea: React.FC<HandAreaProps> = ({
     hand,
     selectedCard,
     lifePoints,
     playCard,
     setCard,
-    activateBanAlpha,
-    activateEruGanma,
-    activateAruZeta,
     onCardHoverLeave,
+    handleEffect,
 }) => {
     const gameState = useGameStore();
     const [actionList, setActionList] = useState<string[]>([]);
     const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
-
-    const getCardActions = (card: CardInstance): string[] => {
-        const actions: string[] = [];
-
-        if (isMonsterCard(card.card) && canNormalSummon(gameState, card)) {
-            actions.push("summon");
-        }
-        if (isSpellCard(card.card) && canActivateSpell(gameState, card.card)) {
-            actions.push("activate");
-        }
-        if ((isSpellCard(card.card) || isTrapCard(card.card)) && canSetSpellTrap(gameState, card.card)) {
-            actions.push("set");
-        }
-        if (card.card.card_name === "竜輝巧－バンα" && canActivateBanAlpha(gameState)) {
-            actions.push("effect");
-        }
-        if (card.card.card_name === "竜輝巧－エルγ" && canActivateEruGanma(gameState)) {
-            actions.push("effect");
-        }
-        if (card.card.card_name === "竜輝巧－アルζ" && canActivateAruZeta(gameState)) {
-            actions.push("effect");
-        }
-
-        return actions;
-    };
-
-    const handleEffect = (card: CardInstance) => {
-        if (card.card.card_name === "竜輝巧－バンα") {
-            // 発動条件をチェック
-            if (!canActivateBanAlpha(gameState)) {
-                return;
-            }
-            activateBanAlpha(card);
-        } else if (card.card.card_name === "竜輝巧－エルγ") {
-            // 発動条件をチェック
-            if (!canActivateEruGanma(gameState)) {
-                return;
-            }
-            activateEruGanma(card);
-        } else if (card.card.card_name === "竜輝巧－アルζ") {
-            if (!canActivateAruZeta(gameState)) {
-                return;
-            }
-            activateAruZeta(card);
-        }
-    };
 
     return (
         <div className="flex justify-center items-center gap-4">
@@ -133,7 +108,7 @@ export const HandArea: React.FC<HandAreaProps> = ({
                     <div
                         key={card.id}
                         onMouseEnter={() => {
-                            const cardActions = getCardActions(card);
+                            const cardActions = getCardActions(gameState, card);
                             setActionList(cardActions);
                             setHoveringCard(card);
                         }}
@@ -143,12 +118,6 @@ export const HandArea: React.FC<HandAreaProps> = ({
                         }}
                         className={`cursor-pointer transition-transform hover:-translate-y-2 ${
                             selectedCard === card.id ? "ring-4 ring-yellow-400 -translate-y-4" : ""
-                        } ${
-                            card.card.card_name === "竜輝巧－バンα"
-                                ? canActivateBanAlpha(gameState)
-                                    ? "ring-2 ring-blue-300"
-                                    : "ring-2 ring-gray-400 opacity-60"
-                                : ""
                         }`}
                     >
                         {hoveringCard?.id === card.id && actionList.length > 0 && (
@@ -169,10 +138,7 @@ export const HandArea: React.FC<HandAreaProps> = ({
                                 card={card}
                             />
                         )}
-                        <Card 
-                            card={card} 
-                            size="medium" 
-                        />
+                        <Card card={card} size="medium" />
                     </div>
                 ))}
             </div>

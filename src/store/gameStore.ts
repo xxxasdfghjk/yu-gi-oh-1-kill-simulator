@@ -65,9 +65,6 @@ export interface GameStore extends GameState {
     setPhase: (phase: GamePhase) => void;
     activateTrapCard: (card: CardInstance) => void;
     selectHokyuyoinTargets: (selectedCards: CardInstance[]) => void;
-    activateBanAlpha: (eruGanmaCard: CardInstance) => void;
-    activateEruGanma: (eruGanmaCard: CardInstance) => void;
-    activateAruZeta: (eruGanmaCard: CardInstance) => void;
     startLinkSummon: (linkMonster: CardInstance) => void;
     startXyzSummon: (xyzMonster: CardInstance) => void;
     effectQueue: EffectQueueItem[];
@@ -82,6 +79,7 @@ export interface GameStore extends GameState {
     ) => void;
     clearQueue: () => void;
     popQueue: () => void;
+    activateDreitrons: (dreitrons: CardInstance) => void;
     selectedCard: string | null;
     // 個別のサーチ効果状態
     foolishBurialState: {
@@ -371,6 +369,8 @@ export const useGameStore = create<GameStore>()(
                     state.hasActivatedJackInTheHand = false;
                     state.hasActivatedDivinerSummonEffect = false;
                     state.hasActivatedDreitronNova = false;
+                    state.hasActivatedEruGanma = false;
+                    state.hasActivatedAruZeta = false;
 
                     // ターン終了時の効果をリセット（レベルバフなど）
                     [...state.field.monsterZones, ...state.field.extraMonsterZones]
@@ -737,25 +737,32 @@ export const useGameStore = create<GameStore>()(
             });
         },
 
-        activateBanAlpha: (banAlphaCard: CardInstance) => {
+        activateDreitrons: (dreitronCard: CardInstance) => {
             // このターンに既に発動済みの場合は発動不可
             const currentState = get();
-            if (currentState.hasActivatedBanAlpha) {
+            if (currentState.hasActivatedBanAlpha && dreitronCard.card.card_name === "竜輝巧－バンα") {
                 return;
             }
+            if (currentState.hasActivatedAruZeta && dreitronCard.card.card_name === "竜輝巧－アルζ") {
+                return;
+            }
+            if (currentState.hasActivatedEruGanma && dreitronCard.card.card_name === "竜輝巧－エルγ") {
+                return;
+            }
+
             set((state) => {
                 state.effectQueue.unshift({
                     id: "",
                     type: "select",
-                    effectName: "竜輝巧－バンα（リリース対象選択）",
-                    cardInstance: banAlphaCard,
+                    effectName: `${dreitronCard.card.card_name}（リリース対象選択）`,
+                    cardInstance: dreitronCard,
                     getAvailableCards: (state: GameStore) => {
                         return [...state.hand, ...state.field.monsterZones].filter((c) => {
                             if (!c || !isMonsterCard(c.card)) return false;
                             if (!isMonsterCard(c.card)) return false;
                             const isDrytron =
                                 (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-                                c.card.card_name !== "竜輝巧－バンα";
+                                c.card.card_name !== dreitronCard.card.card_name;
                             const isRitual = c.card.card_type === "儀式・効果モンスター";
                             return isDrytron || isRitual;
                         }) as CardInstance[];
@@ -763,75 +770,12 @@ export const useGameStore = create<GameStore>()(
                     condition: (cards: CardInstance[]) => {
                         return cards.length === 1; // リリース対象が1枚選択された場合のみ有効
                     },
-                    effectType: "ban_alpha_release_select",
+                    effectType: "dreitron_release_select",
                     canCancel: true,
                 });
             });
         },
-        activateEruGanma: (EruGanmaCard: CardInstance) => {
-            // このターンに既に発動済みの場合は発動不可
-            const currentState = get();
-            if (currentState.hasActivatedEruGanma) {
-                return;
-            }
 
-            set((state) => {
-                state.effectQueue.unshift({
-                    id: "",
-                    type: "select",
-                    effectName: "竜輝巧－エルγ（リリース対象選択）",
-                    cardInstance: EruGanmaCard,
-                    getAvailableCards: (state: GameStore) => {
-                        return [...state.hand, ...state.field.monsterZones].filter((c) => {
-                            if (!c || !isMonsterCard(c.card)) return false;
-                            if (!isMonsterCard(c.card)) return false;
-                            const isDrytron =
-                                (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-                                c.card.card_name !== "竜輝巧－エルγ";
-                            const isRitual = c.card.card_type === "儀式・効果モンスター";
-
-                            return isDrytron || isRitual;
-                        }) as CardInstance[];
-                    },
-                    condition: (cards: CardInstance[]) => {
-                        return cards.length === 1; // リリース対象が1枚以上選択された場合のみ有
-                    },
-                    effectType: "eru_ganma_release_select",
-                    canCancel: true,
-                });
-            });
-        },
-        activateAruZeta: (aruZetaCard: CardInstance) => {
-            // このターンに既に発動済みの場合は発動不可
-            const currentState = get();
-            if (currentState.hasActivatedAruZeta) {
-                return;
-            }
-            set((state) => {
-                state.effectQueue.unshift({
-                    id: "",
-                    type: "select",
-                    effectName: "竜輝巧－アルζ（リリース対象選択）",
-                    cardInstance: aruZetaCard,
-                    getAvailableCards: (state: GameStore) => {
-                        return [...state.hand, ...state.field.monsterZones].filter((c) => {
-                            if (!c || !isMonsterCard(c.card)) return false;
-                            if (!isMonsterCard(c.card)) return false;
-                            const isDrytron =
-                                (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-                                c.card.card_name !== "竜輝巧－アルζ";
-                            const isRitual = c.card.card_type === "儀式・効果モンスター";
-                            return isDrytron || isRitual;
-                        }) as CardInstance[];
-                    },
-                    condition: (cards: CardInstance[]) => {
-                        return cards.length === 1; // リリース対象が1枚以上選択された場合のみ有
-                    },
-                    effectType: "aru_zeta_release_select",
-                    canCancel: true,
-                });
-            });
-        },
         startLinkSummon: (linkMonster: CardInstance) => {
             const currentState = get();
 
@@ -915,8 +859,17 @@ export const useGameStore = create<GameStore>()(
                             helper.toHandFromAnywhere(state, selectedCard[0]);
                             state.hasActivatedCritter = true;
                             break;
-                        case "ban_alpha_release_select":
-                            state.hasActivatedBanAlpha = true;
+                        case "dreitron_release_select": {
+                            if (currentEffect.cardInstance.card.card_name === "竜輝巧－バンα") {
+                                state.hasActivatedBanAlpha = true;
+                            }
+                            if (currentEffect.cardInstance.card.card_name === "竜輝巧－エルγ") {
+                                state.hasActivatedEruGanma = true;
+                            }
+                            if (currentEffect.cardInstance.card.card_name === "竜輝巧－アルζ") {
+                                state.hasActivatedAruZeta = true;
+                            }
+
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
 
                             state.effectQueue.unshift({
@@ -928,25 +881,77 @@ export const useGameStore = create<GameStore>()(
                                 canSelectPosition: false,
                             });
                             // バンαの効果を適用
-                            state.effectQueue.push({
-                                id: "",
-                                type: "select",
-                                effectName: "竜輝巧－バンα（儀式モンスター選択）",
-                                cardInstance: currentEffect.cardInstance,
-                                getAvailableCards: (state: GameStore) => {
-                                    return state.deck.filter((c): c is CardInstance => {
-                                        if (!c || !isMonsterCard(c.card)) return false;
-                                        const isRitual = c.card.card_type === "儀式・効果モンスター";
-                                        return isRitual;
+                            if (currentEffect.cardInstance.card.card_name === "竜輝巧－バンα") {
+                                state.effectQueue.push({
+                                    id: "",
+                                    type: "select",
+                                    effectName: "竜輝巧－バンα（儀式モンスター選択）",
+                                    cardInstance: currentEffect.cardInstance,
+                                    getAvailableCards: (state: GameStore) => {
+                                        return state.deck.filter((c): c is CardInstance => {
+                                            if (!c || !isMonsterCard(c.card)) return false;
+                                            const isRitual = c.card.card_type === "儀式・効果モンスター";
+                                            return isRitual;
+                                        });
+                                    },
+                                    condition: (cards: CardInstance[]) => {
+                                        return cards.length === 1;
+                                    },
+                                    effectType: "get_hand_single",
+                                    canCancel: true,
+                                });
+                            }
+                            if (currentEffect.cardInstance.card.card_name === "竜輝巧－エルγ") {
+                                const target = state.graveyard.filter((c): c is CardInstance => {
+                                    if (!c || !isMonsterCard(c.card)) return false;
+                                    const isDrytron =
+                                        (c.card.card_name.includes("竜輝巧") ||
+                                            c.card.card_name.includes("ドライトロン")) &&
+                                        c.card.card_name !== "竜輝巧－エルγ" &&
+                                        (c.card as MonsterCard)?.attack === 2000;
+                                    return isDrytron;
+                                });
+                                if (target.length > 0) {
+                                    state.effectQueue.push({
+                                        id: "",
+                                        type: "select",
+                                        effectName: "竜輝巧－エルγ（召喚対象選択）",
+                                        cardInstance: currentEffect.cardInstance,
+                                        getAvailableCards: () => target,
+                                        condition: (cards: CardInstance[]) => {
+                                            return cards.length === 1;
+                                        },
+                                        effectType: "special_summon",
+                                        canCancel: true,
                                     });
-                                },
-                                condition: (cards: CardInstance[]) => {
-                                    return cards.length === 1;
-                                },
-                                effectType: "get_hand_single",
-                                canCancel: true,
-                            });
+                                }
+                            }
+                            if (currentEffect.cardInstance.card.card_name === "竜輝巧－アルζ") {
+                                const target = state.deck.filter((c) => {
+                                    return c.card.card_type === "儀式魔法";
+                                });
+                                if (target.length > 0) {
+                                    state.effectQueue.push({
+                                        id: "",
+                                        type: "select",
+                                        effectName: "竜輝巧－アルζ（儀式魔法選択）",
+                                        cardInstance: currentEffect.cardInstance,
+                                        getAvailableCards: (state) =>
+                                            state.deck.filter((c) => {
+                                                return c.card.card_type === "儀式魔法";
+                                            }),
+                                        condition: (cards: CardInstance[]) => {
+                                            return cards.length === 1;
+                                        },
+                                        effectType: "get_hand_single",
+                                        canCancel: true,
+                                    });
+                                }
+                            }
+
                             break;
+                        }
+
                         case "send_to_graveyard":
                             helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0]);
                             break;
@@ -963,78 +968,6 @@ export const useGameStore = create<GameStore>()(
                                 canSelectPosition: true,
                             });
                             break;
-
-                        case "eru_ganma_release_select": {
-                            state.hasActivatedEruGanma = true;
-                            helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
-                            state.effectQueue.unshift({
-                                id: "",
-                                type: "summon",
-                                cardInstance: currentEffect.cardInstance,
-                                effectType: "",
-                                optionPosition: ["defense" as const],
-                                canSelectPosition: false,
-                            });
-
-                            const target = state.graveyard.filter((c): c is CardInstance => {
-                                if (!c || !isMonsterCard(c.card)) return false;
-                                const isDrytron =
-                                    (c.card.card_name.includes("竜輝巧") ||
-                                        c.card.card_name.includes("ドライトロン")) &&
-                                    c.card.card_name !== "竜輝巧－エルγ" &&
-                                    (c.card as MonsterCard)?.attack === 2000;
-                                return isDrytron;
-                            });
-                            if (target.length > 0) {
-                                state.effectQueue.push({
-                                    id: "",
-                                    type: "select",
-                                    effectName: "竜輝巧－エルγ（召喚対象選択）",
-                                    cardInstance: currentEffect.cardInstance,
-                                    getAvailableCards: () => target,
-                                    condition: (cards: CardInstance[]) => {
-                                        return cards.length === 1;
-                                    },
-                                    effectType: "special_summon",
-                                    canCancel: true,
-                                });
-                            }
-                            break;
-                        }
-                        case "aru_zeta_release_select": {
-                            state.hasActivatedAruZeta = true;
-                            helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCard[0], "release");
-                            state.effectQueue.unshift({
-                                id: "",
-                                type: "summon",
-                                cardInstance: currentEffect.cardInstance,
-                                effectType: "",
-                                optionPosition: ["defense"],
-                                canSelectPosition: false,
-                            });
-
-                            const target = state.deck.filter((c) => {
-                                return c.card.card_type === "儀式魔法";
-                            });
-                            if (target.length > 0) {
-                                state.effectQueue.push({
-                                    id: "",
-                                    type: "select",
-                                    effectName: "竜輝巧－アルζ（儀式魔法選択）",
-                                    cardInstance: currentEffect.cardInstance,
-                                    getAvailableCards: (state) =>
-                                        state.deck.filter((c) => {
-                                            return c.card.card_type === "儀式魔法";
-                                        }),
-                                    condition: (cards: CardInstance[]) => {
-                                        return cards.length === 1;
-                                    },
-                                    effectType: "get_hand_single",
-                                    canCancel: true,
-                                });
-                            }
-                            break;
-                        }
 
                         case "jack_in_hand_select_three": {
                             // selectedCardの3つの要素のうちランダムに一つを除外する

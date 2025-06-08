@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
-import { ActionListSelector } from "./HandArea";
-import { canActivateBanAlpha } from "@/utils/summonUtils";
+import { ActionListSelector, getCardActions } from "./HandArea";
 import type { GameStore } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
 
@@ -11,7 +10,7 @@ interface GraveyardModalProps {
     onClose: () => void;
     graveyard: CardInstance[];
     gameState: GameStore;
-    handleBanAlphaClick: (card: CardInstance) => void;
+    handleEffect: (card: CardInstance) => void;
 }
 
 export const GraveyardModal: React.FC<GraveyardModalProps> = ({
@@ -19,8 +18,9 @@ export const GraveyardModal: React.FC<GraveyardModalProps> = ({
     onClose,
     graveyard,
     gameState,
-    handleBanAlphaClick,
+    handleEffect,
 }) => {
+    const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
             <div className="flex justify-between items-center mb-4">
@@ -37,27 +37,27 @@ export const GraveyardModal: React.FC<GraveyardModalProps> = ({
                     {graveyard.map((card, index) => (
                         <div
                             key={`${card.id}-${index}`}
-                            className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded ${
-                                card.card.card_name === "竜輝巧－バンα"
-                                    ? canActivateBanAlpha(gameState)
-                                        ? "ring-2 ring-blue-300"
-                                        : "ring-2 ring-gray-400 opacity-60"
-                                    : ""
-                            }`}
-                            onClick={() => {}}
+                            className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded`}
+                            onMouseEnter={() => {
+                                setHoveringCard(card);
+                            }}
+                            onMouseLeave={() => {
+                                setHoveringCard(null);
+                            }}
                         >
+                            {hoveringCard?.id === card.id &&
+                                getCardActions(gameState, card).filter((e) => e === "effect").length > 0 && (
+                                    <ActionListSelector
+                                        card={card}
+                                        actions={getCardActions(gameState, card).filter((e) => e === "effect")}
+                                        onSelect={() => {
+                                            handleEffect(card);
+                                            onClose();
+                                        }}
+                                    />
+                                )}
                             <Card card={card} size="small" customSize="w-30" />
                             <div className="text-xs text-center mt-1 truncate w-30">{card.card.card_name}</div>
-                            {card.card.card_name === "竜輝巧－バンα" && (
-                                <ActionListSelector
-                                    card={card}
-                                    actions={["effect"]}
-                                    onSelect={() => {
-                                        handleBanAlphaClick(card);
-                                        onClose();
-                                    }}
-                                />
-                            )}
                         </div>
                     ))}
                 </div>

@@ -1,6 +1,7 @@
 import type { Card, CardInstance, MonsterCard } from "@/types/card";
 import type { GameState } from "@/types/game";
 import { isMonsterCard } from "./gameUtils";
+import type { GameStore } from "@/store/gameStore";
 
 export const canNormalSummon = (gameState: GameState, card: CardInstance): boolean => {
     if (!isMonsterCard(card.card)) return false;
@@ -332,9 +333,7 @@ export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
         return false;
     }
     const allRitualMonsters = [...handRitualMonsters, ...graveyardRitualMonsters];
-    const ritualMonstersMinAttack = Math.min(
-        ...allRitualMonsters.map((c) => (c.card as { attack: number }).attack)
-    );
+    const ritualMonstersMinAttack = Math.min(...allRitualMonsters.map((c) => (c.card as { attack: number }).attack));
 
     // 手札・フィールドに機械族モンスターが1体以上必要
     const handMachineMonsters = gameState.hand.filter((c) => {
@@ -361,18 +360,19 @@ export const canActivateMeteorKikougun = (gameState: GameState): boolean => {
     return canActivate && hasEmpty;
 };
 
-export const canActivateBanAlpha = (gameState: GameState): boolean => {
-    // このターンに既に発動済みの場合は発動不可
+export const canActivateBanAlpha = (gameState: GameStore): boolean => {
     if (gameState.hasActivatedBanAlpha) {
         return false;
     }
+    return canActivateDreitrons(gameState, "竜輝巧－バンα");
+};
 
-    // リリース対象となるカードが必要（手札・フィールドのドライトロンモンスターまたは儀式モンスター）
+export const canActivateDreitrons = (gameState: GameStore, dreitronName: string) => {
     const handTargets = gameState.hand.filter((c) => {
         if (!isMonsterCard(c.card)) return false;
         const isDrytron =
             (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-            c.card.card_name !== "竜輝巧－バンα";
+            c.card.card_name !== dreitronName;
         const isRitual = c.card.card_type === "儀式・効果モンスター";
         return isDrytron || isRitual;
     });
@@ -381,7 +381,7 @@ export const canActivateBanAlpha = (gameState: GameState): boolean => {
         if (!c || !isMonsterCard(c.card)) return false;
         const isDrytron =
             (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-            c.card.card_name !== "竜輝巧－バンα";
+            c.card.card_name !== dreitronName;
         const isRitual = c.card.card_type === "儀式・効果モンスター";
         return isDrytron || isRitual;
     });
@@ -389,58 +389,19 @@ export const canActivateBanAlpha = (gameState: GameState): boolean => {
     return handTargets.length + fieldTargets.length >= 1;
 };
 
-export const canActivateAruZeta = (gameState: GameState): boolean => {
+export const canActivateAruZeta = (gameState: GameStore): boolean => {
     // このターンに既に発動済みの場合は発動不可
     if (gameState.hasActivatedAruZeta) {
         return false;
     }
-    // リリース対象となるカードが必要（手札・フィールドのドライトロンモンスターまたは儀式モンスター）
-    const handTargets = gameState.hand.filter((c) => {
-        if (!isMonsterCard(c.card)) return false;
-        const isDrytron =
-            (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-            c.card.card_name !== "竜輝巧－アルζ";
-        const isRitual = c.card.card_type === "儀式・効果モンスター";
-        return isDrytron || isRitual;
-    });
-
-    const fieldTargets = gameState.field.monsterZones.filter((c): c is CardInstance => {
-        if (!c || !isMonsterCard(c.card)) return false;
-        const isDrytron =
-            (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-            c.card.card_name !== "竜輝巧－アルζ";
-        const isRitual = c.card.card_type === "儀式・効果モンスター";
-        return isDrytron || isRitual;
-    });
-
-    return handTargets.length + fieldTargets.length >= 1;
+    return canActivateDreitrons(gameState, "竜輝巧－アルζ");
 };
 
-export const canActivateEruGanma = (gameState: GameState): boolean => {
-    // このターンに既に発動済みの場合は発動不可
+export const canActivateEruGanma = (gameState: GameStore): boolean => {
     if (gameState.hasActivatedEruGanma) {
         return false;
     }
-    // リリース対象となるカードが必要（手札・フィールドのドライトロンモンスターまたは儀式モンスター）
-    const handTargets = gameState.hand.filter((c) => {
-        if (!isMonsterCard(c.card)) return false;
-        const isDrytron =
-            (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-            c.card.card_name !== "竜輝巧－エルγ";
-        const isRitual = c.card.card_type === "儀式・効果モンスター";
-        return isDrytron || isRitual;
-    });
-
-    const fieldTargets = gameState.field.monsterZones.filter((c): c is CardInstance => {
-        if (!c || !isMonsterCard(c.card)) return false;
-        const isDrytron =
-            (c.card.card_name.includes("竜輝巧") || c.card.card_name.includes("ドライトロン")) &&
-            c.card.card_name !== "竜輝巧－エルγ";
-        const isRitual = c.card.card_type === "儀式・効果モンスター";
-        return isDrytron || isRitual;
-    });
-
-    return handTargets.length + fieldTargets.length >= 1;
+    return canActivateDreitrons(gameState, "竜輝巧－エルγ");
 };
 
 export const canSetSpellTrap = (gameState: GameState, card: Card): boolean => {

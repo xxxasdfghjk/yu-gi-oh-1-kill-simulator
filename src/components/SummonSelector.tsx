@@ -78,11 +78,11 @@ const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPositio
         : [...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null)].map(
               (e) => e.index
           );
-    const [zone, setZone] = useState<number>(0);
+    const [zone, setZone] = useState<number>(-1);
     const [position, setPosition] = useState<"attack" | "defense" | "facedown" | "facedown_defense">("attack");
     const dummyCardInstance = { ...cardInstance, position: "facedown_defense" as const };
     useEffect(() => {
-        setZone(summonable[0]);
+        setZone(summonable?.[0] ?? -1);
         setPosition(optionPosition[0]);
     }, []);
     return (
@@ -196,9 +196,15 @@ const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPositio
                 >
                     確定
                 </button>
-                {onCancel && (
+                {(onCancel || summonable.length === 0) && (
                     <button
-                        onClick={() => onCancel()}
+                        onClick={() => {
+                            if (onCancel) {
+                                onCancel();
+                            } else {
+                                state.popQueue();
+                            }
+                        }}
                         className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
                     >
                         キャンセル

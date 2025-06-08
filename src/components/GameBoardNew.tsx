@@ -5,7 +5,7 @@ import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { isMonsterCard } from "@/utils/gameUtils";
-import { canActivateBanAlpha } from "@/utils/summonUtils";
+import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
@@ -33,16 +33,14 @@ export const GameBoardNew: React.FC = () => {
         activateChickenRaceEffect,
         isOpponentTurn,
         bonmawashiRestriction,
-        activateBanAlpha,
         startLinkSummon,
         startXyzSummon,
-        activateEruGanma,
         opponentField,
         effectQueue,
         processQueueTop,
-        activateAruZeta,
         sendSpellToGraveyard,
         popQueue,
+        activateDreitrons,
     } = useGameStore();
 
     const [showGraveyard, setShowGraveyard] = useState(false);
@@ -55,17 +53,6 @@ export const GameBoardNew: React.FC = () => {
     }, [initializeGame]); // initializeGameを依存配列に追加
 
     const selectedCardInstance = hand.find((c) => c.id === selectedCard) || null;
-
-    const handleBanAlphaClick = (card: CardInstance) => {
-        if (card.card.card_name === "竜輝巧－バンα") {
-            // 発動条件をチェック
-            if (!canActivateBanAlpha(gameState)) {
-                return;
-            }
-
-            activateBanAlpha(card);
-        }
-    };
 
     const isLinkMonster = (card: CardInstance): boolean => {
         return card.card.card_type === "リンクモンスター";
@@ -99,6 +86,27 @@ export const GameBoardNew: React.FC = () => {
         });
 
         return availableMaterials.length >= requiredMaterials;
+    };
+
+    const handleEffect = (card: CardInstance) => {
+        if (card.card.card_name === "竜輝巧－バンα") {
+            // 発動条件をチェック
+            if (!canActivateBanAlpha(gameState)) {
+                return;
+            }
+            activateDreitrons(card);
+        } else if (card.card.card_name === "竜輝巧－エルγ") {
+            // 発動条件をチェック
+            if (!canActivateEruGanma(gameState)) {
+                return;
+            }
+            activateDreitrons(card);
+        } else if (card.card.card_name === "竜輝巧－アルζ") {
+            if (!canActivateAruZeta(gameState)) {
+                return;
+            }
+            activateDreitrons(card);
+        }
     };
 
     const handleFieldCardClick = (card: CardInstance, event?: React.MouseEvent) => {
@@ -179,10 +187,8 @@ export const GameBoardNew: React.FC = () => {
                             selectCard={selectCard}
                             playCard={playCard}
                             setCard={setCard}
-                            activateBanAlpha={activateBanAlpha}
                             onCardHoverLeave={() => 1}
-                            activateEruGanma={activateEruGanma}
-                            activateAruZeta={activateAruZeta}
+                            handleEffect={handleEffect}
                         />
                     </div>
                 </div>
@@ -226,7 +232,7 @@ export const GameBoardNew: React.FC = () => {
                     onClose={() => setShowGraveyard(false)}
                     graveyard={graveyard}
                     gameState={gameState}
-                    handleBanAlphaClick={handleBanAlphaClick}
+                    handleEffect={handleEffect}
                 />
 
                 <ExtraDeckModal

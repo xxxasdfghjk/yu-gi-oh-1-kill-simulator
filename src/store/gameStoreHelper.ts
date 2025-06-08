@@ -312,6 +312,8 @@ export const helper = {
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
         state.extraDeck = state.extraDeck.filter((c) => c.id !== monster.id);
+        state.graveyard = state.graveyard.filter((c) => c.id !== monster.id);
+
         if (targetZone !== null) {
             if (targetZone === 5 || targetZone === 6) {
                 const summonedMonster = {
