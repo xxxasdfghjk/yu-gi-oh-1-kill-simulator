@@ -98,4 +98,5 @@ export interface CardInstance {
         attack: number;
         defense: number;
     };
+    summonedBy?: "normal" | "special";
 }

@@ -1,10 +1,13 @@
 import React from "react";
 import { useAtom } from "jotai";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
-import { isMonsterCard } from "@/utils/gameUtils";
-
-export const HoveredCardDisplay: React.FC = () => {
+import { getAttack, getLevel, isMonsterCard } from "@/utils/gameUtils";
+import type { GameStore } from "@/store/gameStore";
+type Props = { state: GameStore };
+export const HoveredCardDisplay = ({ state }: Props) => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
+    const isBattleField = hoveredCard?.location === "field_monster";
+    console.log(hoveredCard);
     return (
         <div className="flex-[0.9] mx-auto h-[640px] mt-6">
             <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">
@@ -40,7 +43,7 @@ export const HoveredCardDisplay: React.FC = () => {
                                     <div className="flex flex-row justify-center">
                                         <div
                                             className={`${
-                                                hoveredCard.buf.level > 0
+                                                isBattleField && hoveredCard.buf.level > 0
                                                     ? "text-blue-600"
                                                     : hoveredCard.buf.level < 0
                                                     ? "text-red-500"
@@ -49,7 +52,7 @@ export const HoveredCardDisplay: React.FC = () => {
                                         >
                                             {"level" in hoveredCard.card &&
                                                 hoveredCard.card.level &&
-                                                `レベル: ${hoveredCard.card.level + hoveredCard.buf.level} `}
+                                                `レベル: ${getLevel(hoveredCard)} `}
                                         </div>
                                         <div>
                                             {"rank" in hoveredCard.card &&
@@ -69,16 +72,22 @@ export const HoveredCardDisplay: React.FC = () => {
                                     <div className="flex flex-row justify-center">
                                         <div
                                             className={`px-2 ${
-                                                hoveredCard.buf.attack > 0
-                                                    ? "text-blue-600"
-                                                    : hoveredCard.buf.attack < 0
-                                                    ? "text-red-500"
+                                                "attack" in hoveredCard.card && isBattleField
+                                                    ? getAttack(state, hoveredCard) > hoveredCard.card.attack
+                                                        ? "text-blue-600"
+                                                        : getAttack(state, hoveredCard) > hoveredCard.card.attack
+                                                        ? "text-red-500"
+                                                        : ""
                                                     : ""
                                             }`}
                                         >
                                             {"attack" in hoveredCard.card &&
                                                 hoveredCard.card.attack !== undefined &&
-                                                `ATK: ${hoveredCard.card.attack + hoveredCard.buf.attack} `}
+                                                `ATK: ${
+                                                    isBattleField
+                                                        ? getAttack(state, hoveredCard)
+                                                        : hoveredCard.card.attack
+                                                } `}
                                         </div>
                                         <div
                                             className={`px-2 ${
@@ -89,9 +98,13 @@ export const HoveredCardDisplay: React.FC = () => {
                                                     : ""
                                             }`}
                                         >
-                                            {"defense" in hoveredCard.card &&
-                                                hoveredCard.card.defense !== undefined &&
-                                                `DEF: ${hoveredCard.card.defense + hoveredCard.buf.defense}`}
+                                            {"defense" in hoveredCard.card
+                                                ? `DEF: ${
+                                                      (isBattleField &&
+                                                          hoveredCard.card.defense! + hoveredCard.buf.defense) ||
+                                                      hoveredCard.card.defense
+                                                  }`
+                                                : ""}
                                         </div>
                                     </div>
                                 </div>

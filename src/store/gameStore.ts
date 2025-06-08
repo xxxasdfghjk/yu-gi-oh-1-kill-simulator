@@ -2,7 +2,16 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState, GamePhase } from "@/types/game";
 import { loadDeckData } from "@/data/cardLoader";
-import { createCardInstance, shuffleDeck, drawCards, isMonsterCard, isSpellCard, getLevel } from "@/utils/gameUtils";
+import {
+    createCardInstance,
+    shuffleDeck,
+    drawCards,
+    isMonsterCard,
+    isSpellCard,
+    getLevel,
+    canLinkSummonByMaterials,
+    canLinkSummonAfterRelease,
+} from "@/utils/gameUtils";
 import { canNormalSummon, findEmptySpellTrapZone, canSetSpellTrap, canActivateHokyuYoin } from "@/utils/summonUtils";
 import type { CardInstance, MonsterCard } from "@/types/card";
 import { helper } from "./gameStoreHelper";
@@ -237,36 +246,7 @@ export const useGameStore = create<GameStore>()(
                 state.hasActivatedUnionCarrierEffect = false;
                 state.hasActivatedMeteorKikougunGraveyardEffect = false;
             });
-
-            // 初期手札15枚をドロー（デバッグ用）
-            // まず愚かな埋葬をデッキから手札に移動
-            set((state) => {
-                const foolishBurialIndex = state.deck.findIndex((card) => card.card.card_name === "おろかな埋葬");
-                if (foolishBurialIndex !== -1) {
-                    const foolishBurial = state.deck[foolishBurialIndex];
-                    foolishBurial.location = "hand";
-                    state.hand.push(foolishBurial);
-                    state.deck.splice(foolishBurialIndex, 1);
-                } else {
-                    // デッキの全カード名をログ出力してデバッグ
-                }
-
-                // クリッターもデッキから手札に移動（デバッグ用）
-                const critterIndex = state.deck.findIndex((card) => card.card.card_name === "クリッター");
-                if (critterIndex !== -1) {
-                    const critter = state.deck[critterIndex];
-                    critter.location = "hand";
-                    state.hand.push(critter);
-                    state.deck.splice(critterIndex, 1);
-                }
-            });
-
-            // 残り14枚をドロー（愚かな埋葬が見つからなかった場合は15枚）
-            const currentHandSize = get().hand.length;
-            const remainingCards = 15 - currentHandSize;
-            if (remainingCards > 0) {
-                get().drawCard(remainingCards);
-            }
+            get().drawCard(5);
         },
 
         drawCard: (count = 1) => {
@@ -661,19 +641,6 @@ export const useGameStore = create<GameStore>()(
         },
 
         startLinkSummon: (linkMonster: CardInstance) => {
-            const currentState = get();
-
-            // リンクモンスターの要求素材数を取得
-            const linkCard = linkMonster.card as { link?: number; material?: string };
-            const requiredMaterials = linkCard.link || 1;
-
-            // 利用可能な素材を取得（フィールドのモンスター）
-            const availableMaterials = currentState.field.monsterZones.filter((c): c is CardInstance => c !== null);
-
-            if (availableMaterials.length < requiredMaterials) {
-                return;
-            }
-
             set((state) => {
                 state.effectQueue.unshift({
                     id: "",
@@ -686,10 +653,10 @@ export const useGameStore = create<GameStore>()(
                             return true;
                         }) as CardInstance[];
                     },
-                    condition: (cards: CardInstance[]) => {
+                    condition: (cards: CardInstance[], state: GameStore) => {
                         return (
-                            cards.reduce((prev, cur) => prev + ((cur.card as { link?: number }).link ?? 1), 0) ===
-                            requiredMaterials
+                            canLinkSummonByMaterials(linkMonster, cards) &&
+                            canLinkSummonAfterRelease(cards, state.field.extraMonsterZones, state.field.monsterZones)
                         );
                     },
                     effectType: "link_summon_select_materials",
@@ -786,22 +753,33 @@ export const useGameStore = create<GameStore>()(
                                 });
                             }
                             if (currentEffect.cardInstance.card.card_name === "竜輝巧－エルγ") {
-                                const target = state.graveyard.filter((c): c is CardInstance => {
-                                    if (!c || !isMonsterCard(c.card)) return false;
-                                    const isDrytron =
-                                        (c.card.card_name.includes("竜輝巧") ||
-                                            c.card.card_name.includes("ドライトロン")) &&
-                                        c.card.card_name !== "竜輝巧－エルγ" &&
-                                        (c.card as MonsterCard)?.attack === 2000;
-                                    return isDrytron;
-                                });
+                                const target = [
+                                    ...state.graveyard.filter((c): c is CardInstance => {
+                                        if (!c || !isMonsterCard(c.card)) return false;
+                                        const isDrytron =
+                                            (c.card.card_name.includes("竜輝巧") ||
+                                                c.card.card_name.includes("ドライトロン")) &&
+                                            c.card.card_name !== "竜輝巧－エルγ" &&
+                                            (c.card as MonsterCard)?.attack === 2000;
+                                        return isDrytron;
+                                    }),
+                                ];
                                 if (target.length > 0) {
                                     state.effectQueue.push({
                                         id: "",
                                         type: "select",
                                         effectName: "竜輝巧－エルγ（召喚対象選択）",
                                         cardInstance: currentEffect.cardInstance,
-                                        getAvailableCards: () => target,
+                                        getAvailableCards: (state) =>
+                                            state.graveyard.filter((c): c is CardInstance => {
+                                                if (!c || !isMonsterCard(c.card)) return false;
+                                                const isDrytron =
+                                                    (c.card.card_name.includes("竜輝巧") ||
+                                                        c.card.card_name.includes("ドライトロン")) &&
+                                                    c.card.card_name !== "竜輝巧－エルγ" &&
+                                                    (c.card as MonsterCard)?.attack === 2000;
+                                                return isDrytron;
+                                            }),
                                         condition: (cards: CardInstance[]) => {
                                             return cards.length === 1;
                                         },
@@ -1089,13 +1067,15 @@ export const useGameStore = create<GameStore>()(
 
                                 // TODO: 完全な装備システムの実装
                                 const emptyIndex = state.field.spellTrapZones.findIndex((e) => e === null);
-                                state.field.spellTrapZones[emptyIndex] = selectedCard[0];
-                                state.field.spellTrapZones[emptyIndex].buf = { attack: 1000, defense: 0, level: 0 };
-
-                                const target = [...state.field.spellTrapZones, ...state.field.extraMonsterZones].find(
+                                state.field.spellTrapZones[emptyIndex] = {
+                                    ...selectedCard[0],
+                                    buf: { attack: 1000, defense: 0, level: 0 },
+                                    location: "field_spell_trap",
+                                };
+                                const target = [...state.field.monsterZones, ...state.field.extraMonsterZones].find(
                                     (e) => e?.id === currentEffect.cardInstance.id
                                 )!;
-                                target.equipped = [...(target.equipped ?? []), equipMonster.id];
+                                target.equipped = [...(target?.equipped ?? []), equipMonster.id];
 
                                 // 手札・デッキからカードを除去
                                 state.hand = state.hand.filter((c) => c.id !== equipMonster.id);
@@ -1460,7 +1440,13 @@ export const useGameStore = create<GameStore>()(
                         state.hasNormalSummoned = true;
                     }
 
-                    helper.summonMonsterFromAnywhere(state, currentEffect.cardInstance, payload.zone, payload.position);
+                    helper.summonMonsterFromAnywhere(
+                        state,
+                        currentEffect.cardInstance,
+                        payload.zone,
+                        payload.position,
+                        currentEffect.effectType === "normal_summon" ? "normal" : "special"
+                    );
                 });
             } else if (payload.type === "activate_spell") {
                 set((state) => {
@@ -1905,9 +1891,9 @@ export const useGameStore = create<GameStore>()(
                             ...state.field.extraMonsterZones,
                             ...state.opponentField.monsterZones,
                         ].filter((monster): monster is CardInstance => monster !== null && isMonsterCard(monster.card));
-                        
+
                         const graveyardMonsters = state.graveyard.filter((monster) => isMonsterCard(monster.card));
-                        
+
                         return [...fieldMonsters, ...graveyardMonsters];
                     },
                     canCancel: true,
@@ -1929,10 +1915,9 @@ export const useGameStore = create<GameStore>()(
                 }
 
                 // フィールドに他のモンスターがいるかチェック（自分自身以外）
-                const otherMonstersOnField = [
-                    ...state.field.monsterZones,
-                    ...state.field.extraMonsterZones,
-                ].filter((monster) => monster !== null && monster.id !== card.id);
+                const otherMonstersOnField = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                    (monster) => monster !== null && monster.id !== card.id
+                );
 
                 if (otherMonstersOnField.length === 0) {
                     return;
@@ -1964,10 +1949,10 @@ export const useGameStore = create<GameStore>()(
                 }
 
                 // フィールドの表側表示モンスターを装備対象として選択
-                const faceUpMonsters = [
-                    ...state.field.monsterZones,
-                    ...state.field.extraMonsterZones,
-                ].filter((monster) => monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense");
+                const faceUpMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                    (monster) =>
+                        monster !== null && monster.position !== "facedown" && monster.position !== "facedown_defense"
+                );
 
                 if (faceUpMonsters.length === 0) {
                     return;
@@ -1978,7 +1963,13 @@ export const useGameStore = create<GameStore>()(
                     type: "select",
                     effectName: "ユニオン・キャリアー（装備対象のモンスターを選択）",
                     cardInstance: card,
-                    getAvailableCards: () => faceUpMonsters as CardInstance[],
+                    getAvailableCards: (state) =>
+                        [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                            (monster) =>
+                                monster !== null &&
+                                monster.position !== "facedown" &&
+                                monster.position !== "facedown_defense"
+                        ) as CardInstance[],
                     canCancel: true,
                     condition: (cards) => cards.length === 1,
                     effectType: "union_carrier_target_select",
@@ -2003,13 +1994,14 @@ export const useGameStore = create<GameStore>()(
                 }
 
                 // フィールドのドライトロンモンスターを対象として選択
-                const drytronMonstersOnField = [
-                    ...state.field.monsterZones,
-                    ...state.field.extraMonsterZones,
-                ].filter((monster) => {
-                    if (!monster || !isMonsterCard(monster.card)) return false;
-                    return monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン");
-                });
+                const drytronMonstersOnField = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                    (monster) => {
+                        if (!monster || !isMonsterCard(monster.card)) return false;
+                        return (
+                            monster.card.card_name.includes("竜輝巧") || monster.card.card_name.includes("ドライトロン")
+                        );
+                    }
+                );
 
                 if (drytronMonstersOnField.length === 0) {
                     return;

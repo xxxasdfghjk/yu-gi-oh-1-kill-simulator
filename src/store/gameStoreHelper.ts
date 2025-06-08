@@ -102,6 +102,33 @@ export const helper = {
             effectType: "get_hand_single",
         });
     },
+    checkDestoryEffect: (state: GameStore, card: CardInstance) => {
+        helper.checkArcDeclarerDestoryEffect(state, card);
+    },
+    checkArcDeclarerDestoryEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "虹光の宣告者") {
+            return false;
+        }
+        const target = [...state.deck, ...state.graveyard].filter(
+            (e) => e.card.card_type === "儀式魔法" || e.card.card_type === "儀式・効果モンスター"
+        );
+        if (target.length > 0) {
+            state.effectQueue.push({
+                id: ``,
+                type: "select",
+                effectName: "虹光の宣告者（手札に加える儀式魔法または儀式モンスターを選択）",
+                cardInstance: card,
+                getAvailableCards: (state) => {
+                    return [...state.deck, ...state.graveyard].filter(
+                        (e) => e.card.card_type === "儀式魔法" || e.card.card_type === "儀式・効果モンスター"
+                    );
+                },
+                canCancel: true,
+                condition: (card) => card.length === 1,
+                effectType: "get_hand_single",
+            });
+        }
+    },
 
     checkDivinerSummonEffect: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "宣告者の神巫") {
@@ -338,9 +365,10 @@ export const helper = {
 
     checkFieldDestoryEffect: (state: GameStore, card: CardInstance) => {
         helper.checkFafnirMuBetaGraveyardEffectInternal(state, card);
+        helper.checkClitterGraveyardEffect(state, card);
     },
     checkClitterGraveyardEffect: (state: GameStore, card: CardInstance) => {
-        if (card.card.card_name !== "クリッター" && state.hasActivatedCritter) {
+        if (card.card.card_name !== "クリッター" || state.hasActivatedCritter) {
             return false;
         }
         // カード選択をキューに追加
@@ -415,12 +443,30 @@ export const helper = {
             location: "graveyard" as const,
             position: undefined,
             buf: { attack: 0, defense: 0, level: 0 },
+            equipped: undefined,
+            summonnedBy: undefined,
         };
         let locate = "";
         const trapZoneIndex = state.field.spellTrapZones.findIndex((c) => c?.id === monster.id);
         if (trapZoneIndex !== -1) {
             state.field.spellTrapZones[trapZoneIndex] = null;
             locate = "field";
+            for (let i = 0; i < 5; i++) {
+                const found = state.field.monsterZones[i]?.equipped?.findIndex((e) => e === monster.id);
+                if (found !== -1 && found !== undefined) {
+                    state.field.monsterZones[i]!.equipped = state.field.monsterZones[i]!.equipped!.filter(
+                        (e) => e !== monster.id
+                    );
+                }
+            }
+            for (let i = 0; i < 2; i++) {
+                const found = state.field.extraMonsterZones[i]?.equipped?.findIndex((e) => e === monster.id);
+                if (found !== -1 && found !== undefined) {
+                    state.field.extraMonsterZones[i]!.equipped = state.field.extraMonsterZones[i]!.equipped!.filter(
+                        (e) => e !== monster.id
+                    );
+                }
+            }
         }
         monster.equipped?.forEach((e) => {
             const equipment = state.field.spellTrapZones.find((equip) => equip?.id === e);
@@ -437,7 +483,7 @@ export const helper = {
                 state.field.monsterZones[i]!.materials = state.field.monsterZones[i]!.materials.filter(
                     (e) => monster.id !== e.id
                 );
-                locate = "material";
+                locate = "field";
             }
         }
         if (zoneIndex !== -1) {
@@ -485,6 +531,7 @@ export const helper = {
         if (context === "release") {
             helper.checkReleaseEffect(state, monster);
         }
+        helper.checkDestoryEffect(state, monster);
         return locate;
     },
 
@@ -492,7 +539,8 @@ export const helper = {
         state: GameStore,
         monster: CardInstance,
         targetZone: number | null = null,
-        position: "attack" | "defense" | "facedown" | "facedown_defense" = "attack"
+        position: "attack" | "defense" | "facedown" | "facedown_defense" = "attack",
+        context: "normal" | "special" = "special"
     ) => {
         state.hand = state.hand.filter((c) => c.id !== monster.id);
         state.deck = state.deck.filter((c) => c.id !== monster.id);
@@ -500,21 +548,16 @@ export const helper = {
         state.graveyard = state.graveyard.filter((c) => c.id !== monster.id);
 
         if (targetZone !== null) {
+            const summonedMonster = {
+                ...monster,
+                location: "field_monster" as const,
+                position: position,
+                zone: targetZone,
+                summonedBy: context,
+            };
             if (targetZone === 5 || targetZone === 6) {
-                const summonedMonster = {
-                    ...monster,
-                    location: "field_monster" as const,
-                    position: position,
-                    zone: targetZone,
-                };
                 state.field.extraMonsterZones[targetZone - 5] = summonedMonster;
             } else {
-                const summonedMonster = {
-                    ...monster,
-                    location: "field_monster" as const,
-                    position: position,
-                    zone: targetZone,
-                };
                 state.field.monsterZones[targetZone] = summonedMonster;
             }
         } else {
@@ -525,6 +568,7 @@ export const helper = {
                     location: "field_monster" as const,
                     position: position,
                     zone: emptyZone,
+                    summonedBy: context,
                 };
                 state.field.monsterZones[emptyZone] = summonedMonster;
             }
@@ -558,6 +602,7 @@ export const helper = {
                 location: "extra_deck",
                 buf: { attack: 0, level: 0, defense: 0 },
                 equipped: undefined,
+                summonedBy: undefined,
             });
         } else {
             state.hand.push({
@@ -565,6 +610,7 @@ export const helper = {
                 location: "hand",
                 buf: { attack: 0, level: 0, defense: 0 },
                 equipped: undefined,
+                summonedBy: undefined,
             });
         }
     },

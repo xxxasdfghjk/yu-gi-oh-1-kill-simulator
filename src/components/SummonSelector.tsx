@@ -11,12 +11,24 @@ type Props = {
     onCancel?: () => void;
     isOpen?: boolean;
 };
-const getLinkMonsterSummonalble = (state: GameStore) => {
-    const extraMonsters = state.field.extraMonsterZones
+
+const except = (a: number[], b: number[]) => {
+    const bSet = new Set(b);
+    return a.filter((e) => !bSet.has(e));
+};
+
+export const getLinkMonsterSummonalble = (
+    extraMonsterZones: (CardInstance | null)[],
+    monsterZones: (CardInstance | null)[]
+) => {
+    const extraMonsters = extraMonsterZones
         .map((e, index) => ({ elem: e, index: index + 5 }))
         .filter(({ elem }) => elem !== null).length;
-
-    const linkMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones]
+    const existing = [...monsterZones, ...extraMonsterZones]
+        .map((e, zone) => ({ elem: e, zone: zone === 5 ? 6 : zone === 6 ? 8 : zone }))
+        .filter(({ elem }) => elem !== null)
+        .map(({ zone }) => (zone === 6 ? 5 : zone === 8 ? 6 : zone));
+    const linkMonsters = [...monsterZones, ...extraMonsterZones]
         .map((e, zone) => ({ ...e, zone: zone === 5 ? 6 : zone === 6 ? 8 : zone }))
         .filter((e) => e !== null)
         .filter((e) => e.card?.card_type === "リンクモンスター")
@@ -55,9 +67,9 @@ const getLinkMonsterSummonalble = (state: GameStore) => {
         .filter((e) => (e >= 0 && e <= 4) || e === 6 || e === 8)
         .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
     if (extraMonsters === 0) {
-        return Array.from(new Set([...linkMonsters, 5, 6]));
+        return except(Array.from(new Set([...linkMonsters, 5, 6])), existing);
     } else {
-        return Array.from(new Set(linkMonsters));
+        return except(Array.from(new Set(linkMonsters)), existing);
     }
 };
 
@@ -67,7 +79,7 @@ const SummonSelector = ({ cardInstance, state, onSelect, onCancel, optionPositio
     const isLinkMonster = cardInstance.card.card_type === "リンクモンスター";
 
     const summonable = isLinkMonster
-        ? getLinkMonsterSummonalble(state)
+        ? getLinkMonsterSummonalble(state.field.extraMonsterZones, state.field.monsterZones)
         : cardInstance.card.card_type === "エクシーズモンスター" || cardInstance.card.card_type === "シンクロモンスター"
         ? [
               ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),

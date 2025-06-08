@@ -4,14 +4,24 @@ import { HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
-import { isMonsterCard } from "@/utils/gameUtils";
-import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma, canActivateBeatrice, canActivatePtolemyM7, canActivateAuroradon, canActivateUnionCarrier, canActivateMeteorKikougunGraveyard } from "@/utils/summonUtils";
+import { isMonsterCard, searchCombinationLinkSummon } from "@/utils/gameUtils";
+import {
+    canActivateAruZeta,
+    canActivateBanAlpha,
+    canActivateEruGanma,
+    canActivateBeatrice,
+    canActivatePtolemyM7,
+    canActivateAuroradon,
+    canActivateUnionCarrier,
+    canActivateMeteorKikougunGraveyard,
+} from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
 import { getLevel } from "../utils/gameUtils";
+import { getLinkMonsterSummonalble } from "./SummonSelector";
 
 export const GameBoardNew: React.FC = () => {
     const {
@@ -62,13 +72,11 @@ export const GameBoardNew: React.FC = () => {
     };
 
     const canPerformLinkSummon = (linkMonster: CardInstance): boolean => {
-        const linkCard = linkMonster.card as { link?: number };
-        const requiredMaterials = linkCard.link || 1;
-        const availableMaterials = field.monsterZones
-            .filter((c) => c !== null)
-            .map((e) => (e.card as { link?: number })?.link || 1)
-            .reduce((prev, cur) => prev + cur, 0);
-        return availableMaterials >= requiredMaterials;
+        return searchCombinationLinkSummon(
+            linkMonster,
+            gameState.field.extraMonsterZones,
+            gameState.field.monsterZones
+        );
     };
 
     const isXyzMonster = (card: CardInstance): boolean => {
@@ -169,7 +177,7 @@ export const GameBoardNew: React.FC = () => {
 
                     <div>
                         <div className=" flex justify-between">
-                            <HoveredCardDisplay />
+                            <HoveredCardDisplay state={gameState} />
                             <div className="mr-44">
                                 {/* エクストラモンスターゾーン（相手と自分の間） */}
                                 <ExtraMonsterZones

@@ -62,7 +62,7 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                             <div className="text-xs text-center text-gray-600">{card.card.card_type}</div>
                             {isLinkMonster(card) && (
                                 <div className="text-xs text-center text-blue-600 font-bold">
-                                    {canPerformLinkSummon(card) ? "リンク召喚可能" : "素材不足"}
+                                    {canPerformLinkSummon(card) ? "リンク召喚可能" : "召喚不能"}
                                 </div>
                             )}
                             {isXyzMonster(card) && (
