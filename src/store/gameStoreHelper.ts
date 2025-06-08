@@ -132,6 +132,37 @@ export const helper = {
         });
     },
 
+    checkBeatriceEffect: (state: GameStore, card: CardInstance) => {
+        if (card.card.card_name !== "永遠の淑女 ベアトリーチェ") {
+            return false;
+        }
+
+        // 1ターンに1度の制限チェック
+        if (state.hasActivatedBeatriceEffect) {
+            return false;
+        }
+
+        // X素材があるかチェック
+        if (!card.materials || card.materials.length === 0) {
+            return false;
+        }
+
+        // デッキからカード1枚を選んで墓地へ送る効果
+        state.effectQueue.push({
+            id: ``,
+            type: "select",
+            effectName: "永遠の淑女 ベアトリーチェ（デッキからカード1枚を墓地へ送る）",
+            cardInstance: card,
+            getAvailableCards: (state) => {
+                return state.deck; // デッキから任意のカード1枚
+            },
+            canCancel: true,
+            condition: (cards) => cards.length === 1,
+            effectType: "beatrice_mill_effect",
+        });
+        return true;
+    },
+
     checkCyberAngelIdatenReleaseEffect: (state: GameStore, card: CardInstance) => {
         if (card.card.card_name !== "サイバー・エンジェル－韋駄天－") {
             return false;

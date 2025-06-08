@@ -133,6 +133,7 @@ const initialState: GameState = {
     hasActivatedFafnirSummonEffect: false,
     hasActivatedDreitronNova: false,
     hasActivatedDivinerSummonEffect: false,
+    hasActivatedBeatriceEffect: false,
     isOpponentTurn: false,
     pendingTrapActivation: null,
     bonmawashiRestriction: false,
@@ -221,6 +222,7 @@ export const useGameStore = create<GameStore>()(
                 state.hasActivatedFafnirSummonEffect = false;
                 state.hasActivatedDreitronNova = false;
                 state.hasActivatedDivinerSummonEffect = false;
+                state.hasActivatedBeatriceEffect = false;
             });
 
             // 初期手札15枚をドロー（デバッグ用）
@@ -290,6 +292,7 @@ export const useGameStore = create<GameStore>()(
                     state.hasActivatedDreitronNova = false;
                     state.hasActivatedEruGanma = false;
                     state.hasActivatedAruZeta = false;
+                    state.hasActivatedBeatriceEffect = false;
 
                     // ターン終了時の効果をリセット（レベルバフなど）
                     [...state.field.monsterZones, ...state.field.extraMonsterZones]
@@ -917,6 +920,40 @@ export const useGameStore = create<GameStore>()(
 
                                 // 1ターンに1度の制限フラグを立てる
                                 state.hasActivatedDivinerSummonEffect = true;
+                            }
+                            break;
+                        }
+                        case "beatrice_mill_effect": {
+                            // ベアトリーチェのミル効果: 選択したカードを墓地へ送り、X素材を1つ取り除く
+                            const selectedCardToMill = selectedCard[0];
+                            if (selectedCardToMill) {
+                                // カードを墓地へ送る
+                                helper.sendMonsterToGraveyardInternalAnywhere(state, selectedCardToMill);
+
+                                // ベアトリーチェのX素材を1つ取り除く
+                                const beatriceOnField = [
+                                    ...state.field.monsterZones,
+                                    ...state.field.extraMonsterZones,
+                                ].find(
+                                    (monster) =>
+                                        monster &&
+                                        monster.card.card_name === "永遠の淑女 ベアトリーチェ"
+                                );
+
+                                if (beatriceOnField && beatriceOnField.materials && beatriceOnField.materials.length > 0) {
+                                    // X素材を1つ墓地へ送る
+                                    const removedMaterial = beatriceOnField.materials.pop();
+                                    if (removedMaterial) {
+                                        const graveyardMaterial = {
+                                            ...removedMaterial,
+                                            location: "graveyard" as const,
+                                        };
+                                        state.graveyard.push(graveyardMaterial);
+                                    }
+                                }
+
+                                // 1ターンに1度の制限フラグを立てる
+                                state.hasActivatedBeatriceEffect = true;
                             }
                             break;
                         }

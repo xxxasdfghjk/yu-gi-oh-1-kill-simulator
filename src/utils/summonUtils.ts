@@ -432,3 +432,31 @@ export const canSetSpellTrap = (gameState: GameState, card: Card): boolean => {
 
 // 後方互換性のため残しておく
 export const canSetTrap = canSetSpellTrap;
+
+export const canActivateBeatrice = (gameState: GameState): boolean => {
+    // 1ターンに1度の制限チェック
+    if (gameState.hasActivatedBeatriceEffect) {
+        return false;
+    }
+
+    // フィールドに永遠の淑女 ベアトリーチェがいるかチェック
+    const beatriceOnField = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones].find(
+        (monster) => monster && monster.card.card_name === "永遠の淑女 ベアトリーチェ"
+    );
+
+    if (!beatriceOnField) {
+        return false;
+    }
+
+    // X素材があるかチェック
+    if (!beatriceOnField.materials || beatriceOnField.materials.length === 0) {
+        return false;
+    }
+
+    // デッキにカードがあるかチェック
+    if (gameState.deck.length === 0) {
+        return false;
+    }
+
+    return true;
+};

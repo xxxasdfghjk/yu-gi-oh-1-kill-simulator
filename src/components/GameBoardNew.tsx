@@ -5,7 +5,8 @@ import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { isMonsterCard } from "@/utils/gameUtils";
-import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma } from "@/utils/summonUtils";
+import { helper } from "@/store/gameStoreHelper";
+import { canActivateAruZeta, canActivateBanAlpha, canActivateEruGanma, canActivateBeatrice } from "@/utils/summonUtils";
 import type { CardInstance } from "@/types/card";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
@@ -117,6 +118,9 @@ export const GameBoardNew: React.FC = () => {
                     y: event.clientY,
                 });
             }
+        } else if (card.card.card_name === "永遠の淑女 ベアトリーチェ" && canActivateBeatrice(gameState)) {
+            // ベアトリーチェの効果発動
+            helper.checkBeatriceEffect(gameState, card);
         }
     };
     useEffect(() => {

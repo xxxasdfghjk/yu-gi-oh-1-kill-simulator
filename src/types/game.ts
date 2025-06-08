@@ -37,6 +37,7 @@ export interface GameState {
     hasActivatedFafnirSummonEffect: boolean;
     hasActivatedDreitronNova: boolean;
     hasActivatedDivinerSummonEffect: boolean;
+    hasActivatedBeatriceEffect: boolean;
     isOpponentTurn: boolean;
     pendingTrapActivation: CardInstance | null;
     bonmawashiRestriction: boolean;
