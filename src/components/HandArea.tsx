@@ -71,7 +71,16 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
         actions.push("summon");
     }
     if (isSpellCard(card.card) && canActivateSpell(gameState, card.card)) {
-        actions.push("activate");
+        // Additional check: verify effect conditions if the card has an effect
+        if (card.card.effect?.onIgnition) {
+            const canActivateEffect = card.card.effect.onIgnition.condition(gameState, card);
+            if (canActivateEffect) {
+                actions.push("activate");
+            }
+        } else {
+            // No effect condition to check, just use basic spell activation rules
+            actions.push("activate");
+        }
     }
     if ((isSpellCard(card.card) || isTrapCard(card.card)) && canSetSpellTrap(gameState, card.card)) {
         actions.push("set");

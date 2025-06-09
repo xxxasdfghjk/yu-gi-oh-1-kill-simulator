@@ -25,54 +25,10 @@ export interface GameState {
     hasNormalSummoned: boolean;
     hasSpecialSummoned: boolean;
     hasDrawnByEffect: boolean;
-    hasActivatedExtravagance: boolean;
-    hasActivatedChickenRace: boolean;
-    hasActivatedFafnir: boolean;
-    hasActivatedBanAlpha: boolean;
-    hasActivatedCritter: boolean;
-    hasActivatedEmergencyCyber: boolean;
-    hasActivatedEruGanma: boolean;
-    hasActivatedAruZeta: boolean;
-    hasActivatedJackInTheHand: boolean;
-    hasActivatedFafnirSummonEffect: boolean;
-    hasActivatedDreitronNova: boolean;
-    hasActivatedDivinerSummonEffect: boolean;
-    hasActivatedBeatriceEffect: boolean;
-    hasActivatedPtolemyM7Effect: boolean;
-    hasActivatedAuroradonEffect: boolean;
-    hasActivatedUnionCarrierEffect: boolean;
-    hasActivatedMeteorKikougunGraveyardEffect: boolean;
     isLinkSummonProhibited: boolean;
     isOpponentTurn: boolean;
-    pendingTrapActivation: CardInstance | null;
-    bonmawashiRestriction: boolean;
-    currentChain: ChainLink[];
-    canActivateEffects: boolean;
     gameOver: boolean;
     winner: "player" | "timeout" | null;
-    linkSummonState: {
-        phase: "select_materials";
-        linkMonster?: CardInstance;
-        requiredMaterials?: number;
-        selectedMaterials?: CardInstance[];
-        availableMaterials?: CardInstance[];
-    } | null;
-    xyzSummonState: {
-        phase: "select_materials";
-        xyzMonster?: CardInstance;
-        requiredRank?: number;
-        requiredMaterials?: number;
-        selectedMaterials?: CardInstance[];
-        availableMaterials?: CardInstance[];
-    } | null;
-    meteorKikougunState: {
-        phase: "select_ritual_monster" | "select_materials";
-        selectedRitualMonster?: CardInstance;
-        requiredAttack?: number;
-        availableRitualMonsters?: CardInstance[];
-        availableMaterials?: CardInstance[];
-        selectedMaterials?: CardInstance[];
-    } | null;
 }
 
 export interface ChainLink {

@@ -1,4 +1,4 @@
-import type { GameStore } from "@/store/gameStore";
+import type { Card } from "@/class/cards";
 
 export type CardType =
     | "通常モンスター"
@@ -80,34 +80,8 @@ export type CardLocation =
     | "extra_deck"
     | "material";
 
-type CardTypeName = "モンスター" | "魔法" | "罠";
 
-interface Card {
-    card_name: string;
-    card_type: CardTypeName;
-    text: string;
-    image: string;
-    effect: EffectType;
-}
-
-type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
-
-type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
-
-type EffectType = {
-    onSpell?: {
-        condition: ConditionCallback;
-        effect: EffectCallback;
-    };
-    onSummon?: EffectCallback;
-    onIgnition?: {
-        condition: ConditionCallback;
-        effect: EffectCallback;
-    };
-    onRelease?: EffectCallback;
-    onFieldToGraveyard?: () => EffectCallback;
-    onAnywhereTofGraveyard?: () => EffectCallback;
-};
+// Card interface is now imported from @/class/cards
 
 type Location = "Deck" | "Hand" | "MonsterField" | "SpellField" | "ExtraDeck" | "Exclusion" | "Graveyard";
 
@@ -124,6 +98,7 @@ export interface CardInstance {
         defense: number;
     };
     materials: CardInstance[];
+    isToken?: boolean;
 }
 
 type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;

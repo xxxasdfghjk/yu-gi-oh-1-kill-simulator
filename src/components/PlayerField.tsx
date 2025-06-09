@@ -16,8 +16,7 @@ interface PlayerFieldProps {
     turn: number;
     phase: string;
     isOpponentTurn: boolean;
-    bonmawashiRestriction: boolean;
-    handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
+    handleFieldCardClick: (card: CardInstance) => void;
     setShowGraveyard: (show: boolean) => void;
     setShowExtraDeck: (show: boolean) => void;
 }
@@ -53,7 +52,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         card={card}
                         className={cardSizeClass}
                         onCardClick={handleFieldCardClick}
-                            />
+                    />
                 ))}
                 {/* 墓地 */}
                 <div className="text-center">
@@ -91,7 +90,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         card={card}
                         className={cardSizeClass}
                         onCardClick={handleFieldCardClick}
-                            />
+                    />
                 ))}
 
                 {/* デッキ */}

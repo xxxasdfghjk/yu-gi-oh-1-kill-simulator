@@ -5,7 +5,7 @@ import { Card } from "./Card";
 interface FieldZoneProps {
     card: CardInstance | null;
     onClick?: () => void;
-    onCardClick?: (card: CardInstance, event?: React.MouseEvent) => void;
+    onCardClick?: (card: CardInstance) => void;
     label?: string;
     className?: string;
     type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone";
@@ -26,9 +26,9 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
     selected,
     customSize,
 }) => {
-    const handleClick = (event: React.MouseEvent) => {
+    const handleClick = () => {
         if (card && onCardClick) {
-            onCardClick(card, event);
+            onCardClick(card);
         } else if (onClick) {
             onClick();
         }

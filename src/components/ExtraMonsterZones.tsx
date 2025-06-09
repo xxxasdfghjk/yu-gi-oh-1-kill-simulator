@@ -5,20 +5,18 @@ import { CARD_SIZE } from "@/const/card";
 
 interface ExtraMonsterZonesProps {
     extraMonsterZones: (CardInstance | null)[];
-    handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
+    handleFieldCardClick: (card: CardInstance) => void;
     opponentField: {
         monsterZones: (CardInstance | null)[];
         spellTrapZones: (CardInstance | null)[];
         fieldZone: CardInstance | null;
     };
-    setChickenRaceHover: (hover: { card: CardInstance; x: number; y: number } | null) => void;
 }
 
 export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
     extraMonsterZones,
     handleFieldCardClick,
     opponentField,
-    setChickenRaceHover,
 }) => {
     const cardSizeClass = CARD_SIZE.MEDIUM;
 
@@ -53,17 +51,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({
                     type="field"
                     card={opponentField?.fieldZone || null}
                     className={CARD_SIZE.MEDIUM}
-                    onCardClick={(card, event) => {
-                        if (card?.card.card_name === "チキンレース") {
-                            if (event) {
-                                setChickenRaceHover({
-                                    card: card,
-                                    x: event.clientX,
-                                    y: event.clientY,
-                                });
-                            }
-                        }
-                    }}
+                    onCardClick={handleFieldCardClick}
                 />
             </div>
         </div>

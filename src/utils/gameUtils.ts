@@ -166,7 +166,9 @@ export const searchCombinationLinkSummon = (
         const combinations = generateCombinations(availableMaterials, materialCount);
 
         for (const materials of combinations) {
-            if (canLinkSummonByMaterials(linkCard, materials)) {
+            // Use the card's own materialCondition instead of canLinkSummonByMaterials
+            const materialCondition = (linkCard.card as { materialCondition?: (materials: CardInstance[]) => boolean }).materialCondition;
+            if (materialCondition && materialCondition(materials)) {
                 if (canLinkSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
                     return true;
                 }
@@ -177,41 +179,79 @@ export const searchCombinationLinkSummon = (
     return false;
 };
 
-export const canLinkSummonByMaterials = (linkCard: CardInstance, materials: CardInstance[]) => {
-    switch (linkCard.card.card_name) {
-        case "幻獣機アウローラドン": {
-            const race = materials.filter((e) => (e.card as { race: string }).race === "機械族");
-            const rankCondition = calcCanSummonLink(materials).includes(3);
-            return race.length >= 2 && rankCondition;
+
+export const searchCombinationXyzSummon = (
+    xyzCard: CardInstance,
+    extraMonsterZones: (CardInstance | null)[],
+    monsterZones: (CardInstance | null)[]
+): boolean => {
+    const availableMaterials = [
+        ...monsterZones.filter((zone) => zone !== null),
+        ...extraMonsterZones.filter((zone) => zone !== null),
+    ] as CardInstance[];
+
+    if (availableMaterials.length === 0) return false;
+
+    const generateCombinations = (arr: CardInstance[], size: number): CardInstance[][] => {
+        if (size === 0) return [[]];
+        if (arr.length === 0) return [];
+
+        const result: CardInstance[][] = [];
+        for (let i = 0; i < arr.length; i++) {
+            const rest = arr.slice(i + 1);
+            const combos = generateCombinations(rest, size - 1);
+            for (const combo of combos) {
+                result.push([arr[i], ...combo]);
+            }
         }
-        case "警衛バリケイドベルグ": {
-            const race =
-                materials.length === 2 && Array.from(new Set(materials.map((e) => e.card.card_name))).length === 2;
-            const rankCondition = calcCanSummonLink(materials).includes(2);
-            return race && rankCondition;
-        }
-        case "ユニオン・キャリアー": {
-            const typed = materials as { card: { race: string; attribute: string } }[];
-            const race =
-                materials.length === 2 &&
-                (typed[0].card.race === typed[1].card.race || typed[0].card.attribute === typed[1].card.attribute);
-            const rankCondition = calcCanSummonLink(materials).includes(2);
-            return race && rankCondition;
-        }
-        case "転生炎獣アルミラージ": {
-            const race = materials.length === 1 && materials[0].summonedBy == "normal";
-            const rankCondition = calcCanSummonLink(materials).includes(1);
-            return race && rankCondition;
-        }
-        case "リンクリボー": {
-            const race = materials.length === 1 && (materials[0] as { card: { level: number } }).card.level === 1;
-            const rankCondition = calcCanSummonLink(materials).includes(1);
-            return race && rankCondition;
-        }
-        default: {
-            return false;
+        return result;
+    };
+
+    // Check all possible combinations from 1 to all available materials
+    for (let materialCount = 1; materialCount <= availableMaterials.length; materialCount++) {
+        const combinations = generateCombinations(availableMaterials, materialCount);
+
+        for (const materials of combinations) {
+            // Use the card's own materialCondition
+            const materialCondition = (xyzCard.card as { materialCondition?: (materials: CardInstance[]) => boolean }).materialCondition;
+            if (materialCondition && materialCondition(materials)) {
+                // Check if there's an available zone after using these materials
+                if (canXyzSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
+                    return true;
+                }
+            }
         }
     }
+
+    return false;
+};
+
+export const canXyzSummonAfterRelease = (
+    materials: CardInstance[],
+    extraMonsterZones: (CardInstance | null)[],
+    monsterZones: (CardInstance | null)[]
+): boolean => {
+    const tempMonsterZones = [...monsterZones];
+    const tempExtraMonsterZones = [...extraMonsterZones];
+
+    // Remove materials from temporary zones
+    for (const material of materials) {
+        const monsterIndex = tempMonsterZones.findIndex((zone) => zone?.id === material.id);
+        if (monsterIndex !== -1) {
+            tempMonsterZones[monsterIndex] = null;
+        } else {
+            const extraIndex = tempExtraMonsterZones.findIndex((zone) => zone?.id === material.id);
+            if (extraIndex !== -1) {
+                tempExtraMonsterZones[extraIndex] = null;
+            }
+        }
+    }
+
+    // For Xyz monsters, check if there's any available monster zone
+    const hasAvailableMonsterZone = tempMonsterZones.some(zone => zone === null);
+    const hasAvailableExtraZone = tempExtraMonsterZones.some(zone => zone === null);
+    
+    return hasAvailableMonsterZone || hasAvailableExtraZone;
 };
 
 export const calcCanSummonLink = (cards: CardInstance[]) => {
