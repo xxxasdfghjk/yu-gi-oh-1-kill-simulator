@@ -1,4 +1,4 @@
-import type { CommonMonster } from "../cards";
+import type { CommonMonster } from "@/types/card";
 
 export const TOKEN = [
     {
@@ -19,4 +19,4 @@ export const TOKEN = [
         hasLink: false,
         hasRank: false,
     },
-] satisfies CommonMonster[];
+] as const satisfies CommonMonster[];

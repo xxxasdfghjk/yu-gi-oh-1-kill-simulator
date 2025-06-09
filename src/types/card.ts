@@ -1,95 +1,154 @@
-import type { Card } from "@/class/cards";
+import type { GameStore } from "@/store/gameStore";
 
-export type CardType =
-    | "通常モンスター"
-    | "通常モンスター（チューナー）"
-    | "効果モンスター"
-    | "効果モンスター（チューナー）"
-    | "特殊召喚・効果モンスター"
-    | "儀式・効果モンスター"
-    | "融合モンスター"
-    | "シンクロモンスター"
-    | "エクシーズモンスター"
-    | "リンクモンスター"
-    | "通常魔法"
-    | "速攻魔法"
-    | "永続魔法"
-    | "フィールド魔法"
-    | "装備魔法"
-    | "儀式魔法"
-    | "通常罠カード"
-    | "永続罠カード"
-    | "カウンター罠カード";
-
-export type Attribute = "闇属性" | "光属性" | "炎属性" | "水属性" | "風属性" | "地属性";
-
-export type Race = "魔法使い族" | "機械族" | "鳥獣族" | "悪魔族" | "天使族" | "戦士族" | "サイバース族" | "岩石族";
-
-export interface BaseCard {
-    id: string;
-    card_name: string;
-    card_type: CardType;
-    text: string;
-    limit_status: string;
-    errata: string;
-    quantity: number;
-    image?: string;
-}
-
-export interface MonsterCard extends BaseCard {
-    level?: number;
-    rank?: number;
-    link?: number;
-    link_markers?: string;
-    attribute: Attribute;
-    race: Race;
-    attack: number;
-    defense?: number;
-    material?: string;
-    special_summon?: string;
-    summon_condition?: string;
-}
-
-export interface SpellTrapCard extends BaseCard {
-    card_type: Extract<
-        CardType,
-        | "通常魔法"
-        | "速攻魔法"
-        | "永続魔法"
-        | "フィールド魔法"
-        | "装備魔法"
-        | "儀式魔法"
-        | "通常罠カード"
-        | "永続罠カード"
-        | "カウンター罠カード"
-    >;
-}
 export interface DeckData {
     deck_name: string;
     main_deck: Card[];
     extra_deck: Card[];
 }
 
-export type CardLocation =
-    | "deck"
-    | "hand"
-    | "field_monster"
-    | "field_spell_trap"
-    | "graveyard"
-    | "banished"
-    | "extra_deck"
-    | "material";
+type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
+type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
 
+export type EffectType = {
+    onSpell?: {
+        condition: ConditionCallback;
+        effect: EffectCallback;
+    };
+    onSummon?: EffectCallback;
+    onIgnition?: {
+        condition: ConditionCallback;
+        effect: EffectCallback;
+    };
+    onRelease?: EffectCallback;
+    onFieldToGraveyard?: EffectCallback;
+    onAnywhereToGraveyard?: EffectCallback;
+    onDestroyByBattle?: EffectCallback;
+    onDestroyByEffect?: EffectCallback;
+    onActivateEffect?: {
+        condition: ConditionCallback;
+        effect: EffectCallback;
+    };
+};
 
-// Card interface is now imported from @/class/cards
+type CardTypeName = "モンスター" | "魔法" | "罠";
 
-type Location = "Deck" | "Hand" | "MonsterField" | "SpellField" | "ExtraDeck" | "Exclusion" | "Graveyard";
+export interface Card {
+    card_name: string;
+    card_type: CardTypeName;
+    text: string;
+    image: string;
+    effect: EffectType;
+}
+
+export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;
+export type Element = "闇" | "光" | "風" | "炎" | "地";
+export type Race = "魔法使い" | "機械" | "悪魔" | "天使" | "サイバース" | "戦士";
+
+type MonsterType =
+    | "通常モンスター"
+    | "効果モンスター"
+    | "エクシーズモンスター"
+    | "融合モンスター"
+    | "リンクモンスター"
+    | "シンクロモンスター"
+    | "儀式モンスター";
+
+export type ExtraMonsterType = "エクシーズモンスター" | "融合モンスター" | "リンクモンスター" | "シンクロモンスター";
+
+export type MaterialCondition = (cardInstanceList: CardInstance[]) => boolean;
+
+export interface MonsterCard extends Card {
+    card_type: "モンスター";
+    monster_type: MonsterType;
+    element: Element;
+    race: Race;
+    attack: number;
+    hasLevel: boolean;
+    hasRank: boolean;
+    hasDefense: boolean;
+    canNormalSummon: boolean;
+    hasTuner?: boolean;
+}
+
+export interface DefensableMonsterCard extends MonsterCard {
+    defense: number;
+    hasDefense: true;
+    hasLink: false;
+}
+
+export interface LeveledMonsterCard extends DefensableMonsterCard {
+    level: number;
+    hasLevel: true;
+    hasRank: false;
+}
+
+export interface XyzMonsterCard extends DefensableMonsterCard {
+    monster_type: "エクシーズモンスター";
+    materialCondition: MaterialCondition;
+    rank: number;
+    hasRank: true;
+    hasLevel: false;
+    canNormalSummon: false;
+}
+
+type Direction = "左" | "左下" | "下" | "右下" | "右" | "右上" | "上" | "左上";
+
+export interface LinkMonsterCard extends MonsterCard {
+    monster_type: "リンクモンスター";
+    link: number;
+    linkDirection: Direction[];
+    hasLink: true;
+    hasRank: false;
+    hasDefense: false;
+    materialCondition: MaterialCondition;
+    canNormalSummon: false;
+}
+
+export interface FusionMonsterCard extends LeveledMonsterCard {
+    monster_type: "融合モンスター";
+    materialCondition: MaterialCondition;
+    canNormalSummon: false;
+}
+
+export interface SynchroMonsterCard extends LeveledMonsterCard {
+    monster_type: "シンクロモンスター";
+    materialCondition: MaterialCondition;
+    canNormalSummon: false;
+}
+
+export type ExtraMonster = LinkMonsterCard | FusionMonsterCard | SynchroMonsterCard | XyzMonsterCard;
+export type CommonMonster = LeveledMonsterCard;
+
+export type MagicType = "通常魔法" | "速攻魔法" | "儀式魔法" | "永続魔法" | "装備魔法" | "フィールド魔法";
+
+export interface MagicCard extends Card {
+    card_type: "魔法";
+    magic_type: MagicType;
+}
+
+export type TrapType = "通常罠" | "カウンター罠" | "永続罠";
+
+export interface TrapCard extends Card {
+    card_type: "罠";
+    trap_type: TrapType;
+}
+
+export type Location =
+    | "Deck"
+    | "Hand"
+    | "MonsterField"
+    | "SpellField"
+    | "ExtraDeck"
+    | "Exclusion"
+    | "Graveyard"
+    | "FieldZone";
+type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
 export interface CardInstance {
     id: string;
     card: Card;
     location: Location;
-    position: "back_defense" | "attack" | "back" | "defense" | undefined;
+    position: Position;
     equipment: CardInstance[];
     summonedBy: SummonedBy;
     buf: {
@@ -100,5 +159,3 @@ export interface CardInstance {
     materials: CardInstance[];
     isToken?: boolean;
 }
-
-type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;

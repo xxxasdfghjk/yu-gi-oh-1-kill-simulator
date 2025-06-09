@@ -7,13 +7,14 @@ import ModalWrapper from "./ModalWrapper";
 interface MultiCardConditionSelectorProps {
     type: "multi" | "single";
     state: GameStore;
-    getAvailableCards: (state: GameStore) => CardInstance[];
+    getAvailableCards: (state: GameStore, card: CardInstance) => CardInstance[];
     title: string;
     onSelect: (selectedCards: CardInstance[]) => void;
     onCancel?: () => void;
     condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
     filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
     isOpen?: boolean;
+    currentCardInstance: CardInstance;
 }
 
 export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProps> = ({
@@ -26,9 +27,10 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
     filterFunction,
     condition,
     isOpen = true,
+    currentCardInstance,
 }) => {
     const [selectedCards, setSelectedCards] = useState<CardInstance[]>([]);
-    const cards = getAvailableCards(state);
+    const cards = getAvailableCards(state, currentCardInstance);
     const handleCardClick = (card: CardInstance) => {
         if (type === "multi") {
             const isSelected = selectedCards.some((c) => c.id === card.id);
@@ -92,7 +94,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
                             }`}
                             onClick={() => isSelectable && handleCardClick(card)}
                         >
-                            <Card card={card} size="small" customSize="w-32 h-48" forceAttack />
+                            <Card card={card} size="small" customSize="w-32 h-48" forceAttack disableActivate={true} />
                             <div className="text-xs text-center mt-1 w-32 truncate">{card.card.card_name}</div>
                             <div className="text-xs text-center mt-1 truncate">{card.location}</div>
                         </div>

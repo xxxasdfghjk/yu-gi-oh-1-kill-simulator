@@ -1,4 +1,7 @@
-import { type TrapCard, monsterFilter, withUserSelectCard, sendCard } from "../cards";
+import type { TrapCard } from "@/types/card";
+import { monsterFilter } from "@/utils/cardManagement";
+import { withUserSelectCard } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
 
 export const TRAP_CARDS = [
     {
@@ -19,12 +22,13 @@ export const TRAP_CARDS = [
                     withUserSelectCard(
                         state,
                         _card,
-                        state.graveyard.filter(
-                            (e) =>
-                                monsterFilter(e.card) &&
-                                e.card.monster_type === "通常モンスター" &&
-                                e.card.attack <= 1500
-                        ),
+                        (state) =>
+                            state.graveyard.filter(
+                                (e) =>
+                                    monsterFilter(e.card) &&
+                                    e.card.monster_type === "通常モンスター" &&
+                                    e.card.attack <= 1500
+                            ),
                         { select: "multi", condition: (cards) => cards.length <= 3 && cards.length >= 1 },
                         (state, _card, selectedList) => {
                             for (const selected of selectedList) {

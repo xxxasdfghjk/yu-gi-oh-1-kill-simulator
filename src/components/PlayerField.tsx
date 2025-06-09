@@ -13,10 +13,6 @@ interface PlayerFieldProps {
     deck: CardInstance[];
     extraDeck: CardInstance[];
     graveyard: CardInstance[];
-    turn: number;
-    phase: string;
-    isOpponentTurn: boolean;
-    handleFieldCardClick: (card: CardInstance) => void;
     setShowGraveyard: (show: boolean) => void;
     setShowExtraDeck: (show: boolean) => void;
 }
@@ -26,7 +22,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     deck,
     extraDeck,
     graveyard,
-    handleFieldCardClick,
     setShowGraveyard,
     setShowExtraDeck,
 }) => {
@@ -37,22 +32,11 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             {/* プレイヤーモンスターゾーン（Grid配置） */}
             <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
-                <FieldZone
-                    card={field.fieldZone}
-                    className={cardSizeClass}
-                    onClick={() => {}}
-                    onCardClick={handleFieldCardClick}
-                    type="field"
-                />
+                <FieldZone card={field.fieldZone} className={cardSizeClass} onClick={() => {}} type="field" />
 
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
-                    <FieldZone
-                        key={`monster-${index}`}
-                        card={card}
-                        className={cardSizeClass}
-                        onCardClick={handleFieldCardClick}
-                    />
+                    <FieldZone key={`monster-${index}`} card={card} className={cardSizeClass} />
                 ))}
                 {/* 墓地 */}
                 <div className="text-center">
@@ -85,12 +69,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
-                    <FieldZone
-                        key={`spell-${index}`}
-                        card={card}
-                        className={cardSizeClass}
-                        onCardClick={handleFieldCardClick}
-                    />
+                    <FieldZone key={`spell-${index}`} card={card} className={cardSizeClass} />
                 ))}
 
                 {/* デッキ */}

@@ -2,14 +2,13 @@ import React from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import ModalWrapper from "./ModalWrapper";
+import { isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
 
 interface ExtraDeckModalProps {
     isOpen: boolean;
     onClose: () => void;
     extraDeck: CardInstance[];
-    isLinkMonster: (card: CardInstance) => boolean;
     canPerformLinkSummon: (card: CardInstance) => boolean;
-    isXyzMonster: (card: CardInstance) => boolean;
     canPerformXyzSummon: (card: CardInstance) => boolean;
     startLinkSummon: (card: CardInstance) => void;
     startXyzSummon: (card: CardInstance) => void;
@@ -19,9 +18,7 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
     isOpen,
     onClose,
     extraDeck,
-    isLinkMonster,
     canPerformLinkSummon,
-    isXyzMonster,
     canPerformXyzSummon,
     startLinkSummon,
     startXyzSummon,
@@ -43,15 +40,15 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                         <div
                             key={`${card.id}-${index}`}
                             className={`cursor-pointer transition-transform hover:scale-105 hover:ring-2 rounded ${
-                                isLinkMonster(card) && canPerformLinkSummon(card)
+                                isLinkMonster(card.card) && canPerformLinkSummon(card)
                                     ? "hover:ring-blue-400 ring-2 ring-blue-200"
                                     : "hover:ring-green-300"
                             }`}
                             onClick={() => {
-                                if (isLinkMonster(card) && canPerformLinkSummon(card)) {
+                                if (isLinkMonster(card.card) && canPerformLinkSummon(card)) {
                                     startLinkSummon(card);
                                     onClose();
-                                } else if (isXyzMonster(card) && canPerformXyzSummon(card)) {
+                                } else if (isXyzMonster(card.card) && canPerformXyzSummon(card)) {
                                     startXyzSummon(card);
                                     onClose();
                                 }
@@ -60,12 +57,12 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                             <Card card={card} size="small" customSize="w-30" />
                             <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
                             <div className="text-xs text-center text-gray-600">{card.card.card_type}</div>
-                            {isLinkMonster(card) && (
+                            {isLinkMonster(card.card) && (
                                 <div className="text-xs text-center text-blue-600 font-bold">
                                     {canPerformLinkSummon(card) ? "リンク召喚可能" : "召喚不能"}
                                 </div>
                             )}
-                            {isXyzMonster(card) && (
+                            {isXyzMonster(card.card) && (
                                 <div className="text-xs text-center text-purple-600 font-bold">
                                     {canPerformXyzSummon(card) ? "エクシーズ召喚可能" : "素材不足"}
                                 </div>

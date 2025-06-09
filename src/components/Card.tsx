@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSetAtom } from "jotai";
-import type { CardInstance } from "@/types/card";
-import { isMonsterCard, isSpellCard, isTrapCard } from "@/utils/gameUtils";
+import type { CardInstance, DefensableMonsterCard } from "@/types/card";
 import { CARD_SIZE } from "@/const/card";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
+import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "@/utils/cardManagement";
+import { useGameStore, type GameStore } from "@/store/gameStore";
+import { canNormalSummon } from "@/utils/summonUtils";
+import { ActionListSelector } from "./ActionListSelector";
 
 interface CardProps {
     card: CardInstance;
@@ -14,7 +17,30 @@ interface CardProps {
     customSize?: string;
     reverse?: boolean;
     forceAttack?: boolean;
+    disableActivate?: true;
 }
+
+export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
+    const actions: string[] = [];
+    if (monsterFilter(card.card) && canNormalSummon(gameState, card)) {
+        actions.push("summon");
+    }
+    if (
+        isMagicCard(card.card) &&
+        card.card.effect.onSpell?.condition(gameState, card) &&
+        hasEmptySpellField(gameState)
+    ) {
+        actions.push("activate");
+    }
+    if (isTrapCard(card.card) || (isMagicCard(card.card) && hasEmptySpellField(gameState))) {
+        actions.push("set");
+    }
+    if (card.card.effect.onIgnition?.condition(gameState, card)) {
+        actions.push("effect");
+    }
+
+    return actions;
+};
 
 export const Card: React.FC<CardProps> = ({
     card,
@@ -24,10 +50,11 @@ export const Card: React.FC<CardProps> = ({
     selected = false,
     faceDown = false,
     customSize = undefined,
+    disableActivate = false,
 }) => {
     const setHoveredCard = useSetAtom(hoveredCardAtom);
     // カードが伏せ状態かどうかをチェック
-    const isFaceDown = faceDown || card.position === "facedown" || card.position === "facedown_defense";
+    const isFaceDown = faceDown || card.position === "back" || card.position === "back_defense";
     const sizeClasses = {
         small: CARD_SIZE.SMALL,
         medium: CARD_SIZE.MEDIUM,
@@ -36,22 +63,6 @@ export const Card: React.FC<CardProps> = ({
 
     const getCardColor = () => {
         if (isFaceDown) return "bg-gray-700";
-
-        const cardType = card.card.card_type;
-        if (isMonsterCard(card.card)) {
-            if (cardType.includes("通常モンスター")) return "bg-yellow-500";
-            if (cardType.includes("効果モンスター")) return "bg-orange-500";
-            if (cardType.includes("儀式")) return "bg-blue-500";
-            if (cardType === "融合モンスター") return "bg-purple-500";
-            if (cardType === "シンクロモンスター") return "bg-gray-300";
-            if (cardType === "エクシーズモンスター") return "bg-gray-800";
-            if (cardType === "リンクモンスター") return "bg-blue-700";
-        } else if (isSpellCard(card.card)) {
-            return "bg-green-500";
-        } else if (isTrapCard(card.card)) {
-            return "bg-pink-500";
-        }
-        return "bg-gray-500";
     };
 
     // 画像パスを取得
@@ -65,7 +76,12 @@ export const Card: React.FC<CardProps> = ({
         }
         return null;
     };
+    const [actionList, setActionList] = useState<string[]>([]);
+    const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
+
     const imagePath = getImagePath();
+    const gameState = useGameStore();
+
     return (
         <div
             className={`
@@ -74,12 +90,37 @@ export const Card: React.FC<CardProps> = ({
         z-50 rounded cursor-pointer hover:scale-105 transition-transform
         shadow-md border border-gray-600 overflow-hidden
         ${!imagePath ? getCardColor() + " flex flex-col items-center justify-center p-1 text-white" : "bg-transparent"}
-        ${(card.position === "defense" || card.position === "facedown_defense") && !forceAttack ? " -rotate-90" : ""}
+        ${(card.position === "defense" || card.position === "back_defense") && !forceAttack ? " -rotate-90" : ""}
       `}
             onClick={onClick}
-            onMouseEnter={() => setHoveredCard(card)}
-            onMouseLeave={() => {}}
+            onMouseEnter={() => {
+                setHoveringCard(card);
+                setHoveredCard(card);
+                const cardActions = getCardActions(gameState, card);
+                setActionList(cardActions);
+            }}
+            onMouseLeave={() => {
+                setHoveringCard(null);
+            }}
         >
+            {!disableActivate && hoveringCard?.id === card.id && actionList.length > 0 && (
+                <ActionListSelector
+                    actions={actionList}
+                    onSelect={(action) => {
+                        if (action === "summon") {
+                            gameState.playCard(card);
+                        } else if (action === "set") {
+                            gameState.setCard(card);
+                        } else if (action === "activate") {
+                            gameState.playCard(card);
+                        } else if (action === "effect") {
+                            gameState.activateEffect(card);
+                        }
+                        setHoveringCard(null);
+                    }}
+                    card={card}
+                />
+            )}
             {imagePath ? (
                 <img
                     src={imagePath}
@@ -106,10 +147,10 @@ export const Card: React.FC<CardProps> = ({
                 {!isFaceDown && (
                     <>
                         <div className="text-xs font-bold text-center line-clamp-2">{card.card.card_name}</div>
-                        {isMonsterCard(card.card) && "attack" in card.card && (
+                        {monsterFilter(card.card) && "attack" in card.card && (
                             <div className="text-xs mt-auto">
                                 ATK: {card.card.attack}
-                                {card.card.defense !== undefined && ` / DEF: ${card.card.defense}`}
+                                {card.card.hasDefense ? ` / DEF: ${(card.card as DefensableMonsterCard).defense}` : ""}
                             </div>
                         )}
                     </>

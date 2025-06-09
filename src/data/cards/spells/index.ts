@@ -1,15 +1,7 @@
-import type { MagicCard } from "../cards";
-import {
-    banishFromRandomExtractDeck,
-    hasLevelMonsterFilter,
-    monsterFilter,
-    sendCard,
-    withOption,
-    withTurnAtOneceCondition,
-    withTurnAtOneceEffect,
-    withUserSelectCard,
-    withUserSummon,
-} from "../cards";
+import type { MagicCard } from "@/types/card";
+import { hasLevelMonsterFilter, monsterFilter } from "@/utils/cardManagement";
+import { withOption, withTurnAtOneceCondition, withTurnAtOneceEffect, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { banishFromRandomExtractDeck, sendCard } from "@/utils/cardMovement";
 
 export const MAGIC_CARDS = [
     {

@@ -1,23 +1,8 @@
 import type { GameStore } from "@/store/gameStore";
-import type { Card, CardInstance } from "@/types/card";
+import type { Card, CardInstance, TrapCard } from "@/types/card";
 import type { GameState } from "@/types/game";
-import { v4 as uuidv4 } from "uuid";
 import { getLinkMonsterSummonalble } from "@/components/SummonSelector";
-
-export const createCardInstance = (card: Card, location: CardInstance["location"], isToken?: boolean): CardInstance => {
-    return {
-        card,
-        id: uuidv4(),
-        location,
-        position: location === "field_monster" ? "attack" : undefined,
-        zone: undefined,
-        equipped: [],
-        counters: 0,
-        materials: [],
-        buf: { attack: 0, defense: 0, level: 0 },
-        isToken,
-    };
-};
+import { isLinkMonster, isXyzMonster } from "./cardManagement";
 
 export const getLevel = (cardInstance: CardInstance) => {
     const level = (cardInstance.card as { level?: number })?.level ?? -9999;
@@ -26,15 +11,9 @@ export const getLevel = (cardInstance: CardInstance) => {
 
 export const getAttack = (state: GameStore, cardInstance: CardInstance) => {
     const attack = (cardInstance.card as { attack?: number })?.attack ?? -9999;
-    console.log(attack);
-    console.log(
-        (cardInstance.equipped ?? []).map((id) => {
-            return state.field.spellTrapZones.find((equip) => equip?.id === id)?.buf.attack ?? 0;
-        })
-    );
-    const equip = (cardInstance.equipped ?? [])
+    const equip = (cardInstance.equipment ?? [])
         .map((id) => {
-            return state.field.spellTrapZones.find((equip) => equip?.id === id)?.buf.attack ?? 0;
+            return state.field.spellTrapZones.find((equip) => equip?.id === id.id)?.buf.attack ?? 0;
         })
         .reduce((prev, cur) => prev + cur, 0);
 
@@ -57,7 +36,7 @@ export const drawCards = (gameState: GameState, count: number): GameState => {
     for (let i = 0; i < count && newDeck.length > 0; i++) {
         const drawnCard = newDeck.shift();
         if (drawnCard) {
-            drawnCard.location = "hand";
+            drawnCard.location = "Hand";
             newHand.push(drawnCard);
         }
     }
@@ -104,10 +83,6 @@ export const canLinkSummonAfterRelease = (
     extraMonsterZones: (CardInstance | null)[],
     monsterZones: (CardInstance | null)[]
 ) => {
-    console.log("materials:", materials);
-    console.log("extraMonsterZones:", extraMonsterZones);
-    console.log("monsterZones:", monsterZones);
-
     const tempMonsterZones = [...monsterZones];
     const tempExtraMonsterZones = [...extraMonsterZones];
 
@@ -122,10 +97,7 @@ export const canLinkSummonAfterRelease = (
             }
         }
     }
-    console.log("tempEx", tempExtraMonsterZones);
-    console.log("tempMon", tempMonsterZones);
     const availableZones = getLinkMonsterSummonalble(tempExtraMonsterZones, tempMonsterZones);
-    console.log(availableZones);
     if (availableZones.length > 0) {
         return true;
     }
@@ -137,6 +109,9 @@ export const searchCombinationLinkSummon = (
     extraMonsterZones: (CardInstance | null)[],
     monsterZones: (CardInstance | null)[]
 ): boolean => {
+    if (!isLinkMonster(linkCard.card)) {
+        return false;
+    }
     const availableMaterials = [
         ...monsterZones.filter((zone) => zone !== null),
         ...extraMonsterZones.filter((zone) => zone !== null),
@@ -167,7 +142,7 @@ export const searchCombinationLinkSummon = (
 
         for (const materials of combinations) {
             // Use the card's own materialCondition instead of canLinkSummonByMaterials
-            const materialCondition = (linkCard.card as { materialCondition?: (materials: CardInstance[]) => boolean }).materialCondition;
+            const materialCondition = linkCard.card.materialCondition;
             if (materialCondition && materialCondition(materials)) {
                 if (canLinkSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
                     return true;
@@ -179,12 +154,14 @@ export const searchCombinationLinkSummon = (
     return false;
 };
 
-
 export const searchCombinationXyzSummon = (
     xyzCard: CardInstance,
     extraMonsterZones: (CardInstance | null)[],
     monsterZones: (CardInstance | null)[]
 ): boolean => {
+    if (!isXyzMonster(xyzCard.card)) {
+        return false;
+    }
     const availableMaterials = [
         ...monsterZones.filter((zone) => zone !== null),
         ...extraMonsterZones.filter((zone) => zone !== null),
@@ -213,7 +190,7 @@ export const searchCombinationXyzSummon = (
 
         for (const materials of combinations) {
             // Use the card's own materialCondition
-            const materialCondition = (xyzCard.card as { materialCondition?: (materials: CardInstance[]) => boolean }).materialCondition;
+            const materialCondition = xyzCard.card.materialCondition;
             if (materialCondition && materialCondition(materials)) {
                 // Check if there's an available zone after using these materials
                 if (canXyzSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
@@ -248,9 +225,9 @@ export const canXyzSummonAfterRelease = (
     }
 
     // For Xyz monsters, check if there's any available monster zone
-    const hasAvailableMonsterZone = tempMonsterZones.some(zone => zone === null);
-    const hasAvailableExtraZone = tempExtraMonsterZones.some(zone => zone === null);
-    
+    const hasAvailableMonsterZone = tempMonsterZones.some((zone) => zone === null);
+    const hasAvailableExtraZone = tempExtraMonsterZones.some((zone) => zone === null);
+
     return hasAvailableMonsterZone || hasAvailableExtraZone;
 };
 
@@ -273,8 +250,6 @@ export const isSpellCard = (card: Card): boolean => {
     return spellTypes.includes(card.card_type);
 };
 
-export const isTrapCard = (card: Card): boolean => {
-    const trapTypes = ["通常罠カード", "永続罠カード", "カウンター罠カード"];
-
-    return trapTypes.includes(card.card_type);
+export const isTrapCard = (card: Card): card is TrapCard => {
+    return card.card_type === "罠";
 };

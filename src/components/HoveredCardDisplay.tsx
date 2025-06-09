@@ -1,13 +1,13 @@
-import React from "react";
 import { useAtom } from "jotai";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
-import { getAttack, getLevel, isMonsterCard } from "@/utils/gameUtils";
+import { getAttack, getLevel } from "@/utils/gameUtils";
 import type { GameStore } from "@/store/gameStore";
+import { hasLevelMonsterFilter, isLinkMonster, isXyzMonster, monsterFilter } from "@/utils/cardManagement";
+import type { DefensableMonsterCard } from "@/types/card";
 type Props = { state: GameStore };
 export const HoveredCardDisplay = ({ state }: Props) => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
-    const isBattleField = hoveredCard?.location === "field_monster";
-    console.log(hoveredCard);
+    const isBattleField = hoveredCard?.location === "MonsterField";
     return (
         <div className="flex-[0.9] mx-auto h-[640px] mt-6">
             <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">
@@ -34,7 +34,7 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                             <div className="text-sm text-gray-600 text-center">{hoveredCard.card.card_type}</div>
 
                             {/* モンスターカードの場合 */}
-                            {isMonsterCard(hoveredCard.card) && (
+                            {monsterFilter(hoveredCard.card) && (
                                 <div className="text-sm text-gray-700 text-center">
                                     <div className="flex flex-row justify-center">
                                         <div
@@ -46,23 +46,24 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                                     : ""
                                             }`}
                                         >
-                                            {"level" in hoveredCard.card &&
+                                            {hasLevelMonsterFilter(hoveredCard.card) &&
+                                                hoveredCard.card &&
                                                 hoveredCard.card.level &&
                                                 `レベル: ${getLevel(hoveredCard)} `}
                                         </div>
                                         <div>
-                                            {"rank" in hoveredCard.card &&
+                                            {isXyzMonster(hoveredCard.card) &&
                                                 hoveredCard.card.rank &&
                                                 `ランク: ${hoveredCard.card.rank} `}
                                         </div>
-                                        {"link" in hoveredCard.card &&
+                                        {isLinkMonster(hoveredCard.card) &&
                                             hoveredCard.card.link &&
                                             `リンク: ${hoveredCard.card.link} `}
                                     </div>
-                                    {"attribute" in hoveredCard.card &&
-                                        hoveredCard.card.attribute &&
-                                        `属性: ${hoveredCard.card.attribute} `}
-                                    {"race" in hoveredCard.card &&
+                                    {monsterFilter(hoveredCard.card) &&
+                                        hoveredCard.card.element &&
+                                        `属性: ${hoveredCard.card.element} `}
+                                    {monsterFilter(hoveredCard.card) &&
                                         hoveredCard.card.race &&
                                         `種族: ${hoveredCard.card.race}`}
                                     <div className="flex flex-row justify-center">
@@ -97,7 +98,8 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                             {"defense" in hoveredCard.card
                                                 ? `DEF: ${
                                                       (isBattleField &&
-                                                          hoveredCard.card.defense! + hoveredCard.buf.defense) ||
+                                                          (hoveredCard.card as DefensableMonsterCard).defense! +
+                                                              hoveredCard.buf.defense) ||
                                                       hoveredCard.card.defense
                                                   }`
                                                 : ""}

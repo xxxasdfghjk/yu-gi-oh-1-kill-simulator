@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
-import { ActionListSelector, getCardActions } from "./HandArea";
 import type { GameStore } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
 
@@ -10,17 +9,9 @@ interface GraveyardModalProps {
     onClose: () => void;
     graveyard: CardInstance[];
     gameState: GameStore;
-    handleEffect: (card: CardInstance) => void;
 }
 
-export const GraveyardModal: React.FC<GraveyardModalProps> = ({
-    isOpen,
-    onClose,
-    graveyard,
-    gameState,
-    handleEffect,
-}) => {
-    const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
+export const GraveyardModal: React.FC<GraveyardModalProps> = ({ isOpen, onClose, graveyard }) => {
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
             <div className="flex justify-between items-center mb-4">
@@ -38,24 +29,7 @@ export const GraveyardModal: React.FC<GraveyardModalProps> = ({
                         <div
                             key={`${card.id}-${index}`}
                             className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded`}
-                            onMouseEnter={() => {
-                                setHoveringCard(card);
-                            }}
-                            onMouseLeave={() => {
-                                setHoveringCard(null);
-                            }}
                         >
-                            {hoveringCard?.id === card.id &&
-                                getCardActions(gameState, card).filter((e) => e === "effect").length > 0 && (
-                                    <ActionListSelector
-                                        card={card}
-                                        actions={getCardActions(gameState, card).filter((e) => e === "effect")}
-                                        onSelect={() => {
-                                            handleEffect(card);
-                                            onClose();
-                                        }}
-                                    />
-                                )}
                             <Card card={card} size="small" customSize="w-30" />
                             <div className="text-xs text-center mt-1 truncate w-30">{card.card.card_name}</div>
                         </div>

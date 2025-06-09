@@ -1,13 +1,15 @@
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance } from "@/types/card";
+import type { CardInstance, LinkMonsterCard } from "@/types/card";
 import { FieldZone } from "./FieldZone";
 import { useEffect, useState } from "react";
 import ModalWrapper from "./ModalWrapper";
+import type { Position } from "@/utils/effectUtils";
+import { isLinkMonster, monsterFilter } from "@/utils/cardManagement";
 type Props = {
     state: GameStore;
     cardInstance: CardInstance;
-    onSelect: (zone: number, position: "attack" | "defense" | "facedown" | "facedown_defense") => void;
-    optionPosition: ("attack" | "defense" | "facedown" | "facedown_defense")[];
+    onSelect: (zone: number, position: Exclude<Position, undefined>) => void;
+    optionPosition: Exclude<Position, undefined>[];
     onCancel?: () => void;
     isOpen?: boolean;
     popQueue: () => void;
@@ -32,9 +34,9 @@ export const getLinkMonsterSummonalble = (
     const linkMonsters = [...monsterZones, ...extraMonsterZones]
         .map((e, zone) => ({ ...e, zone: zone === 5 ? 6 : zone === 6 ? 8 : zone }))
         .filter((e) => e !== null)
-        .filter((e) => e.card?.card_type === "リンクモンスター")
+        .filter((e) => e?.card && isLinkMonster(e.card))
         .map((e) => {
-            return { directions: (e.card! as { link_markers: string }).link_markers!.split("、"), zone: e.zone };
+            return { directions: (e.card as LinkMonsterCard).linkDirection, zone: e.zone };
         })
         .map(({ directions, zone: index }) => {
             const result: number[] = [];
@@ -85,11 +87,13 @@ const SummonSelector = ({
 }: Props) => {
     const cardSizeClass = "w-20 h-32";
     const positionSizeClass = "w-20 h-32";
-    const isLinkMonster = cardInstance.card.card_type === "リンクモンスター";
+    const isLink = isLinkMonster(cardInstance.card);
 
-    const summonable = isLinkMonster
+    const summonable = isLink
         ? getLinkMonsterSummonalble(state.field.extraMonsterZones, state.field.monsterZones)
-        : cardInstance.card.card_type === "エクシーズモンスター" || cardInstance.card.card_type === "シンクロモンスター"
+        : monsterFilter(cardInstance.card) &&
+          (cardInstance.card.monster_type === "エクシーズモンスター" ||
+              cardInstance.card.monster_type === "シンクロモンスター")
         ? [
               ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
               ...state.field.extraMonsterZones
@@ -100,15 +104,15 @@ const SummonSelector = ({
               (e) => e.index
           );
     const [zone, setZone] = useState<number>(-1);
-    const [position, setPosition] = useState<"attack" | "defense" | "facedown" | "facedown_defense">("attack");
-    const dummyCardInstance = { ...cardInstance, position: "facedown_defense" as const };
+    const [position, setPosition] = useState<Exclude<Position, undefined>>("attack");
+    const dummyCardInstance = { ...cardInstance, position: "back_defense" as const };
     useEffect(() => {
         setZone(summonable?.[0] ?? -1);
         setPosition(optionPosition[0]);
     }, []);
     return (
         <ModalWrapper isOpen={isOpen}>
-            {isLinkMonster && <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>}
+            {isLink && <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>}
             <div className="mb-4 p-4 bg-blue-100 rounded text-center">
                 <p className="font-bold">{cardInstance.card.card_name}</p>
                 {cardInstance.materials.length > 0 && (
@@ -134,6 +138,7 @@ const SummonSelector = ({
                     disabled={!summonable.includes(5)}
                     selected={zone === 5}
                     customSize={cardSizeClass}
+                    disableActivate={true}
                 />
 
                 <div className={`${cardSizeClass}`}></div>
@@ -149,6 +154,7 @@ const SummonSelector = ({
                     disabled={!summonable.includes(6)}
                     selected={zone === 6}
                     customSize={cardSizeClass}
+                    disableActivate={true}
                 />
 
                 <div className={`${cardSizeClass}`}></div>
@@ -166,6 +172,7 @@ const SummonSelector = ({
                         disabled={!summonable.includes(index)}
                         selected={zone === index}
                         customSize={cardSizeClass}
+                        disableActivate={true}
                     />
                 ))}
             </div>
@@ -181,6 +188,7 @@ const SummonSelector = ({
                         }}
                         selected={position === "attack"}
                         customSize={positionSizeClass}
+                        disableActivate={true}
                     />
                 )}
                 {optionPosition.includes("defense") && (
@@ -192,19 +200,21 @@ const SummonSelector = ({
                         }}
                         selected={position === "defense"}
                         customSize={positionSizeClass}
+                        disableActivate={true}
                     />
                 )}
 
-                {optionPosition.includes("facedown_defense") && (
+                {optionPosition.includes("back_defense") && (
                     <FieldZone
                         card={dummyCardInstance}
                         className={`${positionSizeClass} `}
                         onClick={() => {
-                            setPosition("facedown_defense");
+                            setPosition("back");
                         }}
-                        selected={position === "facedown_defense"}
+                        selected={position === "back_defense"}
                         customSize={positionSizeClass}
                         reverse={true}
+                        disableActivate={true}
                     />
                 )}
             </div>
