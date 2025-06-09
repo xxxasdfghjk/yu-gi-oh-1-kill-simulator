@@ -1,3 +1,5 @@
+import type { GameStore } from "@/store/gameStore";
+
 export type CardType =
     | "通常モンスター"
     | "通常モンスター（チューナー）"
@@ -62,9 +64,6 @@ export interface SpellTrapCard extends BaseCard {
         | "カウンター罠カード"
     >;
 }
-
-export type Card = MonsterCard | SpellTrapCard;
-
 export interface DeckData {
     deck_name: string;
     main_deck: Card[];
@@ -81,23 +80,50 @@ export type CardLocation =
     | "extra_deck"
     | "material";
 
+type CardTypeName = "モンスター" | "魔法" | "罠";
+
+interface Card {
+    card_name: string;
+    card_type: CardTypeName;
+    text: string;
+    image: string;
+    effect: EffectType;
+}
+
+type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
+
+type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
+
+type EffectType = {
+    onSpell?: {
+        condition: ConditionCallback;
+        effect: EffectCallback;
+    };
+    onSummon?: EffectCallback;
+    onIgnition?: {
+        condition: ConditionCallback;
+        effect: EffectCallback;
+    };
+    onRelease?: EffectCallback;
+    onFieldToGraveyard?: () => EffectCallback;
+    onAnywhereTofGraveyard?: () => EffectCallback;
+};
+
+type Location = "Deck" | "Hand" | "MonsterField" | "SpellField" | "ExtraDeck" | "Exclusion" | "Graveyard";
+
 export interface CardInstance {
-    card: Card;
     id: string;
-    location: CardLocation;
-    position?: "attack" | "defense" | "facedown" | "facedown_defense";
-    zone?: number;
-    equipped?: string[];
-    counters?: number;
-    setTurn?: number; // セットされたターン番号
-    setByBonmawashi?: boolean; // 盆回しでセットされたかどうか
-    isActivating?: boolean; // 発動中かどうか（通常・速攻・儀式魔法用）
-    materials: CardInstance[];
+    card: Card;
+    location: Location;
+    position: "back_defense" | "attack" | "back" | "defense" | undefined;
+    equipment: CardInstance[];
+    summonedBy: SummonedBy;
     buf: {
         level: number;
         attack: number;
         defense: number;
     };
-    summonedBy?: "normal" | "special" | "link";
-    isToken?: boolean;
+    materials: CardInstance[];
 }
+
+type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;
