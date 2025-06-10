@@ -483,11 +483,9 @@ export const useGameStore = create<GameStore>()(
                 const hasAllPieces = exodiaPieces.every((pieceName) =>
                     state.hand.some((card) => card.card.card_name === pieceName)
                 );
-
                 if (hasAllPieces) {
                     state.gameOver = true;
                     state.winner = "player";
-                    return true;
                 }
             });
         },

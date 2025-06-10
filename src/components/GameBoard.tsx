@@ -91,6 +91,7 @@ export const GameBoard: React.FC = () => {
 
     useEffect(() => {
         if (phase === "main1" && turn === 2) {
+            checkExodiaWin();
             endGame();
         }
     }, [endGame, phase, turn]);

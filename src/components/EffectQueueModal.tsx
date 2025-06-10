@@ -5,7 +5,7 @@ import SummonSelector from "./SummonSelector";
 import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
 import { type LinkMonsterCard } from "../types/card";
-import { canLinkSummonAfterRelease } from "@/utils/gameUtils";
+import { canLinkSummonAfterRelease, canXyzSummonAfterRelease } from "@/utils/gameUtils";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
@@ -141,13 +141,20 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                 <MultiCardConditionSelector
                     condition={(selectedCards, state) => {
                         const effect = currentEffect;
+                        const canSummon =
+                            currentEffect.summonType === "link"
+                                ? canLinkSummonAfterRelease(
+                                      selectedCards,
+                                      state.field.extraMonsterZones,
+                                      state.field.monsterZones
+                                  )
+                                : canXyzSummonAfterRelease(
+                                      selectedCards,
+                                      state.field.extraMonsterZones,
+                                      state.field.monsterZones
+                                  );
                         return (
-                            (effect.targetMonster.card as LinkMonsterCard).materialCondition(selectedCards) &&
-                            canLinkSummonAfterRelease(
-                                selectedCards,
-                                state.field.extraMonsterZones,
-                                state.field.monsterZones
-                            )
+                            (effect.targetMonster.card as LinkMonsterCard).materialCondition(selectedCards) && canSummon
                         );
                     }}
                     getAvailableCards={currentEffect.getAvailableCards}
