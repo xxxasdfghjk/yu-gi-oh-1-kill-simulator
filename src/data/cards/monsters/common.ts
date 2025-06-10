@@ -142,7 +142,20 @@ export const COMMON_MONSTERS = [
         hasLink: false as const,
         canNormalSummon: false,
         card_type: "モンスター",
-        effect: {},
+        effect: {
+            onSummon: (state, card) => {
+                const target = (state: GameStore) =>
+                    [...state.deck, ...state.graveyard].filter(
+                        (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
+                    );
+                if (target(state).length === 0) {
+                    return;
+                }
+                withUserSelectCard(state, card, target, { select: "single", order: 999 }, (state, _, selected) => {
+                    sendCard(state, selected[0], "Hand");
+                });
+            },
+        },
     },
     {
         card_name: "ジェネクス・コントローラー",

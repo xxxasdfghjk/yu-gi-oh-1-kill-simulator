@@ -6,6 +6,7 @@ import type { DefensableMonsterCard } from "@/types/card";
 export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
     const isBattleField = hoveredCard?.location === "MonsterField";
+    console.log(hoveredCard, hoveredCard?.card ? isXyzMonster(hoveredCard.card) : "");
     return (
         <div className="flex-[0.9] mx-auto h-[640px] mt-6">
             <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">
@@ -104,8 +105,36 @@ export const HoveredCardDisplay = () => {
                                 </div>
                             )}
 
+                            {/* エクシーズモンスターのエクシーズ素材情報 */}
+                            {isXyzMonster(hoveredCard.card) &&
+                                hoveredCard.materials &&
+                                hoveredCard.materials.length > 0 && (
+                                    <div className="text-sm text-gray-700 border-t pt-2">
+                                        <div className="font-semibold mb-2 text-center">エクシーズ素材:</div>
+                                        <div className="space-y-1">
+                                            {hoveredCard.materials.map((material) => (
+                                                <div
+                                                    key={material.id}
+                                                    className="text-xs bg-gray-100 rounded px-2 py-1"
+                                                >
+                                                    {material.card.card_name}
+                                                    {monsterFilter(material.card) && "attack" in material.card && (
+                                                        <span className="ml-2 text-gray-500">
+                                                            ATK: {material.card.attack}
+                                                            {"defense" in material.card &&
+                                                                ` / DEF: ${material.card.defense}`}
+                                                            {hasLevelMonsterFilter(material.card) &&
+                                                                ` / LV: ${material.card.level}`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                             {/* カードテキスト */}
-                            <div className="text-[14px] text-gray-600 max-h-48 overflow-y-auto border-t pt-2 whitespace-pre-wrap">
+                            <div className="text-[14px] text-gray-600 max-h-36 overflow-y-auto border-t pt-2 whitespace-pre-wrap">
                                 {hoveredCard.card.text}
                             </div>
                         </div>

@@ -40,7 +40,12 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
 
                 <div className={`${cardSizeClass}`}></div>
                 {/* 相手のフィールド魔法（右側） */}
-                <FieldZone type="field" card={opponentField?.fieldZone || null} className={CARD_SIZE.MEDIUM} />
+                <FieldZone
+                    rotate={true}
+                    type="field"
+                    card={opponentField?.fieldZone || null}
+                    className={CARD_SIZE.MEDIUM}
+                />
             </div>
         </div>
     );

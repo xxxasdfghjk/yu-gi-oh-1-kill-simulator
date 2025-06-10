@@ -41,6 +41,7 @@ export const isLinkMonster = (card: Card): card is LinkMonsterCard => {
 };
 
 export const isXyzMonster = (card: Card): card is XyzMonsterCard => {
+    console.log(card.card_name);
     return monsterFilter(card) && card.monster_type === "エクシーズモンスター";
 };
 

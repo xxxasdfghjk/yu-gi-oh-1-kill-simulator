@@ -151,6 +151,7 @@ const initialState: GameState = {
     hasNormalSummoned: false,
     hasSpecialSummoned: false,
     isLinkSummonProhibited: false,
+    isFieldSpellActivationProhibited: false,
     isOpponentTurn: false,
     gameOver: false,
     winner: null,
@@ -207,12 +208,8 @@ export const useGameStore = create<GameStore>()(
 
             // Draw opening hand
             set((state) => {
-                for (let i = 0; i < 15; i++) {
-                    if (state.deck.length > 0) {
-                        const drawnCard = state.deck.shift()!;
-                        drawnCard.location = "Hand";
-                        state.hand.push(drawnCard);
-                    }
+                for (let i = 0; i < 10; i++) {
+                    sendCard(state, state.deck[i], "Hand");
                 }
             });
         },
@@ -445,12 +442,13 @@ export const useGameStore = create<GameStore>()(
                     targetMonster: xyzMonster,
                     getAvailableCards: (state) => {
                         return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (e): e is CardInstance => !e
+                            (e): e is CardInstance => e !== null
                         );
                     },
                     summonType: "xyz",
                     callback: (state, card, selected) => {
-                        const newInstance = { ...card, material: [...selected] };
+                        const newMaterials = selected.map((e) => ({ ...e, location: "Material" as const }));
+                        const newInstance = { ...card, materials: [...newMaterials] };
                         for (const card of selected) {
                             excludeFromAnywhere(state, card);
                         }

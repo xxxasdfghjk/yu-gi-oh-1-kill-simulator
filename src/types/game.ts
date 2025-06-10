@@ -26,6 +26,7 @@ export interface GameState {
     hasSpecialSummoned: boolean;
     hasDrawnByEffect: boolean;
     isLinkSummonProhibited: boolean;
+    isFieldSpellActivationProhibited: boolean;
     isOpponentTurn: boolean;
     gameOver: boolean;
     winner: "player" | "timeout" | null;

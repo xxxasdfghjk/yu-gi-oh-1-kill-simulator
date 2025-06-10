@@ -1,5 +1,6 @@
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
+import { OpponentField } from "../components/OpponentField";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -50,7 +51,6 @@ export const addBuf = (state: GameStore, card: CardInstance, buf: Buf) => {
 
 export const releaseCard = (state: GameStore, card: CardInstance) => {
     sendCard(state, card, "Graveyard");
-    console.log(card);
     card.card.effect?.onRelease?.(state, card);
 };
 
@@ -150,6 +150,9 @@ export const sendCard = (
             }
             state.field.fieldZone = { ...updatedCard };
             break;
+        }
+        case "OpponentField": {
+            state.opponentField.fieldZone = { ...updatedCard };
         }
     }
 

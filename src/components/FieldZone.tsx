@@ -14,6 +14,7 @@ interface FieldZoneProps {
     customSize?: string;
     reverse?: boolean;
     disableActivate?: true;
+    rotate?: boolean;
 }
 
 export const FieldZone: React.FC<FieldZoneProps> = ({
@@ -27,6 +28,7 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
     selected,
     customSize,
     disableActivate,
+    rotate,
 }) => {
     const handleClick = () => {
         if (card && onCardClick) {
@@ -50,7 +52,13 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                 onClick={handleClick}
             >
                 {card ? (
-                    <Card card={card} size="medium" customSize={customSize} disableActivate={disableActivate} />
+                    <Card
+                        card={card}
+                        size="medium"
+                        customSize={customSize}
+                        disableActivate={disableActivate}
+                        rotate={rotate}
+                    />
                 ) : type === "deck" ? (
                     <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Deck</div>
                 ) : type === "extra_deck" ? (

@@ -19,6 +19,7 @@ interface CardProps {
     reverse?: boolean;
     forceAttack?: boolean;
     disableActivate?: true;
+    rotate?: boolean;
 }
 
 export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
@@ -30,12 +31,13 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
         isMagicCard(card.card) &&
         card.card.effect.onSpell?.condition(gameState, card) &&
         hasEmptySpellField(gameState) &&
-        (card.location === "Hand" || card.location === "SpellField")
+        (card.location === "Hand" || card.location === "SpellField") &&
+        !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited)
     ) {
         actions.push("activate");
     }
     if (
-        (isTrapCard(card.card) || isMagicCard(card.card)) &&
+        (isTrapCard(card.card) || (isMagicCard(card.card) && card.card.magic_type !== "フィールド魔法")) &&
         hasEmptySpellField(gameState) &&
         card.location === "Hand"
     ) {
@@ -57,6 +59,7 @@ export const Card: React.FC<CardProps> = ({
     faceDown = false,
     customSize = undefined,
     disableActivate = false,
+    rotate = false,
 }) => {
     const setHoveredCard = useSetAtom(hoveredCardAtom);
     const setGraveyardModalOpen = useSetAtom(graveyardModalAtom);
@@ -133,7 +136,7 @@ export const Card: React.FC<CardProps> = ({
                 <img
                     src={imagePath}
                     alt={isFaceDown ? "Card Back" : card.card.card_name}
-                    className="w-full h-full object-contain"
+                    className={`w-full h-full object-contain ${rotate ? "rotate-180" : ""}`}
                     style={{
                         filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
                         backgroundColor: "transparent",

@@ -106,11 +106,11 @@ export const EXTRA_MONSTERS = [
         race: "機械" as const,
         attack: 2700,
         defense: 2000,
-        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && card.card.level === 6,
+        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && getLevel(card) === 6,
         materialCondition: (card: CardInstance[]) => {
-            return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && e.card.level === 6));
+            return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 6));
         },
-        text: "レベル６モンスター×２\\nこのカードは「セイクリッド・トレミスM７」以外の自分フィールドの「セイクリッド」Xモンスターの上に重ねてX召喚する事もできる。この方法で特殊召喚したターン、このカードの①の効果は発動できない。①：１ターンに１度、このカードのX素材を１つ取り除き、自分または相手の、フィールド・墓地のモンスター１体を対象として発動できる。そのモンスターを持ち主の手札に戻す。",
+        text: "レベル６モンスター×２\nこのカードは「セイクリッド・トレミスM７」以外の自分フィールドの「セイクリッド」Xモンスターの上に重ねてX召喚する事もできる。この方法で特殊召喚したターン、このカードの①の効果は発動できない。①：１ターンに１度、このカードのX素材を１つ取り除き、自分または相手の、フィールド・墓地のモンスター１体を対象として発動できる。そのモンスターを持ち主の手札に戻す。",
         image: "card100287504_1.jpg",
         hasDefense: true as const,
         hasLevel: false as const,
@@ -141,14 +141,14 @@ export const EXTRA_MONSTERS = [
                                 return cardInstance.materials;
                             },
                             { select: "single" },
-                            (state, _card, selected) => {
-                                sendCard(state, selected[0], "Graveyard");
+                            (state, _card, selectedMaterial) => {
                                 withUserSelectCard(
                                     state,
                                     card,
                                     targets,
                                     { select: "single" },
                                     (state, _card, selected) => {
+                                        sendCard(state, selectedMaterial[0], "Graveyard");
                                         sendCard(state, selected[0], "Hand");
                                     }
                                 );
@@ -168,9 +168,9 @@ export const EXTRA_MONSTERS = [
         race: "天使" as const,
         attack: 2500,
         defense: 2800,
-        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && card.card.level === 6,
+        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && getLevel(card) === 6,
         materialCondition: (card: CardInstance[]) => {
-            return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && e.card.level === 6));
+            return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 6));
         },
         text: "①1ターンに1度、このカードのX素材を1つ取り除いて発動できる。デッキからカード1枚を選んで墓地へ送る。この効果は相手ターンでも発動できる。②このカードが相手によって破壊され墓地へ送られた場合に発動できる。EXデッキから「彼岸」モンスター1体を召喚条件を無視して特殊召喚する。",
         image: "card100330938_1.jpg",
@@ -223,7 +223,7 @@ export const EXTRA_MONSTERS = [
         materialCondition: (card: CardInstance[]) => {
             return !!(card.length >= 2 && card.every((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 1));
         },
-        text: "レベル１モンスター×２体以上\\nこのカード名の①③の効果はそれぞれ１ターンに１度しか使用できない。\\n①：このカードがX召喚した場合に発動できる。デッキから「ドライトロン」カード１枚を墓地へ送る。\\n②：自分が儀式召喚を行う場合、そのリリースするモンスターを、このカードのX素材から取り除く事もできる。\\n③：自分フィールドに機械族の儀式モンスターが存在し、相手が魔法・罠カードを発動した時、このカードのX素材を１つ取り除いて発動できる。その発動を無効にし破壊する。",
+        text: "レベル１モンスター×２体以上\nこのカード名の①③の効果はそれぞれ１ターンに１度しか使用できない。\n①：このカードがX召喚した場合に発動できる。デッキから「ドライトロン」カード１枚を墓地へ送る。\n②：自分が儀式召喚を行う場合、そのリリースするモンスターを、このカードのX素材から取り除く事もできる。\n③：自分フィールドに機械族の儀式モンスターが存在し、相手が魔法・罠カードを発動した時、このカードのX素材を１つ取り除いて発動できる。その発動を無効にし破壊する。",
         image: "card100221516_1.jpg",
         hasDefense: true as const,
         hasLevel: false as const,
@@ -238,7 +238,6 @@ export const EXTRA_MONSTERS = [
                     });
 
                 if (draitronCards(gameState).length === 0) return;
-
                 withTurnAtOneceEffect(
                     gameState,
                     cardInstance,
@@ -246,19 +245,13 @@ export const EXTRA_MONSTERS = [
                         withUserSelectCard(
                             state,
                             card,
-                            () => card.materials,
+                            (gameState: GameStore) =>
+                                gameState.deck.filter((card) => {
+                                    return card.card.card_name.includes("竜輝巧");
+                                }),
                             { select: "single" },
                             (selectState, _card, selected) => {
                                 sendCard(selectState, selected[0], "Graveyard");
-                                withUserSelectCard(
-                                    state,
-                                    card,
-                                    draitronCards,
-                                    { select: "single" },
-                                    (selectState, _card, selected) => {
-                                        sendCard(selectState, selected[0], "Graveyard");
-                                    }
-                                );
                             }
                         );
                     },
@@ -266,6 +259,7 @@ export const EXTRA_MONSTERS = [
                 );
             },
         },
+        canUseMaterilForRitualSummon: true,
     },
     {
         card_name: "幻獣機アウローラドン",
@@ -282,7 +276,7 @@ export const EXTRA_MONSTERS = [
                 card.filter((e) => monsterFilter(e.card) && e.card.race === "機械").length >= 2 && sumLink(card) === 3
             );
         },
-        text: "機械族モンスター２体以上\\n①：このカードがリンク召喚に成功した場合に発動できる。自分フィールドに「幻獣機トークン」（機械族・風・星３・攻／守０）３体を特殊召喚する。このターン、自分はリンク召喚できない。②：１ターンに１度、自分フィールドのモンスターを３体までリリースして発動できる。リリースしたモンスターの数によって以下の効果を適用する。●１体：フィールドのカード１枚を選んで破壊する。●２体：デッキから「幻獣機」モンスター１体を特殊召喚する。●３体：自分の墓地から罠カード１枚を選んで手札に加える。",
+        text: "機械族モンスター２体以上\n①：このカードがリンク召喚に成功した場合に発動できる。自分フィールドに「幻獣機トークン」（機械族・風・星３・攻／守０）３体を特殊召喚する。このターン、自分はリンク召喚できない。②：１ターンに１度、自分フィールドのモンスターを３体までリリースして発動できる。リリースしたモンスターの数によって以下の効果を適用する。●１体：フィールドのカード１枚を選んで破壊する。●２体：デッキから「幻獣機」モンスター１体を特殊召喚する。●３体：自分の墓地から罠カード１枚を選んで手札に加える。",
         image: "card100179342_1.jpg",
         hasDefense: false as const,
         hasLevel: false as const,
@@ -680,7 +674,7 @@ export const EXTRA_MONSTERS = [
             monsterFilter(e.card) &&
             (e.card.monster_type === "エクシーズモンスター" || e.card.monster_type === "シンクロモンスター"),
         materialCondition: () => true,
-        text: "Ｓモンスター＋Ｘモンスター\\n自分フィールドの上記カードを墓地へ送った場合のみ特殊召喚できる（「融合」は必要としない）。自分は「旧神ヌトス」を１ターンに１度しか特殊召喚できない。(1)：１ターンに１度、自分メインフェイズに発動できる。手札からレベル４モンスター１体を特殊召喚する。(2)：このカードが墓地へ送られた場合、フィールドのカード１枚を対象として発動できる。そのカードを破壊する。",
+        text: "Ｓモンスター＋Ｘモンスター\n自分フィールドの上記カードを墓地へ送った場合のみ特殊召喚できる（「融合」は必要としない）。自分は「旧神ヌトス」を１ターンに１度しか特殊召喚できない。(1)：１ターンに１度、自分メインフェイズに発動できる。手札からレベル４モンスター１体を特殊召喚する。(2)：このカードが墓地へ送られた場合、フィールドのカード１枚を対象として発動できる。そのカードを破壊する。",
         image: "card100065315_1.jpg",
         hasDefense: true as const,
         hasLevel: true as const,
@@ -698,7 +692,7 @@ export const EXTRA_MONSTERS = [
         race: "機械" as const,
         attack: 3000,
         defense: 3000,
-        filterAvailableMaterials: (e) => hasLevelMonsterFilter(e.card) && e.card.level === 12,
+        filterAvailableMaterials: (e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 12,
         materialCondition: (card: CardInstance[]) => {
             return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 12));
         },
@@ -715,7 +709,7 @@ export const EXTRA_MONSTERS = [
         card_name: "FNo.0 未来皇ホープ",
         card_type: "モンスター" as const,
         monster_type: "エクシーズモンスター" as const,
-        rank: 0,
+        rank: 1,
         element: "光" as const,
         race: "戦士" as const,
         attack: 0,
@@ -743,7 +737,7 @@ export const EXTRA_MONSTERS = [
         card_name: "FNo.0 未来龍皇ホープ",
         card_type: "モンスター" as const,
         monster_type: "エクシーズモンスター" as const,
-        rank: 0,
+        rank: 1,
         element: "光" as const,
         race: "戦士" as const,
         attack: 0,

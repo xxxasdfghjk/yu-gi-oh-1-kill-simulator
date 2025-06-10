@@ -68,6 +68,7 @@ export interface MonsterCard extends Card {
     hasDefense: boolean;
     canNormalSummon: boolean;
     hasTuner?: boolean;
+    canUseMaterilForRitualSummon?: true;
 }
 
 export interface DefensableMonsterCard extends MonsterCard {
@@ -142,7 +143,9 @@ export type Location =
     | "ExtraDeck"
     | "Exclusion"
     | "Graveyard"
-    | "FieldZone";
+    | "FieldZone"
+    | "OpponentField"
+    | "Material";
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
 export interface CardInstance {

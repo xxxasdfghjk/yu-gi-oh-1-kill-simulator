@@ -18,13 +18,13 @@ export const getAttack = (cardInstance: CardInstance) => {
     return cardInstance.buf.attack + attack + equip;
 };
 
-export const shuffleDeck = (deck: CardInstance[]): CardInstance[] => {
-    const shuffled = [...deck];
+export const shuffleDeck = (state: GameStore): void => {
+    const shuffled = [...state.deck];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    return shuffled;
+    state.deck = shuffled;
 };
 
 export const drawCards = (gameState: GameState, count: number): GameState => {
