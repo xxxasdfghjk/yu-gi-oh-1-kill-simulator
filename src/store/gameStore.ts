@@ -7,6 +7,7 @@ import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { withUserSummon, type Position } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
+import { getSpellTrapZoneIndex } from "../utils/cardMovement";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
@@ -336,7 +337,12 @@ export const useGameStore = create<GameStore>()(
                         // 1. Queue spell_end job at the end
 
                         // 2. Queue activation at the front (processed first)
-                        sendCard(state, card, "SpellField");
+                        const index = getSpellTrapZoneIndex(state, card);
+                        if (index !== -1 && card.position === "back") {
+                            state.field.spellTrapZones[index]!.position = undefined;
+                        } else {
+                            sendCard(state, card, "SpellField", {});
+                        }
                         card.card.effect.onSpell?.effect(state, card);
                         pushQueue(state, {
                             order: 100,
@@ -347,10 +353,15 @@ export const useGameStore = create<GameStore>()(
                         });
                     } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
                         // Continuous/Equipment spells stay on field
+                        card.card.effect.onSpell?.effect(state, card);
                         sendCard(state, card, "SpellField");
                     } else if (spellSubtype === "フィールド魔法") {
                         // Field spells go to field zone
+                        if (state.field.fieldZone !== null) {
+                            sendCard(state, state.field.fieldZone, "Graveyard");
+                        }
                         sendCard(state, card, "FieldZone");
+                        card.card.effect.onSpell?.effect(state, card);
                     }
                 } else if (card.card.card_type === "罠") {
                     sendCard(state, card, "SpellField");

@@ -30,13 +30,14 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
         isMagicCard(card.card) &&
         card.card.effect.onSpell?.condition(gameState, card) &&
         hasEmptySpellField(gameState) &&
-        card.location === "Hand"
+        (card.location === "Hand" || card.location === "SpellField")
     ) {
         actions.push("activate");
     }
     if (
-        isTrapCard(card.card) ||
-        (isMagicCard(card.card) && hasEmptySpellField(gameState) && card.location === "Hand")
+        (isTrapCard(card.card) || isMagicCard(card.card)) &&
+        hasEmptySpellField(gameState) &&
+        card.location === "Hand"
     ) {
         actions.push("set");
     }

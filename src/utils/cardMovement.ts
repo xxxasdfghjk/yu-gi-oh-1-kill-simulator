@@ -68,7 +68,21 @@ export const equipCard = (state: GameStore, equipMonster: CardInstance, equipped
     }
 };
 
-export const sendCard = (state: GameStore, card: CardInstance, to: Location, option?: { reverse: boolean }) => {
+export const getSpellTrapZoneIndex = (state: GameStore, card: CardInstance) => {
+    for (let i = 0; i < 5; i++) {
+        if (state.field?.spellTrapZones[i]?.id === card.id) {
+            return i;
+        }
+    }
+    return -1;
+};
+
+export const sendCard = (
+    state: GameStore,
+    card: CardInstance,
+    to: Location,
+    option?: { reverse?: boolean; spellFieldIndex?: number }
+) => {
     const originalLocation = card.location;
     // If the card is leaving the field and has equipment, send equipment to graveyard
     const isLeavingField =
@@ -118,10 +132,15 @@ export const sendCard = (state: GameStore, card: CardInstance, to: Location, opt
             break;
         case "SpellField": {
             // Find empty spell/trap zone
-            const emptyZone = state.field.spellTrapZones.findIndex((zone) => zone === null);
-            if (emptyZone !== -1) {
+            if (option?.spellFieldIndex !== undefined) {
                 const position = option?.reverse ? "back" : ("attack" satisfies Position);
-                state.field.spellTrapZones[emptyZone] = { ...updatedCard, position };
+                state.field.spellTrapZones[option.spellFieldIndex] = { ...updatedCard, position };
+            } else {
+                const emptyZone = state.field.spellTrapZones.findIndex((zone) => zone === null);
+                if (emptyZone !== -1) {
+                    const position = option?.reverse ? "back" : ("attack" satisfies Position);
+                    state.field.spellTrapZones[emptyZone] = { ...updatedCard, position };
+                }
             }
             break;
         }
