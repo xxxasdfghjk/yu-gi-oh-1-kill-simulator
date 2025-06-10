@@ -89,7 +89,7 @@ export const EXTRA_MONSTERS = [
                     gameState,
                     cardInstance,
                     ritualCards,
-                    { select: "single" },
+                    { select: "single", message: "デッキから儀式モンスターまたは儀式魔法カードを1枚選んでください" },
                     (gameState, card, selected) => {
                         sendCard(gameState, selected[0], "Hand");
                     }
@@ -140,13 +140,13 @@ export const EXTRA_MONSTERS = [
                             () => {
                                 return cardInstance.materials;
                             },
-                            { select: "single" },
+                            { select: "single", message: "X素材を1つ選んでください" },
                             (state, _card, selectedMaterial) => {
                                 withUserSelectCard(
                                     state,
                                     card,
                                     targets,
-                                    { select: "single" },
+                                    { select: "single", message: "手札に戻すモンスターを1体選んでください" },
                                     (state, _card, selected) => {
                                         sendCard(state, selectedMaterial[0], "Graveyard");
                                         sendCard(state, selected[0], "Hand");
@@ -191,14 +191,14 @@ export const EXTRA_MONSTERS = [
                             state,
                             card,
                             () => card.materials,
-                            { select: "single" },
+                            { select: "single", message: "X素材を1つ選んでください" },
                             (state, card, selected) => {
                                 sendCard(state, selected[0], "Graveyard");
                                 withUserSelectCard(
                                     state,
                                     card,
                                     (state) => state.deck,
-                                    { select: "single" },
+                                    { select: "single", message: "デッキからカードを1枚選んで墓地に送ってください" },
                                     (state, _card, selected) => {
                                         sendCard(state, selected[0], "Graveyard");
                                     }
@@ -249,7 +249,7 @@ export const EXTRA_MONSTERS = [
                                 gameState.deck.filter((card) => {
                                     return card.card.card_name.includes("竜輝巧");
                                 }),
-                            { select: "single" },
+                            { select: "single", message: "デッキから竜輝巧カードを1枚選んで墓地に送ってください" },
                             (selectState, _card, selected) => {
                                 sendCard(selectState, selected[0], "Graveyard");
                             }
@@ -377,6 +377,7 @@ export const EXTRA_MONSTERS = [
                                 {
                                     select: "multi",
                                     condition: (cards: CardInstance[]) => cards.length === chosenEffect.count,
+                                    message: `リリースするモンスターを${chosenEffect.count}体選んでください`,
                                 },
                                 (releaseState, releaseCard, selected) => {
                                     selected.forEach((monster) => {
@@ -396,7 +397,7 @@ export const EXTRA_MONSTERS = [
                                             releaseState,
                                             releaseCard,
                                             destroyTargets,
-                                            { select: "single" },
+                                            { select: "single", message: "破壊するフィールドのカードを1枚選んでください" },
                                             (destroyState, _, destroySelected) => {
                                                 sendCard(destroyState, destroySelected[0], "Graveyard");
                                             }
@@ -412,7 +413,7 @@ export const EXTRA_MONSTERS = [
                                             releaseState,
                                             releaseCard,
                                             mpbMonsters,
-                                            { select: "single" },
+                                            { select: "single", message: "デッキから幻獣機モンスターを1体選んで特殊召喚してください" },
                                             (summonState, summonCard, summonSelected) => {
                                                 withUserSummon(
                                                     summonState,
@@ -433,7 +434,7 @@ export const EXTRA_MONSTERS = [
                                             releaseState,
                                             releaseCard,
                                             trapCards,
-                                            { select: "single" },
+                                            { select: "single", message: "墓地から罠カードを1枚選んで手札に加えてください" },
                                             (trapState, _trapCard, trapSelected) => {
                                                 sendCard(trapState, trapSelected[0], "Hand");
                                             }
@@ -470,23 +471,12 @@ export const EXTRA_MONSTERS = [
         canNormalSummon: false,
         effect: {
             onIgnition: {
-                condition: (gameState: GameStore, cardInstance: CardInstance) => {
-                    return false;
+                condition: () => {
                     // このゲーム内では基本的に使用しない
-                    if (!withTurnAtOneceCondition(gameState, cardInstance, () => true)) return false;
-
-                    const faceUpMonsters = [
-                        ...gameState.field.monsterZones,
-                        ...gameState.field.extraMonsterZones,
-                    ].filter(
-                        (monster) =>
-                            monster !== null && monster.position !== "back_defense" && monster.position !== "back"
-                    );
-
-                    return faceUpMonsters.length > 0;
+                    return false;
                 },
-                effect: (gameState: GameStore, cardInstance: CardInstance) => {
-                    withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {});
+                effect: () => {
+                    // 効果なし
                 },
             },
         },
@@ -573,7 +563,7 @@ export const EXTRA_MONSTERS = [
                             state,
                             card,
                             faceUpMonsters,
-                            { select: "single" },
+                            { select: "single", message: "装備する対象のモンスターを1体選んでください" },
                             (state, card, selected) => {
                                 const equipTarget = selected[0];
                                 const target = (state: GameStore) => {
@@ -585,7 +575,7 @@ export const EXTRA_MONSTERS = [
                                                 card.card.element === typedMonster.element)
                                     );
                                 };
-                                withUserSelectCard(state, card, target, { select: "single" }, (state, _, selected) => {
+                                withUserSelectCard(state, card, target, { select: "single", message: "装備するモンスターをデッキから1体選んでください" }, (state, _, selected) => {
                                     const buffedCard = {
                                         ...selected[0],
                                         buf: { attack: 1000, defense: 0, level: 0 },
@@ -654,7 +644,7 @@ export const EXTRA_MONSTERS = [
                     state,
                     card,
                     (state) => state.deck.filter((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 1),
-                    { select: "single" },
+                    { select: "single", message: "デッキからレベル1モンスターを1体選んで墓地に送ってください" },
                     (state, _, selected) => {
                         sendCard(state, selected[0], "Graveyard");
                     }

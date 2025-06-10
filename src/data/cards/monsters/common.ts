@@ -120,9 +120,15 @@ export const COMMON_MONSTERS = [
                 if (target.length === 0) {
                     return;
                 }
-                withUserSelectCard(state, card, target, { select: "single", order: 999 }, (state, card, selected) => {
-                    sendCard(state, selected[0], "Hand");
-                });
+                withUserSelectCard(
+                    state,
+                    card,
+                    target,
+                    { select: "single", order: 999, message: "天使族・光属性モンスターを選択してください" },
+                    (state, card, selected) => {
+                        sendCard(state, selected[0], "Hand");
+                    }
+                );
             },
         },
     },
@@ -151,9 +157,15 @@ export const COMMON_MONSTERS = [
                 if (target(state).length === 0) {
                     return;
                 }
-                withUserSelectCard(state, card, target, { select: "single", order: 999 }, (state, _, selected) => {
-                    sendCard(state, selected[0], "Hand");
-                });
+                withUserSelectCard(
+                    state,
+                    card,
+                    target,
+                    { select: "single", order: 999, message: "儀式魔法カードを選択してください" },
+                    (state, _, selected) => {
+                        sendCard(state, selected[0], "Hand");
+                    }
+                );
             },
         },
     },
@@ -221,7 +233,7 @@ export const COMMON_MONSTERS = [
                             state,
                             cardInstance,
                             getDraitronReleaseTargets("竜輝巧－バンα"),
-                            { select: "single" },
+                            { select: "single", message: "リリースするモンスターを選択してください" },
                             (state, cardInstance, selected) => {
                                 const targetCard = selected[0];
                                 releaseCard(state, targetCard);
@@ -244,7 +256,10 @@ export const COMMON_MONSTERS = [
                                                 state,
                                                 cardInstance,
                                                 target,
-                                                { select: "single" },
+                                                {
+                                                    select: "single",
+                                                    message: "手札に加える儀式モンスターを選択してください",
+                                                },
                                                 (state, _, target) => {
                                                     sendCard(state, target[0], "Hand");
                                                 }
@@ -285,7 +300,7 @@ export const COMMON_MONSTERS = [
                             state,
                             cardInstance,
                             getDraitronReleaseTargets("竜輝巧－アルζ"),
-                            { select: "single" },
+                            { select: "single", message: "リリースするモンスターを選択してください" },
                             (state, card, selected) => {
                                 // Release selected card and summon this card
                                 const targetCard = selected[0];
@@ -310,7 +325,10 @@ export const COMMON_MONSTERS = [
                                             state,
                                             cardInstance,
                                             target,
-                                            { select: "single" },
+                                            {
+                                                select: "single",
+                                                message: "手札に加える儀式魔法カードを選択してください",
+                                            },
                                             (state, card, selected) => {
                                                 sendCard(state, selected[0], "Hand");
                                             }
@@ -351,7 +369,7 @@ export const COMMON_MONSTERS = [
                             state,
                             cardInstance,
                             getDraitronReleaseTargets("竜輝巧－エルγ"),
-                            { select: "single" },
+                            { select: "single", message: "リリースするモンスターを選択してください" },
                             (state, card, selected) => {
                                 // Release selected card and summon this card
                                 const targetCard = selected[0];
@@ -385,7 +403,10 @@ export const COMMON_MONSTERS = [
                                                         card.card.attack === 2000
                                                 );
                                             },
-                                            { select: "single" },
+                                            {
+                                                select: "single",
+                                                message: "墓地から特殊召喚するドライトロンモンスターを選択してください",
+                                            },
                                             (state, cardInstance, selected) => {
                                                 const targetCard = selected[0];
                                                 withUserSummon(
@@ -425,7 +446,7 @@ export const COMMON_MONSTERS = [
             onSummon: (gameState: GameStore, cardInstance: CardInstance) => {
                 // Search for a ritual monster
                 const ritualMonsters = (state: GameStore) => {
-                    return [...state.deck, ...state.extraDeck].filter(
+                    return [...state.extraDeck, ...state.deck].filter(
                         (card) => monsterFilter(card.card) && card.card.race === "天使"
                     );
                 };
@@ -435,7 +456,7 @@ export const COMMON_MONSTERS = [
                         gameState,
                         cardInstance,
                         ritualMonsters,
-                        { select: "single" },
+                        { select: "single", message: "墓地に送る天使族モンスターを選択してください" },
                         (state, card, selected) => {
                             const targetCard = selected[0].card as LeveledMonsterCard;
                             sendCard(state, selected[0], "Graveyard");
@@ -488,7 +509,11 @@ export const COMMON_MONSTERS = [
                         gameState,
                         cardInstance,
                         lightMonsters,
-                        { select: "multi", condition: (cards) => cards.length === 2 },
+                        {
+                            select: "multi",
+                            condition: (cards) => cards.length === 2,
+                            message: "除外する光属性モンスター2体を選択してください",
+                        },
                         (state, card, selected) => {
                             // Banish the selected light monsters
                             selected.forEach((monster) => {
@@ -530,9 +555,19 @@ export const COMMON_MONSTERS = [
                         return;
                     }
 
-                    withUserSelectCard(state, card, targets, { select: "single", order: 999 }, (state, _, selected) => {
-                        sendCard(state, selected[0], "Hand");
-                    });
+                    withUserSelectCard(
+                        state,
+                        card,
+                        targets,
+                        {
+                            select: "single",
+                            order: 999,
+                            message: "手札に加える攻撃力1500以下のモンスターを選択してください",
+                        },
+                        (state, _, selected) => {
+                            sendCard(state, selected[0], "Hand");
+                        }
+                    );
                 }),
         },
     },

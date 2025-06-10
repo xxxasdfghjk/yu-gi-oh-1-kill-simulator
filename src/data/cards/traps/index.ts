@@ -34,7 +34,8 @@ export const TRAP_CARDS = [
                             for (const selected of selectedList) {
                                 sendCard(state, selected, "Hand");
                             }
-                        }
+                        },
+                        "墓地から攻撃力1500以下の通常モンスターを3体まで選択してください"
                     );
                 },
             },

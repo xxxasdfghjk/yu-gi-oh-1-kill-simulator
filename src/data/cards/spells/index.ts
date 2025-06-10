@@ -48,7 +48,7 @@ export const MAGIC_CARDS = [
                                     state,
                                     card,
                                     (state) => state.deck.slice(0, excludeNum),
-                                    { select: "single" as const },
+                                    { select: "single" as const, message: "手札に加えるカードを選択してください" },
                                     (state, _cardInstance, selected) => {
                                         sendCard(state, selected[0], "Hand" as const);
                                     }
@@ -95,6 +95,7 @@ export const MAGIC_CARDS = [
                         (state) => state.hand.filter((e) => monsterFilter(e.card)),
                         {
                             select: "single",
+                            message: "手札から墓地に送るモンスターを選択してください",
                             condition: (cardList, state) => {
                                 const targetList = [...state.hand, ...state.deck].filter(
                                     (e) => hasLevelMonsterFilter(e.card) && e.card.level === 1
@@ -120,6 +121,7 @@ export const MAGIC_CARDS = [
                                     ),
                                 {
                                     select: "single",
+                                    message: "特殊召喚するレベル1モンスターを選択してください",
                                 },
                                 (state, card, selected) => {
                                     withUserSummon(state, card, selected[0], {}, () => {});
@@ -144,7 +146,7 @@ export const MAGIC_CARDS = [
                         state,
                         card,
                         (state) => state.deck.filter((e) => monsterFilter(e.card)),
-                        { select: "single" },
+                        { select: "single", message: "デッキから墓地に送るモンスターを選択してください" },
                         (state, _cardInstance, selected) => {
                             sendCard(state, selected[0], "Graveyard");
                         }
@@ -186,7 +188,7 @@ export const MAGIC_CARDS = [
                                                 : [...prev, cur],
                                         []
                                     ),
-                            { select: "multi", condition: (cards) => cards.length === 3 },
+                            { select: "multi", condition: (cards) => cards.length === 3, message: "デッキから異なるレベル1モンスター3体を選択してください" },
                             (state, _cardInstance, selected) => {
                                 const rand = Math.floor(Math.random() * 3);
                                 const option = selected.filter((_, i) => i !== rand);
@@ -194,7 +196,7 @@ export const MAGIC_CARDS = [
                                     state,
                                     _cardInstance,
                                     () => option,
-                                    { select: "single" },
+                                    { select: "single", message: "手札に加えるレベル1モンスターを選択してください" },
                                     (state, _cardInstance, selected) => {
                                         sendCard(state, selected[0], "Hand");
                                     }
@@ -239,7 +241,7 @@ export const MAGIC_CARDS = [
                                         e.card.element === "光" &&
                                         e.card.canNormalSummon === false
                                 ),
-                            { select: "single" as const },
+                            { select: "single" as const, message: "デッキから手札に加える機械族・光属性モンスターを選択してください" },
                             (state, _cardInstance, selected) => {
                                 sendCard(state, selected[0], "Hand" as const);
                             }
@@ -271,7 +273,7 @@ export const MAGIC_CARDS = [
                             card,
                             (state) =>
                                 state.deck.filter((e) => monsterFilter(e.card) && e.card.card_name.includes("竜輝巧")),
-                            { select: "single" },
+                            { select: "single", message: "デッキから特殊召喚するドライトロンモンスターを選択してください" },
                             (state, _cardInstance, selected) => {
                                 withUserSummon(state, _cardInstance, selected[0], {}, () => {});
                             }
@@ -311,7 +313,7 @@ export const MAGIC_CARDS = [
                             state,
                             card,
                             draitronSpellTrap,
-                            { select: "single" },
+                            { select: "single", message: "デッキから手札に加えるドライトロン魔法・罠カードを選択してください" },
                             (state, _cardInstance, selected) => {
                                 sendCard(state, selected[0], "Hand");
                             }
@@ -336,7 +338,7 @@ export const MAGIC_CARDS = [
                         card,
                         (state) =>
                             state.deck.filter((e) => isMagicCard(e.card) && e.card.magic_type === "フィールド魔法"),
-                        { select: "single" },
+                        { select: "single", message: "デッキから手札に加えるフィールド魔法カードを選択してください" },
                         (state, _cardInstance, selected) => {
                             sendCard(state, selected[0], "Hand");
                         }
@@ -447,13 +449,14 @@ export const MAGIC_CARDS = [
                         {
                             select: "multi",
                             condition: (cards) => cards.length === 2,
+                            message: "デッキから異なるフィールド魔法カード2枚を選択してください",
                         },
                         (state, _cardInstance, selectedList) => {
                             withUserSelectCard(
                                 state,
                                 _cardInstance,
                                 () => selectedList,
-                                { select: "single" },
+                                { select: "single", message: "自分のフィールドゾーンにセットするフィールド魔法カードを選択してください" },
                                 (state, _, selected) => {
                                     if (state.field.fieldZone !== null) {
                                         sendCard(state, state.field.fieldZone, "Graveyard");
@@ -528,7 +531,7 @@ export const MAGIC_CARDS = [
                                 (e) => monsterFilter(e.card) && e.card.monster_type === "儀式モンスター"
                             );
                         },
-                        { select: "single" },
+                        { select: "single", message: "儀式召喚する儀式モンスターを選択してください" },
                         (state, card, ritual) => {
                             withUserSelectCard(
                                 state,
@@ -568,6 +571,7 @@ export const MAGIC_CARDS = [
                                             monsterList.every((e) => sumOfAttack - e.attack < ritualMonster.attack)
                                         );
                                     },
+                                    message: "儀式素材として使用する機械族モンスターを選択してください",
                                 },
                                 (state, card, selected) => {
                                     for (const select of selected) {
@@ -601,7 +605,7 @@ export const MAGIC_CARDS = [
                                 [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
                                     (e): e is CardInstance => e !== null && e.card.card_name.includes("竜輝巧")
                                 ),
-                            { select: "single" },
+                            { select: "single", message: "攻撃力を下げる対象のドライトロンモンスターを選択してください" },
                             (state, instance, selected) => {
                                 addBuf(state, selected[0], { attack: -1000, defense: 0, level: 0 });
                                 sendCard(state, instance, "Hand");
@@ -669,7 +673,7 @@ export const MAGIC_CARDS = [
                                 (e) => hasLevelMonsterFilter(e.card) && summonableLevel.includes(e.card.level)
                             );
                         },
-                        { select: "single" },
+                        { select: "single", message: "儀式召喚する儀式モンスターを選択してください" },
                         (state, card, ritualMonster) => {
                             withUserSelectCard(
                                 state,
@@ -689,6 +693,7 @@ export const MAGIC_CARDS = [
                                             getLevel(ritualMonster[0])
                                         );
                                     },
+                                    message: "儀式素材として墓地に送る通常モンスターを選択してください",
                                 },
                                 (state, card, selected) => {
                                     for (const select of selected) {
@@ -729,7 +734,7 @@ export const MAGIC_CARDS = [
                                     e.card.monster_type === "儀式モンスター" &&
                                     e.card.level <= 7
                             ),
-                        { select: "single" },
+                        { select: "single", message: "デッキから手札に加えるレベル7以下の儀式モンスターを選択してください" },
                         (state, _cardInstance, selected) => {
                             sendCard(state, selected[0], "Hand");
                             // Check if there are ritual spell cards in graveyard
@@ -744,7 +749,7 @@ export const MAGIC_CARDS = [
                                         state.graveyard.filter(
                                             (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
                                         ),
-                                    { select: "single" },
+                                    { select: "single", message: "墓地から手札に加える儀式魔法カードを選択してください" },
                                     (state, _cardInstance, selected) => {
                                         sendCard(state, selected[0], "Hand");
                                     }

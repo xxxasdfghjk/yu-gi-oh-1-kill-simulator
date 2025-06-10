@@ -84,6 +84,7 @@ export const withUserSelectCard = (
         select: "single" | "multi";
         condition?: (cards: CardInstance[], state: GameStore) => boolean;
         order?: number;
+        message?: string;
     },
     callback: (state: GameStore, cardInstance: CardInstance, selected: CardInstance[]) => void
 ) => {
@@ -91,7 +92,7 @@ export const withUserSelectCard = (
         id: uuidv4(),
         order: option.order ?? 1,
         type: option.select === "single" ? "select" : "multiselect",
-        effectName: `${card.card.card_name}（カード選択）`,
+        effectName: option.message ? option.message : `${card.card.card_name}（カード選択）`,
         cardInstance: card,
         getAvailableCards: cardOption,
         condition: option.condition
