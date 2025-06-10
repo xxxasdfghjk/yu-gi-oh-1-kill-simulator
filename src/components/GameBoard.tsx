@@ -34,6 +34,10 @@ export const GameBoard: React.FC = () => {
         isOpponentTurn,
         opponentField,
         sendSpellToGraveyard,
+        nextPhase,
+        checkExodiaWin,
+        endGame,
+        judgeWin,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -43,33 +47,12 @@ export const GameBoard: React.FC = () => {
         initializeGame();
     }, [initializeGame]);
 
-    // Game logic functions
-    const nextPhase = () => {
-        // Implement phase transition logic
-        // This would need to be added to gameStore
-    };
-
     const startSpecialSummon = (monster: CardInstance, summonType: "link" | "xyz" | "synchro" | "fusion") => {
         if (summonType === "link" && gameState.startLinkSummon) {
             gameState.startLinkSummon(monster);
         } else if (summonType === "xyz" && gameState.startXyzSummon) {
             gameState.startXyzSummon(monster);
         }
-    };
-
-    const checkExodiaWin = () => {
-        // Implement exodia win check logic
-        // This would need to be added to gameStore
-    };
-
-    const endGame = () => {
-        // Implement end game logic
-        // This would need to be added to gameStore
-    };
-
-    const judgeWin = () => {
-        // Implement judge win logic
-        // This would need to be added to gameStore
     };
 
     const canPerformLinkSummon = (linkMonster: CardInstance): boolean => {
@@ -100,17 +83,17 @@ export const GameBoard: React.FC = () => {
         } else if (currentEffect?.type === "spell_end") {
             processQueueTop({ type: "spellend" });
         }
-    }, [effectQueue, popQueue, gameState, sendSpellToGraveyard, processQueueTop]);
+    }, [effectQueue, popQueue, gameState, sendSpellToGraveyard, processQueueTop, judgeWin]);
 
     useEffect(() => {
         checkExodiaWin();
-    }, [hand]);
+    }, [checkExodiaWin, hand]);
 
     useEffect(() => {
-        if (phase === "draw") {
+        if (phase === "main1" && turn === 2) {
             endGame();
         }
-    }, [phase]);
+    }, [endGame, phase, turn]);
 
     return (
         <div className="min-h-screen min-w-[1920px] bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">

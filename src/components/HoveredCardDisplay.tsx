@@ -6,7 +6,6 @@ import type { DefensableMonsterCard } from "@/types/card";
 export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
     const isBattleField = hoveredCard?.location === "MonsterField";
-    console.log(hoveredCard, hoveredCard?.card ? isXyzMonster(hoveredCard.card) : "");
     return (
         <div className="flex-[0.9] mx-auto h-[640px] mt-6">
             <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">

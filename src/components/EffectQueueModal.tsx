@@ -5,6 +5,7 @@ import SummonSelector from "./SummonSelector";
 import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
 import { type LinkMonsterCard } from "../types/card";
+import { canLinkSummonAfterRelease } from "@/utils/gameUtils";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
@@ -138,9 +139,16 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
         case "material_select":
             return (
                 <MultiCardConditionSelector
-                    condition={(selectedCards) => {
+                    condition={(selectedCards, state) => {
                         const effect = currentEffect;
-                        return (effect.targetMonster.card as LinkMonsterCard).materialCondition(selectedCards);
+                        return (
+                            (effect.targetMonster.card as LinkMonsterCard).materialCondition(selectedCards) &&
+                            canLinkSummonAfterRelease(
+                                selectedCards,
+                                state.field.extraMonsterZones,
+                                state.field.monsterZones
+                            )
+                        );
                     }}
                     getAvailableCards={currentEffect.getAvailableCards}
                     state={gameState}

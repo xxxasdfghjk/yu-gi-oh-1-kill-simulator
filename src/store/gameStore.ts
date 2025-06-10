@@ -208,7 +208,7 @@ export const useGameStore = create<GameStore>()(
 
             // Draw opening hand
             set((state) => {
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 5; i++) {
                     sendCard(state, state.deck[i], "Hand");
                 }
             });
@@ -301,21 +301,11 @@ export const useGameStore = create<GameStore>()(
                 // Basic phase progression
                 switch (state.phase) {
                     case "main1":
-                        state.phase = "end";
+                        state.phase = "draw";
+                        state.isOpponentTurn = true;
+                        state.turn = state.turn + 1;
                         break;
-                    case "end":
-                        state.phase = "main1";
-                        state.turn += 1;
-                        // Reset turn-based flags
-                        state.hasNormalSummoned = false;
-                        state.hasSpecialSummoned = false;
-                        state.hasDrawnByEffect = false;
-                        // Reset turn-once effect memo
-                        if (state.turnOnceUsedEffectMemo) {
-                            state.turnOnceUsedEffectMemo = {};
-                        }
-                        break;
-                    default:
+                    case "draw":
                         state.phase = "main1";
                 }
             });
@@ -361,7 +351,20 @@ export const useGameStore = create<GameStore>()(
                         card.card.effect.onSpell?.effect(state, card);
                     }
                 } else if (card.card.card_type === "罠") {
-                    sendCard(state, card, "SpellField");
+                    const index = getSpellTrapZoneIndex(state, card);
+                    if (index !== -1 && card.position === "back") {
+                        state.field.spellTrapZones[index]!.position = undefined;
+                    } else {
+                        sendCard(state, card, "SpellField", {});
+                    }
+                    card.card.effect.onSpell?.effect(state, card);
+                    pushQueue(state, {
+                        order: 100,
+                        id: card.id + "_spell_end",
+                        type: "spell_end",
+                        cardInstance: card,
+                        effectType: "send_to_graveyard",
+                    });
                 } else if (card.card.card_type === "モンスター") {
                     // Handle monster cards - add to effect queue for user to choose position and zone
                     pushQueue(state, {
@@ -391,7 +394,8 @@ export const useGameStore = create<GameStore>()(
 
         setCard: (card: CardInstance) => {
             set((state) => {
-                sendCard(state, card, "SpellField", { reverse: true });
+                const newCard = { ...card, setTurn: state.turn };
+                sendCard(state, newCard, "SpellField", { reverse: true });
             });
         },
 
@@ -483,6 +487,7 @@ export const useGameStore = create<GameStore>()(
                 if (hasAllPieces) {
                     state.gameOver = true;
                     state.winner = "player";
+                    return true;
                 }
             });
         },

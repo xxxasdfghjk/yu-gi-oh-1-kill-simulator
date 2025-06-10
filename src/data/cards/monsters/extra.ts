@@ -21,7 +21,7 @@ import { equipCard, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { TOKEN } from "../tokens";
-import { getAttack, getLevel } from "@/utils/gameUtils";
+import { calcCanSummonLink, getAttack, getLevel } from "@/utils/gameUtils";
 
 // Define extra monsters as literal objects with proper typing
 export const EXTRA_MONSTERS = [
@@ -273,7 +273,8 @@ export const EXTRA_MONSTERS = [
         filterAvailableMaterials: () => true,
         materialCondition: (card: CardInstance[]) => {
             return !!(
-                card.filter((e) => monsterFilter(e.card) && e.card.race === "機械").length >= 2 && sumLink(card) === 3
+                card.filter((e) => monsterFilter(e.card) && e.card.race === "機械").length >= 2 &&
+                calcCanSummonLink(card).includes(3)
             );
         },
         text: "機械族モンスター２体以上\n①：このカードがリンク召喚に成功した場合に発動できる。自分フィールドに「幻獣機トークン」（機械族・風・星３・攻／守０）３体を特殊召喚する。このターン、自分はリンク召喚できない。②：１ターンに１度、自分フィールドのモンスターを３体までリリースして発動できる。リリースしたモンスターの数によって以下の効果を適用する。●１体：フィールドのカード１枚を選んで破壊する。●２体：デッキから「幻獣機」モンスター１体を特殊召喚する。●３体：自分の墓地から罠カード１枚を選んで手札に加える。",
@@ -291,8 +292,7 @@ export const EXTRA_MONSTERS = [
 
                 if (emptyZones.length < 3) return;
 
-                const phantomBeastToken = TOKEN.find((token) => token.card_name === "幻獣機トークン");
-                if (!phantomBeastToken) return;
+                const phantomBeastToken = TOKEN.find((token) => token.card_name === "幻獣機トークン")!;
 
                 for (let i = 0; i < 3 && i < emptyZones.length; i++) {
                     const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
@@ -523,31 +523,32 @@ export const EXTRA_MONSTERS = [
         canNormalSummon: false,
         effect: {
             onIgnition: {
-                condition: (gameState: GameStore, cardInstance: CardInstance) => {
-                    if (!withTurnAtOneceCondition(gameState, cardInstance, () => true)) return false;
-
-                    const faceUpMonsters = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones]
-                        .filter(
-                            (monster): monster is CardInstance =>
-                                monster !== null && monster.position !== "back_defense" && monster.position !== "back"
-                        )
-                        .filter((monster) => {
-                            const typedMonster = monster.card as MonsterCard;
-                            return (
-                                gameState.deck.filter(
-                                    (card) =>
-                                        monsterFilter(card.card) &&
-                                        (card.card.race === typedMonster.race ||
-                                            card.card.element === typedMonster.element)
-                                ).length > 0
-                            );
-                        });
-                    const hasEmptySpellField =
-                        gameState.field.spellTrapZones.filter((e): e is CardInstance => e === null).length > 0;
-                    return faceUpMonsters.length > 0 && hasEmptySpellField && cardInstance.location === "MonsterField";
+                condition: (state: GameStore, card: CardInstance) => {
+                    return withTurnAtOneceCondition(state, card, (state, card) => {
+                        const faceUpMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                            .filter(
+                                (monster): monster is CardInstance =>
+                                    monster !== null &&
+                                    (monster.position === "attack" || monster.position === "defense")
+                            )
+                            .filter((monster) => {
+                                const typedMonster = monster.card as MonsterCard;
+                                return (
+                                    state.deck.filter(
+                                        (card) =>
+                                            monsterFilter(card.card) &&
+                                            (card.card.race === typedMonster.race ||
+                                                card.card.element === typedMonster.element)
+                                    ).length > 0
+                                );
+                            });
+                        const hasEmptySpellField =
+                            state.field.spellTrapZones.filter((e): e is CardInstance => e === null).length > 0;
+                        return faceUpMonsters.length > 0 && hasEmptySpellField && card.location === "MonsterField";
+                    });
                 },
-                effect: (gameState: GameStore, cardInstance: CardInstance) => {
-                    withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {
+                effect: (state: GameStore, card: CardInstance) => {
+                    withTurnAtOneceEffect(state, card, (state, card) => {
                         const faceUpMonsters = (state: GameStore) =>
                             [...state.field.monsterZones, ...state.field.extraMonsterZones]
                                 .filter(
@@ -559,7 +560,7 @@ export const EXTRA_MONSTERS = [
                                 .filter((monster) => {
                                     const typedMonster = monster.card as MonsterCard;
                                     return (
-                                        gameState.deck.filter(
+                                        state.deck.filter(
                                             (card) =>
                                                 monsterFilter(card.card) &&
                                                 (card.card.race === typedMonster.race ||

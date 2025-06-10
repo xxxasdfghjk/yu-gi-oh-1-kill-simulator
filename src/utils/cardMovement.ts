@@ -96,8 +96,6 @@ export const sendCard = (
         equipmentCopy.forEach((equipmentCard) => {
             sendCard(state, equipmentCard, "Graveyard");
         });
-        // Clear the equipment array
-        card.equipment = [];
     }
 
     // Remove from current location
@@ -108,6 +106,7 @@ export const sendCard = (
         ...card,
         location: to,
         position: option?.reverse ? "back" : undefined,
+        equipment: [],
     } satisfies CardInstance;
 
     switch (to) {
@@ -155,7 +154,6 @@ export const sendCard = (
             state.opponentField.fieldZone = { ...updatedCard };
         }
     }
-
     // Trigger effects after the card has been moved
     triggerEffects(state, updatedCard, originalLocation, to);
 };

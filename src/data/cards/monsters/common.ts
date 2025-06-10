@@ -521,33 +521,19 @@ export const COMMON_MONSTERS = [
         hasLink: false as const,
         canNormalSummon: true,
         effect: {
-            onDestroyByBattle: (gameState: GameStore, cardInstance: CardInstance) => {
-                // Search for monsters with 1500 or less attack
-                const lowAttackMonsters = (gameState: GameStore) =>
-                    gameState.deck.filter((card) => {
-                        if (!monsterFilter(card.card)) return false;
-                        return card.card.attack <= 1500;
-                    });
+            onFieldToGraveyard: (state, card) =>
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    const targets = (state: GameStore) =>
+                        state.deck.filter((c) => monsterFilter(c.card) && c.card.attack <= 1500);
 
-                if (lowAttackMonsters.length > 0) {
-                    withUserSelectCard(
-                        gameState,
-                        cardInstance,
-                        lowAttackMonsters,
-                        { select: "single" },
-                        (state, card, selected) => {
-                            const targetCard = selected[0];
-                            // Remove from deck and add to hand
-                            const deckIndex = state.deck.findIndex((c) => c.id === targetCard.id);
-                            if (deckIndex !== -1) {
-                                state.deck.splice(deckIndex, 1);
-                                const handCard = { ...targetCard, location: "Hand" as const };
-                                state.hand.push(handCard);
-                            }
-                        }
-                    );
-                }
-            },
+                    if (targets(state).length === 0) {
+                        return;
+                    }
+
+                    withUserSelectCard(state, card, targets, { select: "single", order: 999 }, (state, _, selected) => {
+                        sendCard(state, selected[0], "Hand");
+                    });
+                }),
         },
     },
 ] as const satisfies CommonMonster[];

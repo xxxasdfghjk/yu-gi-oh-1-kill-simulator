@@ -28,11 +28,15 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
         actions.push("summon");
     }
     if (
-        isMagicCard(card.card) &&
-        card.card.effect.onSpell?.condition(gameState, card) &&
-        hasEmptySpellField(gameState) &&
-        (card.location === "Hand" || card.location === "SpellField") &&
-        !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited)
+        (isMagicCard(card.card) &&
+            card.card.effect.onSpell?.condition(gameState, card) &&
+            (hasEmptySpellField(gameState) || card.location === "SpellField") &&
+            (card.location === "Hand" || card.location === "SpellField") &&
+            !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited)) ||
+        (isTrapCard(card.card) &&
+            card.card.effect.onSpell?.condition(gameState, card) &&
+            card.location === "SpellField" &&
+            (card?.setTurn ?? 999999) < gameState.turn)
     ) {
         actions.push("activate");
     }

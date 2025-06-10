@@ -162,4 +162,5 @@ export interface CardInstance {
     };
     materials: CardInstance[];
     isToken?: boolean;
+    setTurn?: number;
 }
