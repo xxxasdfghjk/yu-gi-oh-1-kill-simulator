@@ -3,9 +3,10 @@ import { immer } from "zustand/middleware/immer";
 import type { GameState } from "@/types/game";
 import { DECK } from "@/data/cards";
 import { createCardInstance } from "@/utils/cardManagement";
-import { sendCard, summon } from "@/utils/cardMovement";
-import type { CardInstance, LinkMonsterCard, MagicCard } from "@/types/card";
-import type { Position } from "@/utils/effectUtils";
+import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
+import type { CardInstance, MagicCard } from "@/types/card";
+import { withUserSummon, type Position } from "@/utils/effectUtils";
+import { pushQueue } from "../utils/effectUtils";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
@@ -21,118 +22,86 @@ export type ProcessQueuePayload =
 // - Confirm callbacks: boolean
 
 export type EffectQueueItem =
-    | {
-          id: string;
-          type: "search" | "select" | "multiselect";
-          effectName: string;
-          cardInstance: CardInstance;
-          maxSelections?: number;
-          effectType: string;
-          filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
-          getAvailableCards: (state: GameStore, card: CardInstance) => CardInstance[];
-          condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
-          canCancel: boolean;
-          callback?: (state: GameStore, cardInstance: CardInstance, selectedCards: CardInstance[]) => void;
-      }
-    | {
-          id: string;
-          type: "confirm";
-          effectName: string;
-          cardInstance: CardInstance;
-          effectType: string;
-          condition: () => boolean;
-          canCancel: boolean;
-          callback?: (state: GameStore, cardInstance: CardInstance) => void;
-      }
-    | {
-          id: string;
-          type: "option";
-          effectName: string;
-          cardInstance: CardInstance;
-          maxSelections?: number;
-          option: { name: string; value: string }[];
-          effectType: string;
-          canCancel: boolean;
-          callback?: (state: GameStore, cardInstance: CardInstance, selectedOption: string) => void;
-      }
-    | {
-          id: string;
-          type: "summon";
-          cardInstance: CardInstance;
-          effectType: string;
-          canSelectPosition: boolean;
-          optionPosition: Exclude<Position, undefined>[];
-          callback?: (
-              state: GameStore,
-              cardInstance: CardInstance,
-              result: { zone: number; position: "back_defense" | "attack" | "back" | "defense" | undefined }
-          ) => void;
-      }
-    | {
-          id: string;
-          type: "activate_spell";
-          cardInstance: CardInstance;
-          effectType: string;
-          callback?: (state: GameStore, cardInstance: CardInstance) => void;
-      }
-    | {
-          id: string;
-          type: "spell_end";
-          cardInstance: CardInstance;
-          effectType: string;
-          callback?: (state: GameStore, cardInstance: CardInstance) => void;
-      }
-    | {
-          id: string;
-          type: "notify";
-          cardInstance: CardInstance;
-          effectType: string;
-          callback?: (state: GameStore, cardInstance: CardInstance) => void;
-      }
-    | {
-          id: string;
-          type: "link_summon";
-          cardInstance: CardInstance;
-          effectType: string;
-          targetMonster: CardInstance;
-          callback?: (
-              state: GameStore,
-              cardInstance: CardInstance,
-              result: { zone: number; position: "back_defense" | "attack" | "back" | "defense" | undefined }
-          ) => void;
-      }
-    | {
-          id: string;
-          type: "xyz_summon";
-          cardInstance: CardInstance;
-          effectType: string;
-          targetMonster: CardInstance;
-          callback?: (
-              state: GameStore,
-              cardInstance: CardInstance,
-              result: { zone: number; position: "back_defense" | "attack" | "back" | "defense" | undefined }
-          ) => void;
-      }
-    | {
-          id: string;
-          type: "material_select";
-          cardInstance: CardInstance;
-          effectType: string;
-          targetMonster: CardInstance;
-          getAvailableCards: (state: GameStore, card: CardInstance) => CardInstance[];
-          summonType: "link" | "xyz";
-          callback?: (state: GameStore, cardInstance: CardInstance, selectedMaterials: CardInstance[]) => void;
-      }
-    | {
-          id: string;
-          type: "perform_summon";
-          cardInstance: CardInstance;
-          effectType: string;
-          targetMonster: CardInstance;
-          selectedMaterials: CardInstance[];
-          summonType: "link" | "xyz";
-          callback?: (state: GameStore, cardInstance: CardInstance) => void;
-      };
+    | (
+          | {
+                id: string;
+                type: "search" | "select" | "multiselect";
+                effectName: string;
+                cardInstance: CardInstance;
+                maxSelections?: number;
+                effectType: string;
+                filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
+                getAvailableCards: (state: GameStore) => CardInstance[];
+                condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
+                canCancel: boolean;
+                callback?: (state: GameStore, cardInstance: CardInstance, selectedCards: CardInstance[]) => void;
+            }
+          | {
+                id: string;
+                type: "confirm";
+                effectName: string;
+                cardInstance: CardInstance;
+                effectType: string;
+                condition: () => boolean;
+                canCancel: boolean;
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
+                type: "option";
+                effectName: string;
+                cardInstance: CardInstance;
+                maxSelections?: number;
+                option: { name: string; value: string }[];
+                effectType: string;
+                canCancel: boolean;
+                callback?: (state: GameStore, cardInstance: CardInstance, selectedOption: string) => void;
+            }
+          | {
+                id: string;
+                type: "summon";
+                cardInstance: CardInstance;
+                effectType: string;
+                canSelectPosition: boolean;
+                optionPosition: Exclude<Position, undefined>[];
+                callback?: (
+                    state: GameStore,
+                    cardInstance: CardInstance,
+                    result: { zone: number; position: "back_defense" | "attack" | "back" | "defense" | undefined }
+                ) => void;
+            }
+          | {
+                id: string;
+                type: "activate_spell";
+                cardInstance: CardInstance;
+                effectType: string;
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
+                type: "spell_end";
+                cardInstance: CardInstance;
+                effectType: string;
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
+                type: "notify";
+                cardInstance: CardInstance;
+                effectType: string;
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
+                type: "material_select";
+                cardInstance: CardInstance;
+                effectType: string;
+                targetMonster: CardInstance;
+                summonType: "link" | "xyz";
+                getAvailableCards: (state: GameStore) => CardInstance[];
+                callback: (state: GameStore, cardInstance: CardInstance, selectedMaterials: CardInstance[]) => void;
+            }
+      ) & { order: number };
 
 export interface GameStore extends GameState {
     turnOnceUsedEffectMemo: Record<string, boolean>;
@@ -261,8 +230,11 @@ export const useGameStore = create<GameStore>()(
 
         processQueueTop: (payload: ProcessQueuePayload) => {
             set((state) => {
+                console.log("ajaiaijfeji");
                 if (state.effectQueue.length === 0) return;
                 const currentEffect = state.effectQueue[0];
+                console.log(state.effectQueue);
+
                 state.effectQueue.shift();
 
                 // Handle effects directly through payload without pendingCallbacks
@@ -360,7 +332,8 @@ export const useGameStore = create<GameStore>()(
                     if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
                         // Spells that go to graveyard after use
                         // 1. Queue spell_end job at the end
-                        state.effectQueue.push({
+                        pushQueue(state, {
+                            order: 0,
                             id: card.id + "_spell_end",
                             type: "spell_end",
                             cardInstance: card,
@@ -368,7 +341,8 @@ export const useGameStore = create<GameStore>()(
                         });
 
                         // 2. Queue activation at the front (processed first)
-                        state.effectQueue.unshift({
+                        pushQueue(state, {
+                            order: 0,
                             id: card.id + "_activation",
                             type: "activate_spell",
                             cardInstance: card,
@@ -386,7 +360,8 @@ export const useGameStore = create<GameStore>()(
                     sendCard(state, card, "SpellField");
                 } else if (card.card.card_type === "モンスター") {
                     // Handle monster cards - add to effect queue for user to choose position and zone
-                    state.effectQueue.push({
+                    pushQueue(state, {
+                        order: 0,
                         id: card.id + "_normal_summon",
                         type: "summon",
                         cardInstance: card,
@@ -420,16 +395,32 @@ export const useGameStore = create<GameStore>()(
 
         startLinkSummon: (linkMonster: CardInstance) => {
             set((state) => {
-                // Get available materials for link summon
-                // Add material selection job to queue
-                state.effectQueue.push({
+                pushQueue(state, {
+                    order: 0,
+
                     id: linkMonster.id + "_material_select",
                     type: "material_select",
                     cardInstance: linkMonster,
                     effectType: "link_material_selection",
                     targetMonster: linkMonster,
                     summonType: "link",
-                    getAvailableCards: (linkMonster.card as LinkMonsterCard).availableMaterials,
+                    getAvailableCards: (state) => {
+                        return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                            (e): e is CardInstance => e !== null
+                        );
+                    },
+                    callback: (state, card, selected) => {
+                        for (const card of selected) {
+                            sendCard(state, card, "Graveyard");
+                        }
+                        withUserSummon(
+                            state,
+                            card,
+                            card,
+                            { canSelectPosition: false, optionPosition: ["attack"] },
+                            () => {}
+                        );
+                    },
                 });
             });
         },
@@ -438,14 +429,26 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 // Get available materials for xyz summon
                 // Add material selection job to queue
-                state.effectQueue.push({
+                pushQueue(state, {
+                    order: 0,
                     id: xyzMonster.id + "_material_select",
                     type: "material_select",
                     cardInstance: xyzMonster,
                     effectType: "xyz_material_selection",
                     targetMonster: xyzMonster,
-                    availableMaterials: xyzMonster.card.availableMaterials,
+                    getAvailableCards: (state) => {
+                        return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                            (e): e is CardInstance => !e
+                        );
+                    },
                     summonType: "xyz",
+                    callback: (state, card, selected) => {
+                        const newInstance = { ...card, material: [...selected] };
+                        for (const card of selected) {
+                            excludeFromAnywhere(state, card);
+                        }
+                        withUserSummon(state, newInstance, newInstance, {}, () => {});
+                    },
                 });
             });
         },

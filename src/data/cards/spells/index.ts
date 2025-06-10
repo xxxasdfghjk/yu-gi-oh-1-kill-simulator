@@ -1,6 +1,12 @@
 import type { MagicCard } from "@/types/card";
 import { hasLevelMonsterFilter, monsterFilter } from "@/utils/cardManagement";
-import { withOption, withTurnAtOneceCondition, withTurnAtOneceEffect, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import {
+    withOption,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withUserSelectCard,
+    withUserSummon,
+} from "@/utils/effectUtils";
 import { banishFromRandomExtractDeck, sendCard } from "@/utils/cardMovement";
 
 export const MAGIC_CARDS = [
@@ -35,7 +41,7 @@ export const MAGIC_CARDS = [
                                 withUserSelectCard(
                                     state,
                                     card,
-                                    state.deck.slice(0, excludeNum),
+                                    (state) => state.deck.slice(0, excludeNum),
                                     { select: "single" as const },
                                     (state, _cardInstance, selected) => {
                                         sendCard(state, selected[0], "Hand" as const);
@@ -80,7 +86,7 @@ export const MAGIC_CARDS = [
                     withUserSelectCard(
                         state,
                         card,
-                        state.hand.filter((e) => monsterFilter(e.card)),
+                        (state) => state.hand.filter((e) => monsterFilter(e.card)),
                         {
                             select: "single",
                             condition: (cardList, state) => {
@@ -102,14 +108,15 @@ export const MAGIC_CARDS = [
                             withUserSelectCard(
                                 state,
                                 card,
-                                [...state.hand, ...state.deck].filter(
-                                    (e) => hasLevelMonsterFilter(e.card) && e.card.level === 1
-                                ),
+                                (state) =>
+                                    [...state.hand, ...state.deck].filter(
+                                        (e) => hasLevelMonsterFilter(e.card) && e.card.level === 1
+                                    ),
                                 {
                                     select: "single",
                                 },
                                 (state, card, selected) => {
-                                    withUserSummon(state, card, selected[0], () => {});
+                                    withUserSummon(state, card, selected[0], {}, () => {});
                                 }
                             );
                         }

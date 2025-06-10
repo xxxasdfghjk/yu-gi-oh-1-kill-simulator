@@ -36,7 +36,7 @@ export const GameBoard: React.FC = () => {
 
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
-
+    console.log(effectQueue);
     useEffect(() => {
         initializeGame();
     }, [initializeGame]);
@@ -122,7 +122,7 @@ export const GameBoard: React.FC = () => {
 
                     <div>
                         <div className=" flex justify-between">
-                            <HoveredCardDisplay state={gameState} />
+                            <HoveredCardDisplay />
                             <div className="mr-44">
                                 {/* エクストラモンスターゾーン（相手と自分の間） */}
                                 <ExtraMonsterZones

@@ -7,14 +7,13 @@ import ModalWrapper from "./ModalWrapper";
 interface MultiCardConditionSelectorProps {
     type: "multi" | "single";
     state: GameStore;
-    getAvailableCards: (state: GameStore, card: CardInstance) => CardInstance[];
+    getAvailableCards: (state: GameStore) => CardInstance[];
     title: string;
     onSelect: (selectedCards: CardInstance[]) => void;
     onCancel?: () => void;
     condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
-    filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
+    filterFunction?: (card: CardInstance) => boolean;
     isOpen?: boolean;
-    currentCardInstance: CardInstance;
 }
 
 export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProps> = ({
@@ -27,10 +26,9 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
     filterFunction,
     condition,
     isOpen = true,
-    currentCardInstance,
 }) => {
     const [selectedCards, setSelectedCards] = useState<CardInstance[]>([]);
-    const cards = getAvailableCards(state, currentCardInstance);
+    const cards = getAvailableCards(state);
     const handleCardClick = (card: CardInstance) => {
         if (type === "multi") {
             const isSelected = selectedCards.some((c) => c.id === card.id);
@@ -38,9 +36,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
                 // カードの選択を解除
                 setSelectedCards((prev) => prev.filter((c) => c.id !== card.id));
             } else {
-                if (!filterFunction || filterFunction(card, selectedCards)) {
-                    setSelectedCards((prev) => [...prev, card]);
-                }
+                setSelectedCards((prev) => [...prev, card]);
             }
         } else {
             const isSelected = selectedCards.some((c) => c.id === card.id);
@@ -52,15 +48,6 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
             }
         }
     };
-
-    // フィルター関数に基づいて利用可能なカードを決定
-    const availableCards = cards.filter((card) => {
-        const isAlreadySelected = selectedCards.some((c) => c.id === card.id);
-        if (isAlreadySelected) return true; // 既に選択されているカードは表示
-
-        if (!filterFunction) return true;
-        return filterFunction(card, selectedCards);
-    });
 
     const canConfirm = condition(selectedCards, state);
     const handleConfirm = () => {
@@ -78,28 +65,32 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
             </div>
 
             <div className="grid grid-cols-5  mb-6 gap-y-4 gap-x-2">
-                {availableCards.map((card) => {
-                    const isSelected = selectedCards.some((c) => c.id === card.id);
-                    const isSelectable = !filterFunction || filterFunction(card, selectedCards) || isSelected;
-
-                    return (
-                        <div
-                            key={card.id}
-                            className={`mx-auto justify-center cursor-pointer transition-all ${
-                                isSelected
-                                    ? "ring-4 ring-blue-500 scale-105 bg-blue-200 rounded"
-                                    : isSelectable
-                                    ? "hover:scale-105 hover:ring-2 hover:ring-gray-300 rounded"
-                                    : "opacity-50 rounded cursor-not-allowed"
-                            }`}
-                            onClick={() => isSelectable && handleCardClick(card)}
-                        >
-                            <Card card={card} size="small" customSize="w-32 h-48" forceAttack disableActivate={true} />
-                            <div className="text-xs text-center mt-1 w-32 truncate">{card.card.card_name}</div>
-                            <div className="text-xs text-center mt-1 truncate">{card.location}</div>
-                        </div>
-                    );
-                })}
+                {cards
+                    .filter((e) => {
+                        console.log(e);
+                        return filterFunction?.(e) ?? true;
+                    })
+                    .map((card) => {
+                        const isSelected = selectedCards.some((c) => c.id === card.id);
+                        const isSelectable = true;
+                        return (
+                            <div
+                                key={card.id}
+                                className={`mx-auto justify-center cursor-pointer transition-all ${
+                                    isSelected
+                                        ? "ring-4 ring-blue-500 scale-105 bg-blue-200 rounded"
+                                        : isSelectable
+                                        ? "hover:scale-105 hover:ring-2 hover:ring-gray-300 rounded"
+                                        : "opacity-50 rounded cursor-not-allowed"
+                                }`}
+                                onClick={() => isSelectable && handleCardClick(card)}
+                            >
+                                <Card card={card} size="small" customSize="w-32 h-48" forceAttack disableActivate />
+                                <div className="text-xs text-center mt-1 w-32 truncate">{card.card.card_name}</div>
+                                <div className="text-xs text-center mt-1 truncate">{card.location}</div>
+                            </div>
+                        );
+                    })}
             </div>
 
             <div className="flex gap-3 justify-center">

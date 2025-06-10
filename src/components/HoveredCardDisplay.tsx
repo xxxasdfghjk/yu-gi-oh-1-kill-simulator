@@ -1,11 +1,9 @@
 import { useAtom } from "jotai";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
 import { getAttack, getLevel } from "@/utils/gameUtils";
-import type { GameStore } from "@/store/gameStore";
 import { hasLevelMonsterFilter, isLinkMonster, isXyzMonster, monsterFilter } from "@/utils/cardManagement";
 import type { DefensableMonsterCard } from "@/types/card";
-type Props = { state: GameStore };
-export const HoveredCardDisplay = ({ state }: Props) => {
+export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
     const isBattleField = hoveredCard?.location === "MonsterField";
     return (
@@ -70,9 +68,9 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                         <div
                                             className={`px-2 ${
                                                 "attack" in hoveredCard.card && isBattleField
-                                                    ? getAttack(state, hoveredCard) > hoveredCard.card.attack
+                                                    ? getAttack(hoveredCard) > hoveredCard.card.attack
                                                         ? "text-blue-600"
-                                                        : getAttack(state, hoveredCard) > hoveredCard.card.attack
+                                                        : getAttack(hoveredCard) > hoveredCard.card.attack
                                                         ? "text-red-500"
                                                         : ""
                                                     : ""
@@ -81,9 +79,7 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                             {"attack" in hoveredCard.card &&
                                                 hoveredCard.card.attack !== undefined &&
                                                 `ATK: ${
-                                                    isBattleField
-                                                        ? getAttack(state, hoveredCard)
-                                                        : hoveredCard.card.attack
+                                                    isBattleField ? getAttack(hoveredCard) : hoveredCard.card.attack
                                                 } `}
                                         </div>
                                         <div

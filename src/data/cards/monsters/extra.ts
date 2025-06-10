@@ -1,4 +1,4 @@
-import type { ExtraMonster } from "@/types/card";
+import type { ExtraMonster, MonsterCard } from "@/types/card";
 import {
     sumLevel,
     monsterFilter,
@@ -7,6 +7,7 @@ import {
     isMagicCard,
     isRitualMonster,
     createCardInstance,
+    isXyzMonster,
 } from "@/utils/cardManagement";
 import {
     withUserConfirm,
@@ -16,10 +17,11 @@ import {
     withTurnAtOneceEffect,
     withOption,
 } from "@/utils/effectUtils";
-import { sendCard, summon } from "@/utils/cardMovement";
+import { equipCard, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { TOKEN } from "../tokens";
+import { getAttack, getLevel } from "@/utils/gameUtils";
 
 // Define extra monsters as literal objects with proper typing
 export const EXTRA_MONSTERS = [
@@ -32,6 +34,7 @@ export const EXTRA_MONSTERS = [
         race: "天使" as const,
         attack: 600,
         defense: 1000,
+        filterAvailableMaterials: () => true,
         materialCondition: (card: CardInstance[]) => {
             return !!(
                 sumLevel(card) === 4 &&
@@ -81,11 +84,16 @@ export const EXTRA_MONSTERS = [
                     });
 
                 if (ritualCards(gameState).length === 0) return;
-                withUserConfirm(gameState, cardInstance, {}, (state, card) => {
-                    withUserSelectCard(state, card, ritualCards, { select: "single" }, (state, _card, selected) => {
-                        sendCard(state, selected[0], "Hand");
-                    });
-                });
+
+                withUserSelectCard(
+                    gameState,
+                    cardInstance,
+                    ritualCards,
+                    { select: "single" },
+                    (gameState, card, selected) => {
+                        sendCard(gameState, selected[0], "Hand");
+                    }
+                );
             },
         },
     },
@@ -98,6 +106,7 @@ export const EXTRA_MONSTERS = [
         race: "機械" as const,
         attack: 2700,
         defense: 2000,
+        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && card.card.level === 6,
         materialCondition: (card: CardInstance[]) => {
             return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && e.card.level === 6));
         },
@@ -115,22 +124,36 @@ export const EXTRA_MONSTERS = [
                     return cardInstance.materials && cardInstance.materials.length > 0;
                 },
                 effect: (gameState: GameStore, cardInstance: CardInstance) => {
+                    const targets = (gameState: GameStore) => [
+                        ...gameState.field.monsterZones.filter((c) => c !== null),
+                        ...gameState.field.extraMonsterZones.filter((c) => c !== null),
+                        ...gameState.graveyard.filter((c) => monsterFilter(c.card)),
+                    ];
+                    if (targets(gameState).length === 0) {
+                        return;
+                    }
+
                     withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {
-                        if (card.materials && card.materials.length > 0) {
-                            card.materials.splice(0, 1);
-                        }
-
-                        const targets = [
-                            ...state.field.monsterZones.filter((c) => c !== null),
-                            ...state.field.extraMonsterZones.filter((c) => c !== null),
-                            ...state.graveyard.filter((c) => monsterFilter(c.card)),
-                        ];
-
-                        if (targets.length > 0) {
-                            withUserSelectCard(state, card, targets, { select: "single" }, (state, _card, selected) => {
-                                sendCard(state, selected[0], "Hand");
-                            });
-                        }
+                        withUserSelectCard(
+                            state,
+                            card,
+                            () => {
+                                return cardInstance.materials;
+                            },
+                            { select: "single" },
+                            (state, _card, selected) => {
+                                sendCard(state, selected[0], "Graveyard");
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    targets,
+                                    { select: "single" },
+                                    (state, _card, selected) => {
+                                        sendCard(state, selected[0], "Hand");
+                                    }
+                                );
+                            }
+                        );
                     });
                 },
             },
@@ -145,6 +168,7 @@ export const EXTRA_MONSTERS = [
         race: "天使" as const,
         attack: 2500,
         defense: 2800,
+        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && card.card.level === 6,
         materialCondition: (card: CardInstance[]) => {
             return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && e.card.level === 6));
         },
@@ -159,17 +183,28 @@ export const EXTRA_MONSTERS = [
             onIgnition: {
                 condition: (gameState: GameStore, cardInstance: CardInstance) => {
                     if (!withTurnAtOneceCondition(gameState, cardInstance, () => true)) return false;
-                    return cardInstance.materials && cardInstance.materials.length > 0;
+                    return cardInstance.materials && cardInstance.materials.length > 0 && gameState.deck.length > 0;
                 },
                 effect: (gameState: GameStore, cardInstance: CardInstance) => {
                     withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {
-                        if (card.materials && card.materials.length > 0) {
-                            sendCard(state, card.materials[0], "Graveyard");
-                        }
-
-                        withUserSelectCard(state, card, state.deck, { select: "single" }, (state, _card, selected) => {
-                            sendCard(state, selected[0], "Graveyard");
-                        });
+                        withUserSelectCard(
+                            state,
+                            card,
+                            () => card.materials,
+                            { select: "single" },
+                            (state, card, selected) => {
+                                sendCard(state, selected[0], "Graveyard");
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    (state) => state.deck,
+                                    { select: "single" },
+                                    (state, _card, selected) => {
+                                        sendCard(state, selected[0], "Graveyard");
+                                    }
+                                );
+                            }
+                        );
                     });
                 },
             },
@@ -184,8 +219,9 @@ export const EXTRA_MONSTERS = [
         race: "機械" as const,
         attack: 2000,
         defense: 0,
+        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && getLevel(card) === 1,
         materialCondition: (card: CardInstance[]) => {
-            return !!(card.length >= 2 && card.every((e) => hasLevelMonsterFilter(e.card) && e.card.level === 1));
+            return !!(card.length >= 2 && card.every((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 1));
         },
         text: "レベル１モンスター×２体以上\\nこのカード名の①③の効果はそれぞれ１ターンに１度しか使用できない。\\n①：このカードがX召喚した場合に発動できる。デッキから「ドライトロン」カード１枚を墓地へ送る。\\n②：自分が儀式召喚を行う場合、そのリリースするモンスターを、このカードのX素材から取り除く事もできる。\\n③：自分フィールドに機械族の儀式モンスターが存在し、相手が魔法・罠カードを発動した時、このカードのX素材を１つ取り除いて発動できる。その発動を無効にし破壊する。",
         image: "card100221516_1.jpg",
@@ -196,27 +232,35 @@ export const EXTRA_MONSTERS = [
         canNormalSummon: false,
         effect: {
             onSummon: (gameState: GameStore, cardInstance: CardInstance) => {
-                if (!withTurnAtOneceCondition(gameState, cardInstance, () => true, "ファフμβ'_effect1")) return;
-                const draitronCards = gameState.deck.filter((card) => {
-                    return card.card.card_name.includes("竜輝巧");
-                });
+                const draitronCards = (gameState: GameStore) =>
+                    gameState.deck.filter((card) => {
+                        return card.card.card_name.includes("竜輝巧");
+                    });
 
-                if (draitronCards.length === 0) return;
+                if (draitronCards(gameState).length === 0) return;
+
                 withTurnAtOneceEffect(
                     gameState,
                     cardInstance,
                     (state, card) => {
-                        withUserConfirm(state, card, {}, (confirmState, confirmCard) => {
-                            withUserSelectCard(
-                                confirmState,
-                                confirmCard,
-                                draitronCards,
-                                { select: "single" },
-                                (selectState, _card, selected) => {
-                                    sendCard(selectState, selected[0], "Graveyard");
-                                }
-                            );
-                        });
+                        withUserSelectCard(
+                            state,
+                            card,
+                            () => card.materials,
+                            { select: "single" },
+                            (selectState, _card, selected) => {
+                                sendCard(selectState, selected[0], "Graveyard");
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    draitronCards,
+                                    { select: "single" },
+                                    (selectState, _card, selected) => {
+                                        sendCard(selectState, selected[0], "Graveyard");
+                                    }
+                                );
+                            }
+                        );
                     },
                     "ファフμβ'_effect1"
                 );
@@ -232,6 +276,7 @@ export const EXTRA_MONSTERS = [
         element: "風" as const,
         race: "機械" as const,
         attack: 2100,
+        filterAvailableMaterials: () => true,
         materialCondition: (card: CardInstance[]) => {
             return !!(
                 card.filter((e) => monsterFilter(e.card) && e.card.race === "機械").length >= 2 && sumLink(card) === 3
@@ -259,7 +304,6 @@ export const EXTRA_MONSTERS = [
                     const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
                     summon(gameState, tokenInstance, emptyZones[i].index, "attack");
                 }
-
                 gameState.isLinkSummonProhibited = true;
             },
             onIgnition: {
@@ -270,8 +314,7 @@ export const EXTRA_MONSTERS = [
                         ...gameState.field.monsterZones,
                         ...gameState.field.extraMonsterZones,
                     ].filter((zone) => zone !== null);
-
-                    return fieldMonsters.length > 0;
+                    return fieldMonsters.length > 0 && cardInstance.location === "MonsterField";
                 },
                 effect: (gameState: GameStore, cardInstance: CardInstance) => {
                     withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {
@@ -329,7 +372,14 @@ export const EXTRA_MONSTERS = [
                             withUserSelectCard(
                                 optionState,
                                 optionCard,
-                                fieldMonsters,
+                                (state: GameStore) => {
+                                    return [
+                                        ...state.field.monsterZones,
+                                        ...state.field.extraMonsterZones,
+                                        ...state.field.spellTrapZones,
+                                        state.field.fieldZone,
+                                    ].filter((target): target is CardInstance => target !== null);
+                                },
                                 {
                                     select: "multi",
                                     condition: (cards: CardInstance[]) => cards.length === chosenEffect.count,
@@ -340,62 +390,60 @@ export const EXTRA_MONSTERS = [
                                     });
 
                                     if (chosenEffect.count === 1) {
-                                        const destroyTargets = [
-                                            ...releaseState.field.monsterZones,
-                                            ...releaseState.field.extraMonsterZones,
-                                            ...releaseState.field.spellTrapZones,
-                                            releaseState.field.fieldZone,
-                                        ].filter((target): target is CardInstance => target !== null);
+                                        const destroyTargets = (state: GameStore) =>
+                                            [
+                                                ...state.field.monsterZones,
+                                                ...state.field.extraMonsterZones,
+                                                ...state.field.spellTrapZones,
+                                                state.field.fieldZone,
+                                            ].filter((target): target is CardInstance => target !== null);
 
-                                        if (destroyTargets.length > 0) {
-                                            withUserSelectCard(
-                                                releaseState,
-                                                releaseCard,
-                                                destroyTargets,
-                                                { select: "single" },
-                                                (destroyState, _destroyCard, destroySelected) => {
-                                                    sendCard(destroyState, destroySelected[0], "Graveyard");
-                                                }
-                                            );
-                                        }
+                                        withUserSelectCard(
+                                            releaseState,
+                                            releaseCard,
+                                            destroyTargets,
+                                            { select: "single" },
+                                            (destroyState, _, destroySelected) => {
+                                                sendCard(destroyState, destroySelected[0], "Graveyard");
+                                            }
+                                        );
                                     } else if (chosenEffect.count === 2) {
-                                        const mpbMonsters = releaseState.deck.filter((c) => {
-                                            if (!monsterFilter(c.card)) return false;
-                                            return c.card.card_name.includes("幻獣機");
-                                        });
+                                        const mpbMonsters = (state: GameStore) =>
+                                            state.deck.filter((c) => {
+                                                if (!monsterFilter(c.card)) return false;
+                                                return c.card.card_name.includes("幻獣機");
+                                            });
 
-                                        if (mpbMonsters.length > 0) {
-                                            withUserSelectCard(
-                                                releaseState,
-                                                releaseCard,
-                                                mpbMonsters,
-                                                { select: "single" },
-                                                (summonState, summonCard, summonSelected) => {
-                                                    withUserSummon(
-                                                        summonState,
-                                                        summonCard,
-                                                        summonSelected[0],
-                                                        () => {}
-                                                    );
-                                                }
-                                            );
-                                        }
+                                        withUserSelectCard(
+                                            releaseState,
+                                            releaseCard,
+                                            mpbMonsters,
+                                            { select: "single" },
+                                            (summonState, summonCard, summonSelected) => {
+                                                withUserSummon(
+                                                    summonState,
+                                                    summonCard,
+                                                    summonSelected[0],
+                                                    {},
+                                                    () => {}
+                                                );
+                                            }
+                                        );
                                     } else if (chosenEffect.count === 3) {
-                                        const trapCards = releaseState.graveyard.filter((c) => {
-                                            return c.card.card_type === "罠";
-                                        });
+                                        const trapCards = (state: GameStore) =>
+                                            state.graveyard.filter((c) => {
+                                                return c.card.card_type === "罠";
+                                            });
 
-                                        if (trapCards.length > 0) {
-                                            withUserSelectCard(
-                                                releaseState,
-                                                releaseCard,
-                                                trapCards,
-                                                { select: "single" },
-                                                (trapState, _trapCard, trapSelected) => {
-                                                    sendCard(trapState, trapSelected[0], "Hand");
-                                                }
-                                            );
-                                        }
+                                        withUserSelectCard(
+                                            releaseState,
+                                            releaseCard,
+                                            trapCards,
+                                            { select: "single" },
+                                            (trapState, _trapCard, trapSelected) => {
+                                                sendCard(trapState, trapSelected[0], "Hand");
+                                            }
+                                        );
                                     }
                                 }
                             );
@@ -414,6 +462,7 @@ export const EXTRA_MONSTERS = [
         element: "闇" as const,
         race: "機械" as const,
         attack: 1000,
+        filterAvailableMaterials: () => true,
         materialCondition: (card: CardInstance[]) => {
             const uniqueNames = new Set(card.map((c) => c.card.card_name));
             return card.length === 2 && uniqueNames.size === 2 && sumLink(card) === 2;
@@ -428,6 +477,8 @@ export const EXTRA_MONSTERS = [
         effect: {
             onIgnition: {
                 condition: (gameState: GameStore, cardInstance: CardInstance) => {
+                    return false;
+                    // このゲーム内では基本的に使用しない
                     if (!withTurnAtOneceCondition(gameState, cardInstance, () => true)) return false;
 
                     const faceUpMonsters = [
@@ -441,22 +492,7 @@ export const EXTRA_MONSTERS = [
                     return faceUpMonsters.length > 0;
                 },
                 effect: (gameState: GameStore, cardInstance: CardInstance) => {
-                    withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {
-                        const faceUpMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (monster) =>
-                                monster !== null && monster.position !== "back_defense" && monster.position !== "back"
-                        );
-
-                        withUserSelectCard(
-                            state,
-                            card,
-                            faceUpMonsters,
-                            { select: "single" },
-                            (state, card, selected) => {
-                                // Equipment effect implementation would go here
-                            }
-                        );
-                    });
+                    withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {});
                 },
             },
         },
@@ -470,9 +506,9 @@ export const EXTRA_MONSTERS = [
         element: "光" as const,
         race: "機械" as const,
         attack: 1000,
+        filterAvailableMaterials: () => true,
         materialCondition: (card: CardInstance[]) => {
             if (card.length !== 2 || sumLink(card) !== 2) return false;
-
             const [card1, card2] = card;
             // Check if they have the same race or same element
             if (!monsterFilter(card1.card) || !monsterFilter(card2.card)) {
@@ -496,30 +532,72 @@ export const EXTRA_MONSTERS = [
                 condition: (gameState: GameStore, cardInstance: CardInstance) => {
                     if (!withTurnAtOneceCondition(gameState, cardInstance, () => true)) return false;
 
-                    const faceUpMonsters = [
-                        ...gameState.field.monsterZones,
-                        ...gameState.field.extraMonsterZones,
-                    ].filter(
-                        (monster) =>
-                            monster !== null && monster.position !== "back_defense" && monster.position !== "back"
-                    );
-
-                    return faceUpMonsters.length > 0;
+                    const faceUpMonsters = [...gameState.field.monsterZones, ...gameState.field.extraMonsterZones]
+                        .filter(
+                            (monster): monster is CardInstance =>
+                                monster !== null && monster.position !== "back_defense" && monster.position !== "back"
+                        )
+                        .filter((monster) => {
+                            const typedMonster = monster.card as MonsterCard;
+                            return (
+                                gameState.deck.filter(
+                                    (card) =>
+                                        monsterFilter(card.card) &&
+                                        (card.card.race === typedMonster.race ||
+                                            card.card.element === typedMonster.element)
+                                ).length > 0
+                            );
+                        });
+                    const hasEmptySpellField =
+                        gameState.field.spellTrapZones.filter((e): e is CardInstance => e === null).length > 0;
+                    return faceUpMonsters.length > 0 && hasEmptySpellField && cardInstance.location === "MonsterField";
                 },
                 effect: (gameState: GameStore, cardInstance: CardInstance) => {
                     withTurnAtOneceEffect(gameState, cardInstance, (state, card) => {
-                        const faceUpMonsters = [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (monster) =>
-                                monster !== null && monster.position !== "back_defense" && monster.position !== "back"
-                        );
+                        const faceUpMonsters = (state: GameStore) =>
+                            [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                                .filter(
+                                    (monster): monster is CardInstance =>
+                                        monster !== null &&
+                                        monster.position !== "back_defense" &&
+                                        monster.position !== "back"
+                                )
+                                .filter((monster) => {
+                                    const typedMonster = monster.card as MonsterCard;
+                                    return (
+                                        gameState.deck.filter(
+                                            (card) =>
+                                                monsterFilter(card.card) &&
+                                                (card.card.race === typedMonster.race ||
+                                                    card.card.element === typedMonster.element)
+                                        ).length > 0
+                                    );
+                                });
 
                         withUserSelectCard(
                             state,
                             card,
                             faceUpMonsters,
                             { select: "single" },
-                            (state, _card, selected) => {
-                                // Equipment effect would be implemented here
+                            (state, card, selected) => {
+                                const equipTarget = selected[0];
+                                const target = (state: GameStore) => {
+                                    const typedMonster = equipTarget.card as MonsterCard;
+                                    return state.deck.filter(
+                                        (card) =>
+                                            monsterFilter(card.card) &&
+                                            (card.card.race === typedMonster.race ||
+                                                card.card.element === typedMonster.element)
+                                    );
+                                };
+                                withUserSelectCard(state, card, target, { select: "single" }, (state, _, selected) => {
+                                    const buffedCard = {
+                                        ...selected[0],
+                                        buf: { attack: 1000, defense: 0, level: 0 },
+                                    };
+                                    sendCard(state, buffedCard, "SpellField");
+                                    equipCard(state, equipTarget, buffedCard);
+                                });
                             }
                         );
                     });
@@ -536,8 +614,10 @@ export const EXTRA_MONSTERS = [
         element: "炎" as const,
         race: "サイバース" as const,
         attack: 0,
+        filterAvailableMaterials: (card) =>
+            card.summonedBy === "Normal" && monsterFilter(card.card) && getAttack(card) <= 1000,
         materialCondition: (card: CardInstance[]) => {
-            return card.length === 1 && sumLink(card) === 1;
+            return card.length === 1 && sumLink(card) === 1 && card[0].summonedBy === "Normal";
         },
         text: "通常召喚された攻撃力1000以下のモンスター1体\nこのカード名の②の効果は１ターンに１度しか使用できない。①：このカードをリリースし、自分フィールドのモンスター１体を対象として発動できる。このターン、そのモンスターは相手の効果では破壊されない。この効果は相手ターンでも発動できる。②：このカードが墓地に存在し、通常召喚された自分のモンスターが戦闘で破壊された時に発動できる。このカードを特殊召喚する。",
         image: "card100354764_1.jpg",
@@ -546,46 +626,7 @@ export const EXTRA_MONSTERS = [
         hasLink: true as const,
         hasRank: false as const,
         canNormalSummon: false,
-        effect: {
-            onIgnition: {
-                condition: (gameState: GameStore, cardInstance: CardInstance) => {
-                    return cardInstance.location === "MonsterField";
-                },
-                effect: (gameState: GameStore, cardInstance: CardInstance) => {
-                    // Release self to protect another monster
-                    const targetMonsters = [
-                        ...gameState.field.monsterZones,
-                        ...gameState.field.extraMonsterZones,
-                    ].filter((monster): monster is CardInstance => monster !== null && monster.id !== cardInstance.id);
-
-                    if (targetMonsters.length > 0) {
-                        withUserSelectCard(
-                            gameState,
-                            cardInstance,
-                            targetMonsters,
-                            { select: "single" },
-                            (state, card, _selected) => {
-                                sendCard(state, card, "Graveyard");
-                                // Add protection effect to selected monster
-                            }
-                        );
-                    }
-                },
-            },
-            onAnywhereToGraveyard: (gameState: GameStore, cardInstance: CardInstance) => {
-                // Special summon from graveyard when normal summoned monster is destroyed
-                const normalSummonedMonsters = [
-                    ...gameState.field.monsterZones,
-                    ...gameState.field.extraMonsterZones,
-                ].filter((monster) => monster !== null && monster.summonedBy === "Normal");
-
-                if (normalSummonedMonsters.length > 0) {
-                    withUserConfirm(gameState, cardInstance, {}, (state, card) => {
-                        withUserSummon(state, card, card, () => {});
-                    });
-                }
-            },
-        },
+        effect: {},
     },
     {
         card_name: "リンクリボー",
@@ -596,17 +637,35 @@ export const EXTRA_MONSTERS = [
         element: "闇" as const,
         race: "サイバース" as const,
         attack: 300,
+        filterAvailableMaterials: (card) => hasLevelMonsterFilter(card.card) && getLevel(card) === 1,
         materialCondition: (card: CardInstance[]) => {
-            return !!(card.length === 1 && hasLevelMonsterFilter(card[0].card) && card[0].card.level === 1);
+            return !!(card.length === 1 && hasLevelMonsterFilter(card[0].card) && getLevel(card[0]) === 1);
         },
-        text: "①このカードがリンク召喚に成功した時に発動できる。デッキからレベル1モンスター1体を墓地へ送る。②このカードが戦闘で破壊された場合に発動できる。手札からレベル1モンスター1体を特殊召喚する。",
+        text: "レベル1モンスター1体\n①このカードがリンク召喚に成功した時に発動できる。デッキからレベル1モンスター1体を墓地へ送る。②このカードが戦闘で破壊された場合に発動できる。手札からレベル1モンスター1体を特殊召喚する。",
         image: "card100358454_1.jpg",
         hasDefense: false as const,
         hasLevel: false as const,
         hasLink: true as const,
         hasRank: false as const,
         canNormalSummon: false,
-        effect: {},
+        effect: {
+            onSummon: (state, card) => {
+                const canEffect =
+                    state.deck.filter((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 1).length > 0;
+                if (!canEffect) {
+                    return;
+                }
+                withUserSelectCard(
+                    state,
+                    card,
+                    (state) => state.deck.filter((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 1),
+                    { select: "single" },
+                    (state, _, selected) => {
+                        sendCard(state, selected[0], "Graveyard");
+                    }
+                );
+            },
+        },
     },
     {
         card_name: "旧神ヌトス",
@@ -617,6 +676,9 @@ export const EXTRA_MONSTERS = [
         race: "天使" as const,
         attack: 2500,
         defense: 1200,
+        filterAvailableMaterials: (e) =>
+            monsterFilter(e.card) &&
+            (e.card.monster_type === "エクシーズモンスター" || e.card.monster_type === "シンクロモンスター"),
         materialCondition: () => true,
         text: "Ｓモンスター＋Ｘモンスター\\n自分フィールドの上記カードを墓地へ送った場合のみ特殊召喚できる（「融合」は必要としない）。自分は「旧神ヌトス」を１ターンに１度しか特殊召喚できない。(1)：１ターンに１度、自分メインフェイズに発動できる。手札からレベル４モンスター１体を特殊召喚する。(2)：このカードが墓地へ送られた場合、フィールドのカード１枚を対象として発動できる。そのカードを破壊する。",
         image: "card100065315_1.jpg",
@@ -636,10 +698,11 @@ export const EXTRA_MONSTERS = [
         race: "機械" as const,
         attack: 3000,
         defense: 3000,
+        filterAvailableMaterials: (e) => hasLevelMonsterFilter(e.card) && e.card.level === 12,
         materialCondition: (card: CardInstance[]) => {
-            return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && e.card.level === 12));
+            return !!(card.length === 2 && card.every((e) => hasLevelMonsterFilter(e.card) && getLevel(e) === 12));
         },
-        text: "「天霆號アーゼウス」は、Xモンスターが戦闘を行ったターンに１度、自分フィールドのXモンスターの上に重ねてX召喚する事もできる。①：このカードのX素材を２つ取り除いて発動できる。このカード以外のフィールドのカードを全て墓地へ送る。この効果は相手ターンでも発動できる。②：１ターンに１度、このカード以外の自分フィールドのカードが戦闘または相手の効果で破壊された場合に発動できる。手札・デッキ・EXデッキからカード１枚を選び、このカードの下に重ねてX素材とする。",
+        text: "レベル１２モンスター×２\n「天霆號アーゼウス」は、Xモンスターが戦闘を行ったターンに１度、自分フィールドのXモンスターの上に重ねてX召喚する事もできる。\n①：自分・相手ターンに、このカードのX素材を２つ取り除いて発動できる。フィールドの他のカードを全て墓地へ送る。\n②：１ターンに１度、自分フィールドの他のカードが戦闘または相手の効果で破壊された場合に発動できる。手札・デッキ・EXデッキからカード１枚をこのカードのX素材にする。",
         image: "card100336782_1.jpg",
         hasDefense: true as const,
         hasLevel: false as const,
@@ -657,8 +720,17 @@ export const EXTRA_MONSTERS = [
         race: "戦士" as const,
         attack: 0,
         defense: 0,
-        materialCondition: () => true,
-        text: "ルール上、このカードのランクは１として扱う。①：このカードは戦闘では破壊されず、このカードの戦闘で発生するお互いの戦闘ダメージは０になる。②：このカードが相手モンスターと戦闘を行ったダメージステップ終了時に発動できる。その相手モンスターのコントロールをバトルフェイズ終了時まで得る。②：フィールドのこのカードが効果で破壊される場合、代わりにこのカードのＸ素材を１つ取り除く事ができる。",
+        filterAvailableMaterials: (e) => isXyzMonster(e.card),
+        materialCondition: (cardList) => {
+            return (
+                cardList.length === 2 &&
+                isXyzMonster(cardList[0].card) &&
+                isXyzMonster(cardList[1].card) &&
+                cardList[0].card.rank === cardList[1].card.rank &&
+                !cardList.find((e) => e.card.card_name.startsWith("No."))
+            );
+        },
+        text: "「No.」モンスター以外の同じランクのXモンスター×２\nルール上、このカードのランクは１として扱う。\n①：このカードは戦闘では破壊されず、このカードの戦闘で発生するお互いの戦闘ダメージは０になる。\n②：このカードが相手モンスターと戦闘を行ったダメージステップ終了時に発動できる。その相手モンスターのコントロールをバトルフェイズ終了時まで得る。\n③：フィールドのこのカードが効果で破壊される場合、代わりにこのカードのX素材を１つ取り除く事ができる。",
         image: "card100178133_1.jpg",
         hasDefense: true as const,
         hasLevel: false as const,
@@ -676,8 +748,19 @@ export const EXTRA_MONSTERS = [
         race: "戦士" as const,
         attack: 0,
         defense: 0,
-        materialCondition: () => true,
-        text: "ルール上、このカードのランクは１として扱い、このカード名は「未来皇ホープ」カードとしても扱う。このカードは自分フィールドの「FNo.0 未来皇ホープ」の上に重ねてX召喚する事もできる。①：このカードは戦闘・効果では破壊されない。②：１ターンに１度、相手がモンスターの効果を発動した時、このカードのX素材を１つ取り除いて発動できる。その発動を無効にする。この効果でフィールドのモンスターの効果の発動を無効にした場合、さらにそのコントロールを得る。",
+        filterAvailableMaterials: (e) => isXyzMonster(e.card),
+        materialCondition: (cardList) => {
+            return (
+                cardList.length === 3 &&
+                isXyzMonster(cardList[0].card) &&
+                isXyzMonster(cardList[1].card) &&
+                isXyzMonster(cardList[2].card) &&
+                cardList[0].card.rank === cardList[1].card.rank &&
+                cardList[1].card.rank === cardList[2].card.rank &&
+                !cardList.find((e) => e.card.card_name.startsWith("No."))
+            );
+        },
+        text: "「No.」モンスター以外の同じランクのXモンスター×３\nルール上、このカードのランクは１として扱い、このカード名は「未来皇ホープ」カードとしても扱う。\nこのカードは自分フィールドの「FNo.0 未来皇ホープ」の上に重ねてX召喚する事もできる。\n①：このカードは戦闘・効果では破壊されない。\n②：１ターンに１度、相手がモンスターの効果を発動した時、このカードのX素材を１つ取り除いて発動できる。その発動を無効にする。この効果でフィールドのモンスターの効果の発動を無効にした場合、さらにそのコントロールを得る。",
         image: "card100323225_1.jpg",
         hasDefense: true as const,
         hasLevel: false as const,

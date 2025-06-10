@@ -1,6 +1,6 @@
 import type { CommonMonster, LeveledMonsterCard } from "@/types/card";
 import { isMagicCard, monsterFilter } from "@/utils/cardManagement";
-import { withTurnAtOneceEffect, withUserConfirm, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { withTurnAtOneceEffect, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
 import { sendCard, banish, releaseCard, addBuf } from "@/utils/cardMovement";
 import { draitronIgnitionCondition, getDraitronReleaseTargets } from "@/utils/draitronUtils";
 import type { GameStore } from "@/store/gameStore";
@@ -116,13 +116,13 @@ export const COMMON_MONSTERS = [
         card_type: "モンスター",
         effect: {
             onRelease: (state, card) => {
-                const target = (state: GameStore, card: CardInstance) =>
+                const target = (state: GameStore) =>
                     state.deck.filter((e) => monsterFilter(e.card) && e.card.race === "天使");
                 if (target.length === 0) {
                     return;
                 }
-                withUserSelectCard(state, card, target, { select: "single" }, (state, card, selected) => {
-                    sendCard(state, card, "Hand");
+                withUserSelectCard(state, card, target, { select: "single", order: 999 }, (state, card, selected) => {
+                    sendCard(state, selected[0], "Hand");
                 });
             },
         },
@@ -201,38 +201,45 @@ export const COMMON_MONSTERS = [
         effect: {
             onIgnition: {
                 condition: (gameState: GameStore, cardInstance: CardInstance) => {
-                    return draitronIgnitionCondition(gameState, cardInstance);
+                    return draitronIgnitionCondition("竜輝巧－バンα")(gameState, cardInstance);
                 },
                 effect: (state: GameStore, cardInstance: CardInstance) =>
-                    withTurnAtOneceEffect(state, cardInstance, () => {
+                    withTurnAtOneceEffect(state, cardInstance, (state, cardInstance) => {
                         withUserSelectCard(
                             state,
                             cardInstance,
-                            getDraitronReleaseTargets,
+                            getDraitronReleaseTargets("竜輝巧－バンα"),
                             { select: "single" },
-                            (state, card, selected) => {
+                            (state, cardInstance, selected) => {
                                 const targetCard = selected[0];
                                 releaseCard(state, targetCard);
 
-                                withUserSummon(state, card, cardInstance, () => {
-                                    const target = (state: GameStore) =>
-                                        state.deck.filter(
-                                            (card) =>
-                                                monsterFilter(card.card) && card.card.monster_type === "儀式モンスター"
-                                        );
+                                withUserSummon(
+                                    state,
+                                    cardInstance,
+                                    cardInstance,
+                                    { canSelectPosition: false, optionPosition: ["defense"] },
+                                    (state, cardInstance) => {
+                                        const target = (state: GameStore) =>
+                                            state.deck.filter(
+                                                (card) =>
+                                                    monsterFilter(card.card) &&
+                                                    card.card.monster_type === "儀式モンスター"
+                                            );
 
-                                    if (target(state).length > 0) {
-                                        withUserSelectCard(
-                                            state,
-                                            cardInstance,
-                                            target,
-                                            { select: "single" },
-                                            (state) => {
-                                                sendCard(state, cardInstance, "Hand");
-                                            }
-                                        );
+                                        if (target(state).length > 0) {
+                                            withUserSelectCard(
+                                                state,
+                                                cardInstance,
+                                                target,
+                                                { select: "single" },
+                                                (state, _, target) => {
+                                                    sendCard(state, target[0], "Hand");
+                                                }
+                                            );
+                                        }
                                     }
-                                });
+                                );
                             }
                         );
                     }),
@@ -258,40 +265,46 @@ export const COMMON_MONSTERS = [
         effect: {
             onIgnition: {
                 condition: (gameState: GameStore, cardInstance: CardInstance) => {
-                    return draitronIgnitionCondition(gameState, cardInstance);
+                    return draitronIgnitionCondition("竜輝巧－アルζ")(gameState, cardInstance);
                 },
-                effect: (gameState: GameStore, cardInstance: CardInstance) => {
-                    withTurnAtOneceEffect(gameState, cardInstance, () => {
+                effect: (state: GameStore, cardInstance: CardInstance) => {
+                    withTurnAtOneceEffect(state, cardInstance, (state, cardInstance) => {
                         withUserSelectCard(
-                            gameState,
+                            state,
                             cardInstance,
-                            getDraitronReleaseTargets,
+                            getDraitronReleaseTargets("竜輝巧－アルζ"),
                             { select: "single" },
                             (state, card, selected) => {
                                 // Release selected card and summon this card
                                 const targetCard = selected[0];
                                 releaseCard(state, targetCard);
                                 // Remove this card from hand or graveyard and summon it
-                                withUserSummon(state, card, cardInstance, () => {
-                                    const target = (state: GameStore) => {
-                                        return state.deck.filter(
-                                            (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
-                                        );
-                                    };
-                                    if (target(state).length === 0) {
-                                        return;
-                                    }
-                                    // Search for a Draitron monster
-                                    withUserSelectCard(
-                                        state,
-                                        cardInstance,
-                                        target,
-                                        { select: "single" },
-                                        (state, card, selected) => {
-                                            sendCard(state, selected[0], "Hand");
+                                withUserSummon(
+                                    state,
+                                    card,
+                                    card,
+                                    { canSelectPosition: false, optionPosition: ["defense"] },
+                                    (state, cardInstance) => {
+                                        const target = (state: GameStore) => {
+                                            return state.deck.filter(
+                                                (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
+                                            );
+                                        };
+                                        if (target(state).length === 0) {
+                                            return;
                                         }
-                                    );
-                                });
+                                        // Search for a Draitron monster
+                                        withUserSelectCard(
+                                            state,
+                                            cardInstance,
+                                            target,
+                                            { select: "single" },
+                                            (state, card, selected) => {
+                                                sendCard(state, selected[0], "Hand");
+                                            }
+                                        );
+                                    }
+                                );
                             }
                         );
                     });
@@ -317,15 +330,15 @@ export const COMMON_MONSTERS = [
         canNormalSummon: false,
         effect: {
             onIgnition: {
-                condition: (gameState: GameStore, cardInstance: CardInstance) => {
-                    return draitronIgnitionCondition(gameState, cardInstance);
+                condition: (state: GameStore, cardInstance: CardInstance) => {
+                    return draitronIgnitionCondition("竜輝巧－エルγ")(state, cardInstance);
                 },
-                effect: (gameState: GameStore, cardInstance: CardInstance) =>
-                    withTurnAtOneceEffect(gameState, cardInstance, () => {
+                effect: (state: GameStore, cardInstance: CardInstance) =>
+                    withTurnAtOneceEffect(state, cardInstance, (state, cardInstance) => {
                         withUserSelectCard(
-                            gameState,
+                            state,
                             cardInstance,
-                            getDraitronReleaseTargets,
+                            getDraitronReleaseTargets("竜輝巧－エルγ"),
                             { select: "single" },
                             (state, card, selected) => {
                                 // Release selected card and summon this card
@@ -333,37 +346,47 @@ export const COMMON_MONSTERS = [
                                 releaseCard(state, targetCard);
 
                                 // Remove this card from hand or graveyard and summon it
-                                withUserSummon(state, card, cardInstance, () => {
-                                    // Search for a Draitron monster
-                                    const target = (state: GameStore) => {
-                                        return state.graveyard.filter(
+                                withUserSummon(
+                                    state,
+                                    card,
+                                    card,
+                                    { canSelectPosition: false, optionPosition: ["defense"] },
+                                    (state, cardInstance) => {
+                                        // Search for a Draitron monster
+                                        const draitronMonsters = state.graveyard.filter(
                                             (card) =>
                                                 monsterFilter(card.card) &&
                                                 card.card.card_name.includes("竜輝巧") &&
                                                 card.card.attack === 2000
                                         );
-                                    };
-                                    if (target(state).length === 0) {
-                                        return;
-                                    }
-                                    withUserSelectCard(
-                                        state,
-                                        cardInstance,
-                                        (state: GameStore) => {
-                                            return state.graveyard.filter(
-                                                (card) =>
-                                                    monsterFilter(card.card) &&
-                                                    card.card.card_name.includes("竜輝巧") &&
-                                                    card.card.attack === 2000
-                                            );
-                                        },
-                                        { select: "single" },
-                                        (state, card, selected) => {
-                                            const targetCard = selected[0];
-                                            withUserSummon(state, card, targetCard, () => {});
+                                        if (draitronMonsters.length === 0) {
+                                            return;
                                         }
-                                    );
-                                });
+                                        withUserSelectCard(
+                                            state,
+                                            cardInstance,
+                                            (state: GameStore) => {
+                                                return state.graveyard.filter(
+                                                    (card) =>
+                                                        monsterFilter(card.card) &&
+                                                        card.card.card_name.includes("竜輝巧") &&
+                                                        card.card.attack === 2000
+                                                );
+                                            },
+                                            { select: "single" },
+                                            (state, cardInstance, selected) => {
+                                                const targetCard = selected[0];
+                                                withUserSummon(
+                                                    state,
+                                                    cardInstance,
+                                                    targetCard,
+                                                    { canSelectPosition: false, optionPosition: ["defense"] },
+                                                    () => {}
+                                                );
+                                            }
+                                        );
+                                    }
+                                );
                             }
                         );
                     }),
@@ -460,7 +483,7 @@ export const COMMON_MONSTERS = [
                                 banish(state, monster);
                             });
                             // Special summon this card
-                            withUserSummon(state, card, cardInstance, () => {
+                            withUserSummon(state, card, card, {}, () => {
                                 // Card is summoned
                             });
                         }

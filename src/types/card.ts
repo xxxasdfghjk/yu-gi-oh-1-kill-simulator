@@ -82,9 +82,8 @@ export interface LeveledMonsterCard extends DefensableMonsterCard {
     hasRank: false;
 }
 
-export interface XyzMonsterCard extends DefensableMonsterCard {
+export interface XyzMonsterCard extends DefensableMonsterCard, NeedMaterialMonster {
     monster_type: "エクシーズモンスター";
-    materialCondition: MaterialCondition;
     rank: number;
     hasRank: true;
     hasLevel: false;
@@ -93,26 +92,28 @@ export interface XyzMonsterCard extends DefensableMonsterCard {
 
 type Direction = "左" | "左下" | "下" | "右下" | "右" | "右上" | "上" | "左上";
 
-export interface LinkMonsterCard extends MonsterCard {
+interface NeedMaterialMonster {
+    materialCondition: MaterialCondition;
+    filterAvailableMaterials: (canidate: CardInstance) => boolean;
+}
+
+export interface LinkMonsterCard extends MonsterCard, NeedMaterialMonster {
     monster_type: "リンクモンスター";
     link: number;
     linkDirection: Direction[];
     hasLink: true;
     hasRank: false;
     hasDefense: false;
-    materialCondition: MaterialCondition;
     canNormalSummon: false;
 }
 
-export interface FusionMonsterCard extends LeveledMonsterCard {
+export interface FusionMonsterCard extends LeveledMonsterCard, NeedMaterialMonster {
     monster_type: "融合モンスター";
-    materialCondition: MaterialCondition;
     canNormalSummon: false;
 }
 
-export interface SynchroMonsterCard extends LeveledMonsterCard {
+export interface SynchroMonsterCard extends LeveledMonsterCard, NeedMaterialMonster {
     monster_type: "シンクロモンスター";
-    materialCondition: MaterialCondition;
     canNormalSummon: false;
 }
 

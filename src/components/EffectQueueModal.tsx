@@ -6,6 +6,7 @@ import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/ga
 import type { CardInstance } from "@/types/card";
 import ModalWrapper from "./ModalWrapper";
 import { type LinkMonsterCard } from "../types/card";
+import { isLinkMonster } from "@/utils/cardManagement";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
@@ -31,8 +32,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                 effect.type === "multiselect" ||
                 effect.type === "summon" ||
                 effect.type === "confirm" ||
-                effect.type === "material_select" ||
-                effect.type === "perform_summon"
+                effect.type === "material_select"
             ) {
                 setCurrentEffect(effect);
             } else {
@@ -49,7 +49,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setIsClosing(false);
         }, 300); // Match animation duration
     };
-
+    console.log(currentEffect);
     if (!currentEffect) return null;
     switch (currentEffect.type) {
         case "option":
@@ -67,7 +67,6 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
         case "select":
             return (
                 <MultiCardConditionSelector
-                    currentCardInstance={currentEffect.cardInstance}
                     condition={currentEffect.condition}
                     getAvailableCards={currentEffect.getAvailableCards}
                     state={gameState}
@@ -82,11 +81,9 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
         case "multiselect":
             return (
                 <MultiCardConditionSelector
-                    currentCardInstance={currentEffect.cardInstance}
                     title={`${currentEffect.cardInstance.card.card_name}: ${currentEffect.effectName}`}
                     onSelect={(card) => handleClose(() => processQueueTop({ type: "cardSelect", cardList: card }))}
                     onCancel={currentEffect.canCancel ? () => handleClose(() => popQueue()) : undefined}
-                    filterFunction={currentEffect.filterFunction}
                     type={"multi"}
                     state={gameState}
                     getAvailableCards={currentEffect.getAvailableCards}
@@ -150,78 +147,14 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     }}
                     getAvailableCards={currentEffect.getAvailableCards}
                     state={gameState}
-                    currentCardInstance={currentEffect.cardInstance}
                     title={`${currentEffect.targetMonster.card.card_name}: 素材選択`}
                     onSelect={(selectedMaterials) => {
                         // Add perform_summon job to queue with selected materials
-                        gameState.addEffectToQueue({
-                            id: currentEffect.targetMonster.id + "_perform_summon",
-                            type: "perform_summon",
-                            cardInstance: currentEffect.targetMonster,
-                            effectType: "execute_special_summon",
-                            targetMonster: currentEffect.targetMonster,
-                            selectedMaterials: selectedMaterials,
-                            summonType: currentEffect.summonType,
-                        });
-                        handleClose(() => popQueue());
+
+                        handleClose(() => processQueueTop({ type: "cardSelect", cardList: selectedMaterials }));
                     }}
                     onCancel={() => handleClose(() => popQueue())}
                     type={"multi"}
-                    isOpen={!isClosing}
-                />
-            );
-
-        case "perform_summon":
-            return (
-                <SummonSelector
-                    popQueue={popQueue}
-                    optionPosition={["attack", "defense"]}
-                    cardInstance={currentEffect.targetMonster}
-                    onSelect={(zone, position) => {
-                        // Execute the actual summon
-                        const effect = currentEffect;
-                        const targetMonster = effect.targetMonster;
-                        const selectedMaterials = effect.selectedMaterials;
-
-                        // Remove materials from field
-                        selectedMaterials.forEach((material: CardInstance) => {
-                            const monsterIndex = gameState.field.monsterZones.findIndex((z) => z?.id === material.id);
-                            if (monsterIndex !== -1) {
-                                gameState.field.monsterZones[monsterIndex] = null;
-                            } else {
-                                const extraIndex = gameState.field.extraMonsterZones.findIndex(
-                                    (z) => z?.id === material.id
-                                );
-                                if (extraIndex !== -1) {
-                                    gameState.field.extraMonsterZones[extraIndex] = null;
-                                }
-                            }
-                        });
-
-                        // Place the summoned monster
-                        targetMonster.location = "MonsterField";
-                        targetMonster.position = position;
-                        if (effect.summonType === "xyz") {
-                            targetMonster.materials = selectedMaterials;
-                        }
-
-                        // Find appropriate zone
-                        if (effect.summonType === "link" || effect.summonType === "xyz") {
-                            // Extra monsters go to extra monster zone or main monster zone
-                            const emptyExtraIndex = gameState.field.extraMonsterZones.findIndex((z) => z === null);
-                            if (emptyExtraIndex !== -1) {
-                                gameState.field.extraMonsterZones[emptyExtraIndex] = targetMonster;
-                            } else {
-                                const emptyMainIndex = gameState.field.monsterZones.findIndex((z) => z === null);
-                                if (emptyMainIndex !== -1) {
-                                    gameState.field.monsterZones[emptyMainIndex] = targetMonster;
-                                }
-                            }
-                        }
-
-                        handleClose(() => popQueue());
-                    }}
-                    state={gameState}
                     isOpen={!isClosing}
                 />
             );

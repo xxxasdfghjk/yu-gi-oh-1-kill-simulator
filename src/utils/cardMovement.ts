@@ -8,7 +8,7 @@ export const triggerEffects = (state: GameStore, card: CardInstance, from: Locat
     const effect = card.card.effect;
 
     // Field to Graveyard effects
-    if (from === "MonsterField" && to === "Graveyard" && effect.onFieldToGraveyard) {
+    if ((from === "MonsterField" || from === "FieldZone") && to === "Graveyard" && effect.onFieldToGraveyard) {
         effect.onFieldToGraveyard(state, card);
     }
 
@@ -54,9 +54,22 @@ export const releaseCard = (state: GameStore, card: CardInstance) => {
     card.card.effect?.onRelease?.(state, card);
 };
 
+export const equipCard = (state: GameStore, equipMonster: CardInstance, equippedCard: CardInstance) => {
+    const equipment = { ...equippedCard, location: "FieldZone" as const };
+    for (let i = 0; i < 5; i++) {
+        if (state.field.monsterZones[i] !== null && state.field.monsterZones[i]?.id === equipMonster.id) {
+            state.field.monsterZones[i]?.equipment.push(equipment);
+        }
+    }
+    for (let i = 0; i < 2; i++) {
+        if (state.field.extraMonsterZones[i] !== null && state.field.extraMonsterZones[i]?.id === equipMonster.id) {
+            state.field.extraMonsterZones[i]?.equipment.push(equipment);
+        }
+    }
+};
+
 export const sendCard = (state: GameStore, card: CardInstance, to: Location, option?: { reverse: boolean }) => {
     const originalLocation = card.location;
-
     // If the card is leaving the field and has equipment, send equipment to graveyard
     const isLeavingField =
         (card.location === "MonsterField" || card.location === "SpellField") &&
@@ -77,7 +90,11 @@ export const sendCard = (state: GameStore, card: CardInstance, to: Location, opt
     excludeFromAnywhere(state, card);
 
     // Update card location and add to new location
-    const updatedCard = { ...card, location: to };
+    const updatedCard = {
+        ...card,
+        location: to,
+        position: option?.reverse ? "back" : undefined,
+    } satisfies CardInstance;
 
     switch (to) {
         case "Deck":
@@ -193,30 +210,55 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
         originalLocation = "SpellField";
     }
 
-    // Remove from materials of monsters on field
-    const allFieldMonsters = [
-        ...state.field.monsterZones.filter((zone): zone is CardInstance => zone !== null),
-        ...state.field.extraMonsterZones.filter((zone): zone is CardInstance => zone !== null),
-    ];
-
-    for (const monster of allFieldMonsters) {
-        if (monster && monster.materials) {
-            const materialIndex = monster.materials.findIndex((material) => material.id === card.id);
+    // materials
+    for (let i = 0; i < 5; i++) {
+        if (state.field.monsterZones[i] && state.field.monsterZones[i]?.materials) {
+            const materialIndex = state.field.monsterZones[i]!.materials.findIndex(
+                (material) => material.id === card.id
+            );
             if (materialIndex !== -1) {
-                monster.materials.splice(materialIndex, 1);
+                state.field.monsterZones[i]!.materials.splice(materialIndex, 1);
                 originalLocation = "MonsterField";
                 break;
             }
         }
     }
 
-    // Remove this card from equipment arrays of all monsters on field
-    for (const monster of allFieldMonsters) {
-        if (monster && monster.equipment) {
-            const equipmentIndex = monster.equipment.findIndex((equipment) => equipment.id === card.id);
+    for (let i = 0; i < 2; i++) {
+        if (state.field.extraMonsterZones[i] && state.field.extraMonsterZones[i]?.materials) {
+            const materialIndex = state.field.extraMonsterZones[i]!.materials.findIndex(
+                (material) => material.id === card.id
+            );
+            if (materialIndex !== -1) {
+                state.field.extraMonsterZones[i]!.materials.splice(materialIndex, 1);
+                originalLocation = "MonsterField";
+                break;
+            }
+        }
+    }
+
+    // equipment
+    for (let i = 0; i < 5; i++) {
+        if (state.field.monsterZones[i] && state.field.monsterZones[i]?.equipment) {
+            const equipmentIndex = state.field.monsterZones[i]!.equipment.findIndex(
+                (equipment) => equipment.id === card.id
+            );
             if (equipmentIndex !== -1) {
-                monster.equipment.splice(equipmentIndex, 1);
-                // If this was the only equipment reference, we found it
+                state.field.monsterZones[i]!.equipment.splice(equipmentIndex, 1);
+                originalLocation = "FieldZone";
+                break;
+            }
+        }
+    }
+
+    for (let i = 0; i < 2; i++) {
+        if (state.field.extraMonsterZones[i] && state.field.extraMonsterZones[i]?.equipment) {
+            const equipmentIndex = state.field.extraMonsterZones[i]!.equipment.findIndex(
+                (equipment) => equipment.id === card.id
+            );
+            if (equipmentIndex !== -1) {
+                state.field.extraMonsterZones[i]!.equipment.splice(equipmentIndex, 1);
+                originalLocation = "FieldZone";
                 break;
             }
         }
