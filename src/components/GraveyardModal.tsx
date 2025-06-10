@@ -14,7 +14,7 @@ interface GraveyardModalProps {
 export const GraveyardModal: React.FC<GraveyardModalProps> = ({ graveyard }) => {
     const [isOpen, setIsOpen] = useAtom(graveyardModalAtom);
     const onClose = () => setIsOpen(false);
-    
+
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
             <div className="flex justify-between items-center mb-4">
@@ -27,7 +27,7 @@ export const GraveyardModal: React.FC<GraveyardModalProps> = ({ graveyard }) => 
             {graveyard.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">墓地にカードはありません</div>
             ) : (
-                <div className="grid grid-cols-5 gap-3">
+                <div className="grid grid-cols-5 gap-3 overflow-y-scroll max-h-[600px]">
                     {graveyard.map((card, index) => (
                         <div
                             key={`${card.id}-${index}`}

@@ -25,17 +25,21 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
 }) => {
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold">エクストラデッキ ({extraDeck.length}枚)</h3>
-                <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">
-                    ×
-                </button>
+            <div className="relative -m-6 mb-4">
+                <div className="px-6 py-4 bg-gradient-to-b from-white via-white to-transparent">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-bold">エクストラデッキ ({extraDeck.length}枚)</h3>
+                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">
+                            ×
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {extraDeck.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">エクストラデッキにカードはありません</div>
             ) : (
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-5 gap-2 max-h-[640px] overflow-y-scroll">
                     {extraDeck.map((card, index) => (
                         <div
                             key={`${card.id}-${index}`}
