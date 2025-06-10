@@ -1,5 +1,5 @@
-import type { MagicCard } from "@/types/card";
-import { hasLevelMonsterFilter, monsterFilter } from "@/utils/cardManagement";
+import type { MagicCard, CardInstance } from "@/types/card";
+import { hasLevelMonsterFilter, monsterFilter, isMagicCard } from "@/utils/cardManagement";
 import {
     withOption,
     withTurnAtOneceCondition,
@@ -134,7 +134,21 @@ export const MAGIC_CARDS = [
         magic_type: "通常魔法" as const,
         text: "①：デッキからモンスター１体を墓地へ送る。",
         image: "card100024670_1.jpg",
-        effect: {},
+        effect: {
+            onSpell: {
+                condition: (state) => state.deck.filter((e) => monsterFilter(e.card)).length > 0,
+                effect: (state, card) =>
+                    withUserSelectCard(
+                        state,
+                        card,
+                        (state) => state.deck.filter((e) => monsterFilter(e.card)),
+                        { select: "single" },
+                        (state, _cardInstance, selected) => {
+                            sendCard(state, selected[0], "Graveyard");
+                        }
+                    ),
+            },
+        },
     },
     {
         card_name: "ジャック・イン・ザ・ハンド",
@@ -142,7 +156,52 @@ export const MAGIC_CARDS = [
         magic_type: "通常魔法" as const,
         text: "このカード名のカードは1ターンに1枚しか発動できない。①：デッキからカード名が異なるレベル1モンスター3体を相手に見せ、相手はその中から1体を選んで自身の手札に加える。自分は残りのカードの中から1体を選んで手札に加え、残りをデッキに戻す。",
         image: "card100204881_1.jpg",
-        effect: {},
+        effect: {
+            onSpell: {
+                condition: (state, card) =>
+                    withTurnAtOneceCondition(state, card, (state) => {
+                        // Get all level 1 monsters from deck
+                        const level1Monsters = state.deck.filter(
+                            (e) => hasLevelMonsterFilter(e.card) && e.card.level === 1
+                        );
+                        // Check if we have at least 3 different card names
+                        const uniqueNames = new Set(level1Monsters.map((e) => e.card.card_name));
+                        return uniqueNames.size >= 3;
+                    }),
+                effect: (state, card) =>
+                    withTurnAtOneceEffect(state, card, () => {
+                        // Player selects from remaining 2 cards
+                        withUserSelectCard(
+                            state,
+                            card,
+                            (state) =>
+                                state.deck
+                                    .filter((e) => hasLevelMonsterFilter(e.card) && e.card.level === 1)
+                                    .reduce<CardInstance[]>(
+                                        (prev, cur) =>
+                                            prev.find((e) => e.card.card_name === cur.card.card_name)
+                                                ? prev
+                                                : [...prev, cur],
+                                        []
+                                    ),
+                            { select: "multi", condition: (cards) => cards.length === 3 },
+                            (state, _cardInstance, selected) => {
+                                const rand = Math.floor(Math.random() * 3);
+                                const option = selected.filter((_, i) => i !== rand);
+                                withUserSelectCard(
+                                    state,
+                                    _cardInstance,
+                                    () => option,
+                                    { select: "single" },
+                                    (state, _cardInstance, selected) => {
+                                        sendCard(state, selected[0], "Hand");
+                                    }
+                                );
+                            }
+                        );
+                    }),
+            },
+        },
     },
     {
         card_name: "エマージェンシー・サイバー",
@@ -209,7 +268,22 @@ export const MAGIC_CARDS = [
         magic_type: "通常魔法" as const,
         text: "①：デッキからフィールド魔法カード１枚を手札に加える。",
         image: "card73707637_1.jpg",
-        effect: {},
+        effect: {
+            onSpell: {
+                condition: (state) =>
+                    state.deck.filter((e) => isMagicCard(e.card) && e.card.magic_type === "フィールド魔法").length > 0,
+                effect: (state, card) =>
+                    withUserSelectCard(
+                        state,
+                        card,
+                        (state) => state.deck.filter((e) => isMagicCard(e.card) && e.card.magic_type === "フィールド魔法"),
+                        { select: "single" },
+                        (state, _cardInstance, selected) => {
+                            sendCard(state, selected[0], "Hand");
+                        }
+                    ),
+            },
+        },
     },
     {
         card_name: "チキンレース",
@@ -249,6 +323,50 @@ export const MAGIC_CARDS = [
         magic_type: "通常魔法" as const,
         text: "デッキからレベル７以下の儀式モンスター１体を手札に加える。その後、自分の墓地から儀式魔法カード１枚を選んで手札に加える事ができる。",
         image: "card100123678_1.jpg",
-        effect: {},
+        effect: {
+            onSpell: {
+                condition: (state) =>
+                    state.deck.filter(
+                        (e) =>
+                            hasLevelMonsterFilter(e.card) &&
+                            e.card.monster_type === "儀式モンスター" &&
+                            e.card.level <= 7
+                    ).length > 0,
+                effect: (state, card) =>
+                    withUserSelectCard(
+                        state,
+                        card,
+                        (state) =>
+                            state.deck.filter(
+                                (e) =>
+                                    hasLevelMonsterFilter(e.card) &&
+                                    e.card.monster_type === "儀式モンスター" &&
+                                    e.card.level <= 7
+                            ),
+                        { select: "single" },
+                        (state, _cardInstance, selected) => {
+                            sendCard(state, selected[0], "Hand");
+                            // Check if there are ritual spell cards in graveyard
+                            const ritualSpells = state.graveyard.filter(
+                                (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
+                            );
+                            if (ritualSpells.length > 0) {
+                                withUserSelectCard(
+                                    state,
+                                    _cardInstance,
+                                    (state) =>
+                                        state.graveyard.filter(
+                                            (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
+                                        ),
+                                    { select: "single" },
+                                    (state, _cardInstance, selected) => {
+                                        sendCard(state, selected[0], "Hand");
+                                    }
+                                );
+                            }
+                        }
+                    ),
+            },
+        },
     },
 ] as const satisfies readonly MagicCard[];
