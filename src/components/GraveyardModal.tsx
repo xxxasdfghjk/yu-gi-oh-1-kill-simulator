@@ -3,15 +3,18 @@ import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import type { GameStore } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
+import { useAtom } from "jotai";
+import { graveyardModalAtom } from "@/store/graveyardModalAtom";
 
 interface GraveyardModalProps {
-    isOpen: boolean;
-    onClose: () => void;
     graveyard: CardInstance[];
     gameState: GameStore;
 }
 
-export const GraveyardModal: React.FC<GraveyardModalProps> = ({ isOpen, onClose, graveyard }) => {
+export const GraveyardModal: React.FC<GraveyardModalProps> = ({ graveyard }) => {
+    const [isOpen, setIsOpen] = useAtom(graveyardModalAtom);
+    const onClose = () => setIsOpen(false);
+    
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
             <div className="flex justify-between items-center mb-4">

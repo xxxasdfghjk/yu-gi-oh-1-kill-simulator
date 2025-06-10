@@ -19,7 +19,11 @@ export const MAGIC_CARDS = [
         effect: {
             onSpell: {
                 condition: (state, card) =>
-                    withTurnAtOneceCondition(state, card, () => state.extraDeck.length >= 3 && state.deck.length >= 3),
+                    withTurnAtOneceCondition(
+                        state,
+                        card,
+                        (state) => state.extraDeck.length >= 3 && state.deck.length >= 3
+                    ),
                 effect: (state, card) =>
                     withTurnAtOneceEffect(state, card, () => {
                         withOption(
@@ -146,7 +150,42 @@ export const MAGIC_CARDS = [
         magic_type: "通常魔法" as const,
         text: "このカード名のカードは１ターンに１枚しか発動できない。①：デッキから「サイバー・ドラゴン」モンスターまたは通常召喚できない機械族・光属性モンスター１体を手札に加える。②：相手によってこのカードの発動が無効になり、このカードが墓地へ送られた場合、手札を１枚捨てて発動できる。このカードを手札に加える。",
         image: "card100095117_1.jpg",
-        effect: {},
+        effect: {
+            onSpell: {
+                condition: (state, card) =>
+                    withTurnAtOneceCondition(
+                        state,
+                        card,
+                        (state) =>
+                            !!state.deck.find(
+                                (e) =>
+                                    monsterFilter(e.card) &&
+                                    e.card.race === "機械" &&
+                                    e.card.element === "光" &&
+                                    e.card.canNormalSummon === false
+                            )
+                    ),
+                effect: (state, card) =>
+                    withTurnAtOneceEffect(state, card, () => {
+                        withUserSelectCard(
+                            state,
+                            card,
+                            (state) =>
+                                state.deck.filter(
+                                    (e) =>
+                                        monsterFilter(e.card) &&
+                                        e.card.race === "機械" &&
+                                        e.card.element === "光" &&
+                                        e.card.canNormalSummon === false
+                                ),
+                            { select: "single" as const },
+                            (state, _cardInstance, selected) => {
+                                sendCard(state, selected[0], "Hand" as const);
+                            }
+                        );
+                    }),
+            },
+        },
     },
     {
         card_name: "極超の竜輝巧",

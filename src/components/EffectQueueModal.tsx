@@ -3,10 +3,8 @@ import { MultiCardConditionSelector } from "./MultiCardConditionSelector";
 import { MultiOptionSelector } from "./MultiOptionSelector";
 import SummonSelector from "./SummonSelector";
 import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/gameStore";
-import type { CardInstance } from "@/types/card";
 import ModalWrapper from "./ModalWrapper";
 import { type LinkMonsterCard } from "../types/card";
-import { isLinkMonster } from "@/utils/cardManagement";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
@@ -49,7 +47,6 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setIsClosing(false);
         }, 300); // Match animation duration
     };
-    console.log(currentEffect);
     if (!currentEffect) return null;
     switch (currentEffect.type) {
         case "option":

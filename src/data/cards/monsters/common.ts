@@ -6,7 +6,6 @@ import { draitronIgnitionCondition, getDraitronReleaseTargets } from "@/utils/dr
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance } from "@/types/card";
 
-// Define monsters as literal objects with proper typing
 export const COMMON_MONSTERS = [
     {
         card_name: "封印されしエクゾディア",

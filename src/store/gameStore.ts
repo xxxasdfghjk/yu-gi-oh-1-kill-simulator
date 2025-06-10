@@ -12,7 +12,8 @@ export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
     | { type: "option"; option: { name: string; value: string }[] }
     | { type: "summon"; zone: number; position: "back_defense" | "attack" | "back" | "defense" }
-    | { type: "confirm"; confirmed: boolean };
+    | { type: "confirm"; confirmed: boolean }
+    | { type: "spellend" };
 
 // Callback result types for documentation
 // These are the specific types passed to callbacks:
@@ -230,11 +231,8 @@ export const useGameStore = create<GameStore>()(
 
         processQueueTop: (payload: ProcessQueuePayload) => {
             set((state) => {
-                console.log("ajaiaijfeji");
                 if (state.effectQueue.length === 0) return;
                 const currentEffect = state.effectQueue[0];
-                console.log(state.effectQueue);
-
                 state.effectQueue.shift();
 
                 // Handle effects directly through payload without pendingCallbacks
@@ -273,6 +271,10 @@ export const useGameStore = create<GameStore>()(
                                 position: payload.position,
                             });
                         }
+                        break;
+                    }
+                    case "spellend": {
+                        sendCard(state, currentEffect.cardInstance, "Graveyard");
                         break;
                     }
                     default:
@@ -332,23 +334,17 @@ export const useGameStore = create<GameStore>()(
                     if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
                         // Spells that go to graveyard after use
                         // 1. Queue spell_end job at the end
+
+                        // 2. Queue activation at the front (processed first)
+                        sendCard(state, card, "SpellField");
+                        card.card.effect.onSpell?.effect(state, card);
                         pushQueue(state, {
-                            order: 0,
+                            order: 100,
                             id: card.id + "_spell_end",
                             type: "spell_end",
                             cardInstance: card,
                             effectType: "send_to_graveyard",
                         });
-
-                        // 2. Queue activation at the front (processed first)
-                        pushQueue(state, {
-                            order: 0,
-                            id: card.id + "_activation",
-                            type: "activate_spell",
-                            cardInstance: card,
-                            effectType: "spell_activation",
-                        });
-                        sendCard(state, card, "SpellField");
                     } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
                         // Continuous/Equipment spells stay on field
                         sendCard(state, card, "SpellField");

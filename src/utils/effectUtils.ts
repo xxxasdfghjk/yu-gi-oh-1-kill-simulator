@@ -95,7 +95,7 @@ export const withUserSelectCard = (
         cardInstance: card,
         getAvailableCards: cardOption,
         condition: option.condition
-            ? (cards: CardInstance[]) => option.condition!(cards, state)
+            ? option.condition
             : (cards: CardInstance[]) => (option.select === "single" ? cards.length === 1 : cards.length >= 1),
         effectType: "with_user_select_card_callback",
         canCancel: false,

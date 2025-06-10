@@ -67,7 +67,6 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
             <div className="grid grid-cols-5  mb-6 gap-y-4 gap-x-2">
                 {cards
                     .filter((e) => {
-                        console.log(e);
                         return filterFunction?.(e) ?? true;
                     })
                     .map((card) => {

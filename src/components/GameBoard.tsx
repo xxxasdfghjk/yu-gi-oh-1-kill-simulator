@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useGameStore } from "@/store/gameStore";
+import { useSetAtom } from "jotai";
+import { graveyardModalAtom } from "@/store/graveyardModalAtom";
 import { HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
@@ -34,7 +36,7 @@ export const GameBoard: React.FC = () => {
         sendSpellToGraveyard,
     } = gameState;
 
-    const [showGraveyard, setShowGraveyard] = useState(false);
+    const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
     console.log(effectQueue);
     useEffect(() => {
@@ -95,8 +97,10 @@ export const GameBoard: React.FC = () => {
             if (currentEffect.effectType === "judge") {
                 judgeWin();
             }
+        } else if (currentEffect?.type === "spell_end") {
+            processQueueTop({ type: "spellend" });
         }
-    }, [effectQueue, popQueue, gameState, sendSpellToGraveyard]);
+    }, [effectQueue, popQueue, gameState, sendSpellToGraveyard, processQueueTop]);
 
     useEffect(() => {
         checkExodiaWin();
@@ -169,12 +173,7 @@ export const GameBoard: React.FC = () => {
                 />
 
                 {/* モーダル */}
-                <GraveyardModal
-                    isOpen={showGraveyard}
-                    onClose={() => setShowGraveyard(false)}
-                    graveyard={graveyard}
-                    gameState={gameState}
-                />
+                <GraveyardModal graveyard={graveyard} gameState={gameState} />
 
                 <ExtraDeckModal
                     isOpen={showExtraDeck}

@@ -3,6 +3,7 @@ import { useSetAtom } from "jotai";
 import type { CardInstance, DefensableMonsterCard } from "@/types/card";
 import { CARD_SIZE } from "@/const/card";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
+import { graveyardModalAtom } from "@/store/graveyardModalAtom";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "@/utils/cardManagement";
 import { useGameStore, type GameStore } from "@/store/gameStore";
 import { canNormalSummon } from "@/utils/summonUtils";
@@ -22,17 +23,21 @@ interface CardProps {
 
 export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
     const actions: string[] = [];
-    if (monsterFilter(card.card) && canNormalSummon(gameState, card)) {
+    if (monsterFilter(card.card) && canNormalSummon(gameState, card) && card.location === "Hand") {
         actions.push("summon");
     }
     if (
         isMagicCard(card.card) &&
         card.card.effect.onSpell?.condition(gameState, card) &&
-        hasEmptySpellField(gameState)
+        hasEmptySpellField(gameState) &&
+        card.location === "Hand"
     ) {
         actions.push("activate");
     }
-    if (isTrapCard(card.card) || (isMagicCard(card.card) && hasEmptySpellField(gameState))) {
+    if (
+        isTrapCard(card.card) ||
+        (isMagicCard(card.card) && hasEmptySpellField(gameState) && card.location === "Hand")
+    ) {
         actions.push("set");
     }
     if (card.card.effect.onIgnition?.condition(gameState, card)) {
@@ -53,6 +58,7 @@ export const Card: React.FC<CardProps> = ({
     disableActivate = false,
 }) => {
     const setHoveredCard = useSetAtom(hoveredCardAtom);
+    const setGraveyardModalOpen = useSetAtom(graveyardModalAtom);
     // カードが伏せ状態かどうかをチェック
     const isFaceDown = faceDown || card.position === "back" || card.position === "back_defense";
     const sizeClasses = {
@@ -115,6 +121,7 @@ export const Card: React.FC<CardProps> = ({
                             gameState.playCard(card);
                         } else if (action === "effect") {
                             gameState.activateEffect(card);
+                            setGraveyardModalOpen(false);
                         }
                         setHoveringCard(null);
                     }}

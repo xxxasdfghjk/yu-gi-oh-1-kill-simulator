@@ -6,7 +6,6 @@ import { isLinkMonster, isXyzMonster } from "./cardManagement";
 
 export const getLevel = (cardInstance: CardInstance) => {
     const level = (cardInstance.card as { level?: number })?.level ?? -9999;
-    console.log(cardInstance);
     return cardInstance.buf.level + level;
 };
 
@@ -15,7 +14,6 @@ export const getAttack = (cardInstance: CardInstance) => {
     const equip = (cardInstance.equipment ?? []).reduce((prev, cur) => {
         return prev + (cur?.buf?.attack ?? 0);
     }, 0);
-    console.log(cardInstance);
 
     return cardInstance.buf.attack + attack + equip;
 };
