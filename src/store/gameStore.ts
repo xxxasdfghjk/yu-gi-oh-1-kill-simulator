@@ -1,20 +1,22 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState } from "@/types/game";
-import { DECK } from "@/data/cards";
+import { DECK, MAGIC_CARDS } from "@/data/cards";
 import { createCardInstance } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { withUserSummon, type Position } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { getSpellTrapZoneIndex } from "../utils/cardMovement";
+import { placementPriority } from "@/components/SummonSelector";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
     | { type: "option"; option: { name: string; value: string }[] }
     | { type: "summon"; zone: number; position: "back_defense" | "attack" | "back" | "defense" }
     | { type: "confirm"; confirmed: boolean }
-    | { type: "spellend" };
+    | { type: "spellend" }
+    | { type: "delay" };
 
 // Callback result types for documentation
 // These are the specific types passed to callbacks:
@@ -91,6 +93,7 @@ export type EffectQueueItem =
                 type: "notify";
                 cardInstance: CardInstance;
                 effectType: string;
+                delay?: number;
                 callback?: (state: GameStore, cardInstance: CardInstance) => void;
             }
           | {
@@ -127,6 +130,7 @@ export interface GameStore extends GameState {
     endGame: () => void;
     judgeWin: () => void;
     draw: () => void;
+    addBonmawashiToHand: () => void;
 }
 
 const initialState: GameState = {
@@ -158,7 +162,7 @@ const initialState: GameState = {
     winner: null,
     hasDrawnByEffect: false,
     currentFrom: { location: "Deck" },
-    currentTo: { location: "Hand", index: 0 },
+    currentTo: { location: "Hand" },
 };
 
 export const useGameStore = create<GameStore>()(
@@ -201,6 +205,26 @@ export const useGameStore = create<GameStore>()(
                 state.lifePoints = 8000;
                 state.gameOver = false;
                 state.winner = null;
+                
+                // Reset game flags
+                state.hasNormalSummoned = false;
+                state.hasSpecialSummoned = false;
+                state.isLinkSummonProhibited = false;
+                state.isFieldSpellActivationProhibited = false;
+                state.isOpponentTurn = false;
+                state.hasDrawnByEffect = false;
+                
+                // Reset animation state
+                state.currentFrom = { location: "Deck" };
+                state.currentTo = { location: "Hand" };
+                
+                // Reset special states
+                state.selectedCard = null;
+                state.hokyuyoinState = null;
+                state.bonmawashiState = null;
+                state.linkSummonState = null;
+                state.xyzSummonState = null;
+                state.meteorKikougunState = null;
 
                 // Clear effect queue
                 state.effectQueue = [];
@@ -271,6 +295,12 @@ export const useGameStore = create<GameStore>()(
                         sendCard(state, currentEffect.cardInstance, "Graveyard");
                         break;
                     }
+                    case "delay": {
+                        if (currentEffect.type === "notify")
+                            currentEffect?.callback?.(state, currentEffect.cardInstance);
+                        break;
+                    }
+
                     default:
                         console.warn("Unknown payload type:", payload);
                         break;
@@ -291,6 +321,16 @@ export const useGameStore = create<GameStore>()(
         draw: () => {
             set((state) => {
                 sendCard(state, state.deck[0], "Hand");
+            });
+        },
+
+        addBonmawashiToHand: () => {
+            set((state) => {
+                const bonmawashiCard = MAGIC_CARDS.find((card) => card.card_name === "盆回し");
+                if (bonmawashiCard) {
+                    const bonmawashiInstance = createCardInstance(bonmawashiCard, "Hand");
+                    state.hand.push(bonmawashiInstance);
+                }
             });
         },
 
@@ -329,7 +369,12 @@ export const useGameStore = create<GameStore>()(
                         if (index !== -1 && card.position === "back") {
                             state.field.spellTrapZones[index]!.position = undefined;
                         } else {
-                            sendCard(state, card, "SpellField", {});
+                            const availableSpace = state.field.spellTrapZones
+                                .map((e, i) => ({ i, e: e }))
+                                .filter(({ e }) => e === null)
+                                .map((e) => e.i);
+                            const index = placementPriority(availableSpace);
+                            sendCard(state, card, "SpellField", { spellFieldIndex: index });
                         }
                         card.card.effect.onSpell?.effect(state, card);
                         pushQueue(state, {
@@ -396,7 +441,12 @@ export const useGameStore = create<GameStore>()(
         setCard: (card: CardInstance) => {
             set((state) => {
                 const newCard = { ...card, setTurn: state.turn };
-                sendCard(state, newCard, "SpellField", { reverse: true });
+                const availableSpace = state.field.spellTrapZones
+                    .map((e, i) => ({ i, e: e }))
+                    .filter(({ e }) => e === null)
+                    .map((e) => e.i);
+                const index = placementPriority(availableSpace);
+                sendCard(state, newCard, "SpellField", { reverse: true, spellFieldIndex: index });
             });
         },
 
@@ -415,7 +465,8 @@ export const useGameStore = create<GameStore>()(
                     summonType: "link",
                     getAvailableCards: (state) => {
                         return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (e): e is CardInstance => e !== null
+                            (e): e is CardInstance =>
+                                e !== null && (e.position === "attack" || e.position === "defense")
                         );
                     },
                     callback: (state, card, selected) => {
@@ -447,7 +498,8 @@ export const useGameStore = create<GameStore>()(
                     targetMonster: xyzMonster,
                     getAvailableCards: (state) => {
                         return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (e): e is CardInstance => e !== null
+                            (e): e is CardInstance =>
+                                e !== null && (e.position === "attack" || e.position === "defense")
                         );
                     },
                     summonType: "xyz",

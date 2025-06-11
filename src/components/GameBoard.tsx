@@ -39,6 +39,7 @@ export const GameBoard: React.FC = () => {
         endGame,
         judgeWin,
         draw,
+        addBonmawashiToHand,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -84,22 +85,21 @@ export const GameBoard: React.FC = () => {
         return searchCombinationXyzSummon(xyzMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
     };
     useEffect(() => {
-        const currentEffect = effectQueue?.[0];
-        if (currentEffect?.type === "notify") {
-            if (currentEffect.effectType === "judge") {
-                judgeWin();
-            } else if (currentEffect.effectType === "delay") {
-                // Process delay effects automatically
-                setTimeout(() => {
-                    if (currentEffect.callback) {
-                        currentEffect.callback(gameState, currentEffect.cardInstance);
-                    }
-                    popQueue();
-                }, 300); // 300ms delay for animations
+        const func = async () => {
+            const currentEffect = effectQueue?.[0];
+            if (currentEffect?.type === "notify") {
+                if (currentEffect.effectType === "judge") {
+                    judgeWin();
+                } else if (currentEffect.effectType === "delay") {
+                    // Process delay effects automatically
+                    await new Promise((resolve) => setTimeout(resolve, currentEffect.delay ?? 50));
+                    processQueueTop({ type: "delay" });
+                }
+            } else if (currentEffect?.type === "spell_end") {
+                processQueueTop({ type: "spellend" });
             }
-        } else if (currentEffect?.type === "spell_end") {
-            processQueueTop({ type: "spellend" });
-        }
+        };
+        func();
     }, [effectQueue, popQueue, gameState, sendSpellToGraveyard, processQueueTop, judgeWin]);
 
     useEffect(() => {
@@ -161,6 +161,9 @@ export const GameBoard: React.FC = () => {
                     <div className="text-center ml-8">
                         <span className="text-5xl font-bold text-blue-600">{lifePoints}</span>
                         <button onClick={() => draw()}> draw</button>
+                        <button onClick={() => addBonmawashiToHand()} className="ml-2 px-2 py-1 bg-green-500 text-white rounded">
+                            盆回し追加
+                        </button>
                     </div>
                 </div>
 
