@@ -10,7 +10,7 @@ import { canNormalSummon } from "@/utils/summonUtils";
 import { ActionListSelector } from "./ActionListSelector";
 
 interface CardProps {
-    card: CardInstance;
+    card: CardInstance | null | undefined;
     size?: "small" | "medium" | "large";
     onClick?: () => void;
     selected?: boolean;
@@ -68,7 +68,7 @@ export const Card: React.FC<CardProps> = ({
     const setHoveredCard = useSetAtom(hoveredCardAtom);
     const setGraveyardModalOpen = useSetAtom(graveyardModalAtom);
     // カードが伏せ状態かどうかをチェック
-    const isFaceDown = faceDown || card.position === "back" || card.position === "back_defense";
+    const isFaceDown = faceDown || card?.position === "back" || card?.position === "back_defense";
     const sizeClasses = {
         small: CARD_SIZE.SMALL,
         medium: CARD_SIZE.MEDIUM,
@@ -84,7 +84,7 @@ export const Card: React.FC<CardProps> = ({
         if (isFaceDown && !forceAttack) {
             return `/card_image/reverse.jpg`; // 裏面はフォールバック表示を使用
         }
-        if (card.card.image) {
+        if (card?.card.image) {
             const imageName = card.card.image;
             return `/card_image/${imageName}`;
         }
@@ -95,6 +95,10 @@ export const Card: React.FC<CardProps> = ({
 
     const imagePath = getImagePath();
     const gameState = useGameStore();
+
+    if (card === null || card === undefined) {
+        return null;
+    }
 
     return (
         <div

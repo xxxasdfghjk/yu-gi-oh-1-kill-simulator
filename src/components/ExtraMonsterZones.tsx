@@ -4,6 +4,7 @@ import { FieldZone } from "./FieldZone";
 import { CARD_SIZE, getLocationVector } from "@/const/card";
 import AnimationWrapper from "./AnimationWrapper";
 import { useGameStore } from "@/store/gameStore";
+import { Card } from "./Card";
 
 interface ExtraMonsterZonesProps {
     extraMonsterZones: (CardInstance | null)[];
@@ -30,23 +31,19 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
 
                 {/* 左のエクストラモンスターゾーン */}
                 <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[0]?.id ?? 0}>
-                    <FieldZone
-                        card={extraMonsterZones[0]}
-                        className={`${cardSizeClass} border-4 border-red-400`}
-                        type={"extra_zone"}
-                    />
+                    <FieldZone className={`${cardSizeClass} border-4 border-red-400`} type={"extra_zone"}>
+                        <Card card={extraMonsterZones?.[0]}></Card>
+                    </FieldZone>
                 </AnimationWrapper>
 
                 <div className={`${cardSizeClass}`}></div>
 
                 {/* 右のエクストラモンスターゾーン */}
-                <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[1]?.id ?? 2}>
-                    <FieldZone
-                        card={extraMonsterZones[1]}
-                        className={`${cardSizeClass} border-4 border-red-400`}
-                        type={"extra_zone"}
-                    />
-                </AnimationWrapper>
+                <FieldZone className={`${cardSizeClass} border-4 border-red-400`} type={"extra_zone"}>
+                    <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[1]?.id ?? 2}>
+                        {extraMonsterZones[1] && <Card card={extraMonsterZones[1]} />}
+                    </AnimationWrapper>
+                </FieldZone>
 
                 <div className={`${cardSizeClass}`}></div>
                 {/* 相手のフィールド魔法（右側） */}

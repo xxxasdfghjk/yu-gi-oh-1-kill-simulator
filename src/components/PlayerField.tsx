@@ -42,38 +42,40 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             {/* プレイヤーモンスターゾーン（Grid配置） */}
             <div className="flex space-x-2 mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
-                <AnimationWrapper key={field.fieldZone?.id ?? "empty-field"} initial={{ ...fieldZoneInitial }}>
-                    <FieldZone card={field.fieldZone} className={cardSizeClass} onClick={() => {}} type="field" />
-                </AnimationWrapper>
+                <FieldZone className={cardSizeClass} type="field">
+                    <AnimationWrapper key={field.fieldZone?.id ?? "empty-field"} initial={{ ...fieldZoneInitial }}>
+                        <Card card={field.fieldZone} />
+                    </AnimationWrapper>
+                </FieldZone>
 
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
-                    <AnimationWrapper key={card?.id ?? index} initial={{ ...monsterInitial }}>
-                        <FieldZone key={`monster-${index}`} card={card} className={cardSizeClass} />
-                    </AnimationWrapper>
+                    <FieldZone key={`monster-${index}`} className={cardSizeClass}>
+                        <AnimationWrapper key={card?.id ?? index} initial={{ ...monsterInitial }}>
+                            <Card card={field.monsterZones[index]} />
+                        </AnimationWrapper>
+                    </FieldZone>
                 ))}
                 {/* 墓地 */}
-                <AnimationWrapper>
-                    <div className="text-center relative">
-                        <div
-                            className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-10 absolute opacity-80`}
-                            onClick={() => setShowGraveyard(true)}
-                        >
-                            <div className="-z-10">
-                                <div className="text-xs">GY</div>
-                                <div className="text-lg">{graveyard.length}</div>
-                            </div>
+                <div className="text-center relative">
+                    <div
+                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-10 absolute opacity-80`}
+                        onClick={() => setShowGraveyard(true)}
+                    >
+                        <div className="-z-10">
+                            <div className="text-xs">GY</div>
+                            <div className="text-lg">{graveyard.length}</div>
                         </div>
-
-                        {graveyard.map((e) => (
-                            <div key={e.id} className={"absolute"}>
-                                <AnimationWrapper initial={{ ...graveyardInitial }}>
-                                    <Card key={e.id} card={e} />
-                                </AnimationWrapper>
-                            </div>
-                        ))}
                     </div>
-                </AnimationWrapper>
+
+                    {graveyard.map((e) => (
+                        <div key={e.id} className={"absolute"}>
+                            <AnimationWrapper initial={{ ...graveyardInitial }}>
+                                <Card key={e.id} card={e} />
+                            </AnimationWrapper>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* 魔法・罠ゾーン（Grid配置） */}
@@ -93,9 +95,11 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
-                    <AnimationWrapper key={card?.id ?? index} initial={{ ...spellInitial }}>
-                        <FieldZone key={`spell-${index}`} card={card} className={cardSizeClass} />
-                    </AnimationWrapper>
+                    <FieldZone key={`spell-${index}`} className={cardSizeClass}>
+                        <AnimationWrapper key={card?.id ?? index} initial={{ ...spellInitial }}>
+                            <Card card={card}></Card>
+                        </AnimationWrapper>
+                    </FieldZone>
                 ))}
 
                 {/* デッキ */}

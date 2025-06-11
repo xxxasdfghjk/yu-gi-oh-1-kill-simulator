@@ -1,5 +1,3 @@
-import type { Location } from "@/types/card";
-
 // カードサイズの定数定義
 export const CARD_SIZE = {
     // 基本サイズ（medium）

@@ -1,12 +1,7 @@
-import React from "react";
-import type { CardInstance } from "@/types/card";
-import { Card } from "./Card";
-import { CARD_GAP } from "@/const/card";
+import React, { type ReactNode } from "react";
 
 interface FieldZoneProps {
-    card: CardInstance | null;
     onClick?: () => void;
-    onCardClick?: (card: CardInstance) => void;
     label?: string;
     className?: string;
     type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone";
@@ -16,54 +11,33 @@ interface FieldZoneProps {
     reverse?: boolean;
     disableActivate?: true;
     rotate?: boolean;
+    children?: ReactNode;
 }
 
 export const FieldZone: React.FC<FieldZoneProps> = ({
-    card,
     onClick,
-    onCardClick,
     label,
     className = "",
     type,
     disabled,
     selected,
-    customSize,
-    disableActivate,
-    rotate,
+    children,
 }) => {
-    const handleClick = () => {
-        if (card && onCardClick) {
-            onCardClick(card);
-        } else if (onClick) {
-            onClick();
-        }
-    };
-
     const textColor = selected ? "text-red-400" : "text-blue-400";
     const borderColor = selected ? "border-red-400" : "border-blue-400";
     const bgColor = selected ? "bg-red-100" : "";
 
     return (
-        <div className={`relative ${className}`}>
+        <div className={`relative ${className} z-3`}>
             {label && <div className="absolute -top-5 left-0 text-xs text-gray-600">{label}</div>}
             <div
                 className={`border-2 ${borderColor} ${textColor} rounded bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors h-full ${bgColor} ${
                     disabled ? "opacity-50" : ""
                 } relative`}
-                onClick={handleClick}
+                onClick={onClick}
             >
-                <div className="absolute z-40">
-                    {card && (
-                        <Card
-                            card={card}
-                            size="medium"
-                            customSize={customSize}
-                            disableActivate={disableActivate}
-                            rotate={rotate}
-                        />
-                    )}
-                </div>
-                <div className="absolute -z-20">
+                {children}
+                <div className="absolute z-20">
                     {type === "deck" ? (
                         <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
                             Deck

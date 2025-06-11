@@ -1,10 +1,10 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { AnimatePresence } from "framer-motion";
-import { FieldZone } from "./FieldZone";
-import { CARD_SIZE, getLocationVector } from "@/const/card";
+import { getLocationVector } from "@/const/card";
 import { useGameStore } from "@/store/gameStore";
 import AnimationWrapper from "./AnimationWrapper";
+import { Card } from "./Card";
 interface HandAreaProps {
     hand: CardInstance[];
 }
@@ -13,7 +13,6 @@ export type Action = "summon" | "activate" | "set" | "effect";
 
 export const HandArea: React.FC<HandAreaProps> = ({ hand }) => {
     const { currentFrom, currentTo } = useGameStore();
-    const cardSizeClass = CARD_SIZE.MEDIUM;
     const initial = currentTo.location === "Hand" ? getLocationVector(currentTo, currentFrom) : {};
     return (
         <div className="flex space-x-2 justify-center items-center mt-2 min-w-full">
@@ -25,7 +24,7 @@ export const HandArea: React.FC<HandAreaProps> = ({ hand }) => {
                             layout // 自動的に位置調整
                             initial={{ ...initial }}
                         >
-                            <FieldZone card={card} className={cardSizeClass} />
+                            <Card card={card} size="medium"></Card>
                         </AnimationWrapper>
                     ))}
                 </AnimatePresence>

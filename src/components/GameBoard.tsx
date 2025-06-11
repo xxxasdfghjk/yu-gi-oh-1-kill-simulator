@@ -47,7 +47,6 @@ export const GameBoard: React.FC = () => {
     const reset = useCallback(() => {
         initializeGame();
         setTimeout(() => draw(), 100);
-        console.log("aaa");
         setTimeout(() => draw(), 200);
         setTimeout(() => draw(), 300);
         setTimeout(() => draw(), 400);
