@@ -55,8 +55,12 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
                     <FieldZone key={`monster-${index}`} className={cardSizeClass} hasCard={!!card}>
-                        <AnimationWrapper key={card?.id ?? index} initial={{ ...monsterInitial }}>
-                            <Card card={field.monsterZones[index]} />
+                        <AnimationWrapper 
+                            card={card}
+                            enableTokenFadeOut={true}
+                            initial={{ ...monsterInitial }}
+                        >
+                            <Card card={card} />
                         </AnimationWrapper>
                     </FieldZone>
                 ))}

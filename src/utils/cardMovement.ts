@@ -100,7 +100,15 @@ export const sendCard = (
 
     // Remove from current location
     const from = excludeFromAnywhere(state, card);
+
     state.currentFrom = { ...from, position: card.position };
+    if (card.isToken === true && to === "Graveyard") {
+        // トークンは墓地に送られる代わりにゲームから除外される（AnimatePresenceが削除を処理）
+        // フィールドからは既に除外されているので、何もしない
+        state.currentTo = { location: "TokenRemove", index: from.index };
+        return;
+    }
+
     // Update card location and add to new location
     const updatedCard = {
         ...card,

@@ -64,8 +64,9 @@ export type DisplayField =
     | "Graveyard"
     | "FieldZone"
     | "OpponentField"
-    | "Hand";
-export const getFieldCoodrinateAbsolute = (fieldType: DisplayField, index: number = 0, length = 0) => {
+    | "Hand"
+    | "TokenRemove";
+export const getFieldCoodrinateAbsolute = (fieldType: DisplayField, index: number = 0, length = 0): { x: number; y: number } => {
     switch (fieldType) {
         case "Deck":
             return { x: DECK_X, y: DECK_Y };
@@ -108,6 +109,9 @@ export const getFieldCoodrinateAbsolute = (fieldType: DisplayField, index: numbe
             };
         case "Hand":
             return getHandCoordinateAbsolute(index, length);
+        case "TokenRemove":
+            // フィールドの同じ位置（フェードアウト用）
+            return getFieldCoodrinateAbsolute("MonsterField", index);
     }
 };
 

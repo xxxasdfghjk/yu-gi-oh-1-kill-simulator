@@ -1,6 +1,6 @@
 import type { TrapCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
-import { withUserSelectCard } from "@/utils/effectUtils";
+import { withDelay, withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 
 export const TRAP_CARDS = [
@@ -29,13 +29,18 @@ export const TRAP_CARDS = [
                                     e.card.monster_type === "通常モンスター" &&
                                     e.card.attack <= 1500
                             ),
-                        { select: "multi", condition: (cards) => cards.length <= 3 && cards.length >= 1 },
-                        (state, _card, selectedList) => {
-                            for (const selected of selectedList) {
-                                sendCard(state, selected, "Hand");
-                            }
+                        {
+                            select: "multi",
+                            condition: (cards) => cards.length <= 3 && cards.length >= 1,
+                            message: "墓地から攻撃力1500以下の通常モンスターを3体まで選択してください",
                         },
-                        "墓地から攻撃力1500以下の通常モンスターを3体まで選択してください"
+                        (state, _card, selectedList) => {
+                            for (let i = 0; i < selectedList.length; i++) {
+                                withDelay(state, _card, { order: -1, delay: i * 20 }, (state) => {
+                                    sendCard(state, selectedList[i], "Hand");
+                                });
+                            }
+                        }
                     );
                 },
             },

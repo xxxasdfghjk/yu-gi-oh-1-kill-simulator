@@ -718,13 +718,12 @@ export const MAGIC_CARDS = [
                                     message: "儀式素材として墓地に送る通常モンスターを選択してください",
                                 },
                                 (state, card, selected) => {
-                                    withUserSummon(state, card, ritualMonster[0], {}, (state, card) => {
-                                        for (let i = 0; i < selected.length; i++) {
-                                            withDelay(state, card, { delay: i * 20 }, (state) => {
-                                                sendCard(state, selected[i], "Graveyard");
-                                            });
-                                        }
-                                    });
+                                    for (let i = 0; i < selected.length; i++) {
+                                        withDelay(state, card, { delay: i * 20, order: 0 }, (state) => {
+                                            sendCard(state, selected[i], "Graveyard");
+                                        });
+                                    }
+                                    withUserSummon(state, card, ritualMonster[0], { order: 1 }, () => {});
                                 }
                             );
                         }

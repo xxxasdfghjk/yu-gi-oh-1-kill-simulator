@@ -299,7 +299,7 @@ export const EXTRA_MONSTERS = [
                 for (let i = 0; i < 3 && i < emptyZones.length; i++) {
                     const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
                     const zoneIndex = emptyZones[i].index;
-                    withDelay(gameState, cardInstance, { order: i + 1 }, (state) => {
+                    withDelay(gameState, cardInstance, { order: i + 1, delay: i * 20 }, (state) => {
                         summon(state, tokenInstance, zoneIndex, "attack");
                     });
                 }
@@ -384,9 +384,14 @@ export const EXTRA_MONSTERS = [
                                 (releaseState, releaseCard, selected) => {
                                     // Sequential card sending with delay for proper animation
                                     selected.forEach((monster, index) => {
-                                        withDelay(releaseState, releaseCard, { order: index + 1 }, (state) => {
-                                            sendCard(state, monster, "Graveyard");
-                                        });
+                                        withDelay(
+                                            releaseState,
+                                            releaseCard,
+                                            { order: -1, delay: index * 20 },
+                                            (state) => {
+                                                sendCard(state, monster, "Graveyard");
+                                            }
+                                        );
                                     });
 
                                     if (chosenEffect.count === 1) {

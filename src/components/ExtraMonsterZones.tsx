@@ -37,8 +37,12 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
                     type={"extra_zone"}
                     hasCard={!!extraMonsterZones[0]}
                 >
-                    <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[0]?.id ?? 0}>
-                        <Card card={extraMonsterZones?.[0]}></Card>
+                    <AnimationWrapper 
+                        card={extraMonsterZones[0]}
+                        enableTokenFadeOut={true}
+                        initial={{ ...monsterInitial }}
+                    >
+                        <Card card={extraMonsterZones[0]} />
                     </AnimationWrapper>
                 </FieldZone>
 
@@ -50,7 +54,11 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
                     type={"extra_zone"}
                     hasCard={!!extraMonsterZones[1]}
                 >
-                    <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[1]?.id ?? 2}>
+                    <AnimationWrapper 
+                        card={extraMonsterZones[1]}
+                        enableTokenFadeOut={true}
+                        initial={{ ...monsterInitial }}
+                    >
                         <Card card={extraMonsterZones[1]} />
                     </AnimationWrapper>
                 </FieldZone>

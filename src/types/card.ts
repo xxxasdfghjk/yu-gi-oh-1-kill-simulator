@@ -145,7 +145,8 @@ export type Location =
     | "Graveyard"
     | "FieldZone"
     | "OpponentField"
-    | "Material";
+    | "Material"
+    | "TokenRemove";
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
 export interface CardInstance {

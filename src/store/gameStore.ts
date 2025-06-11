@@ -5,7 +5,7 @@ import { DECK, MAGIC_CARDS } from "@/data/cards";
 import { createCardInstance } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance, MagicCard } from "@/types/card";
-import { withUserSummon, type Position } from "@/utils/effectUtils";
+import { withDelay, withUserSummon, type Position } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { getSpellTrapZoneIndex } from "../utils/cardMovement";
 import { placementPriority } from "@/components/SummonSelector";
@@ -131,6 +131,7 @@ export interface GameStore extends GameState {
     judgeWin: () => void;
     draw: () => void;
     addBonmawashiToHand: () => void;
+    resetAnimationState: () => void;
 }
 
 const initialState: GameState = {
@@ -200,7 +201,7 @@ export const useGameStore = create<GameStore>()(
                 state.lifePoints = 8000;
                 state.gameOver = false;
                 state.winner = null;
-                
+
                 // Reset game flags
                 state.hasNormalSummoned = false;
                 state.hasSpecialSummoned = false;
@@ -208,11 +209,11 @@ export const useGameStore = create<GameStore>()(
                 state.isFieldSpellActivationProhibited = false;
                 state.isOpponentTurn = false;
                 state.hasDrawnByEffect = false;
-                
+
                 // Reset animation state
                 state.currentFrom = { location: "Deck" };
                 state.currentTo = { location: "Hand" };
-                
+
                 // Reset special states
                 state.selectedCard = null;
 
@@ -460,14 +461,16 @@ export const useGameStore = create<GameStore>()(
                         );
                     },
                     callback: (state, card, selected) => {
-                        for (const card of selected) {
-                            sendCard(state, card, "Graveyard");
+                        for (let i = 0; i < selected.length; i++) {
+                            withDelay(state, card, { order: 0, delay: 20 }, (state) => {
+                                sendCard(state, selected[i], "Graveyard");
+                            });
                         }
                         withUserSummon(
                             state,
                             card,
                             card,
-                            { canSelectPosition: false, optionPosition: ["attack"] },
+                            { canSelectPosition: false, optionPosition: ["attack"], order: 5 },
                             () => {}
                         );
                     },
@@ -549,6 +552,13 @@ export const useGameStore = create<GameStore>()(
                     state.gameOver = true;
                     state.winner = "timeout";
                 }
+            });
+        },
+
+        resetAnimationState: () => {
+            set((state) => {
+                state.currentFrom = { location: "Deck" };
+                state.currentTo = { location: "Hand" };
             });
         },
     }))
