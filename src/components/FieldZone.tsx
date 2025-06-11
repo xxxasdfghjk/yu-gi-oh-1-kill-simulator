@@ -12,6 +12,7 @@ interface FieldZoneProps {
     disableActivate?: true;
     rotate?: boolean;
     children?: ReactNode;
+    hasCard?: boolean; // カードの存在を明示的に指定
 }
 
 export const FieldZone: React.FC<FieldZoneProps> = ({
@@ -22,6 +23,7 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
     disabled,
     selected,
     children,
+    hasCard = false,
 }) => {
     const textColor = selected ? "text-red-400" : "text-blue-400";
     const borderColor = selected ? "border-red-400" : "border-blue-400";
@@ -36,32 +38,39 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                 } relative`}
                 onClick={onClick}
             >
-                {children}
-                <div className="absolute z-20">
-                    {type === "deck" ? (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            Deck
-                        </div>
-                    ) : type === "extra_deck" ? (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            EX Deck
-                        </div>
-                    ) : type === "graveyard" ? (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
-                    ) : type === "field" ? (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            Field
-                        </div>
-                    ) : type === "extra_zone" ? (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            EX Zone
-                        </div>
-                    ) : (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            Empty
-                        </div>
-                    )}
+                {/* カード部分 - 上層 */}
+                <div className="absolute z-30">
+                    {children}
                 </div>
+                
+                {/* ラベル部分 - 下層（カードがない場合のみ表示） */}
+                {!hasCard && (
+                    <div className="absolute z-10">
+                        {type === "deck" ? (
+                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                                Deck
+                            </div>
+                        ) : type === "extra_deck" ? (
+                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                                EX Deck
+                            </div>
+                        ) : type === "graveyard" ? (
+                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
+                        ) : type === "field" ? (
+                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                                Field
+                            </div>
+                        ) : type === "extra_zone" ? (
+                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                                EX Zone
+                            </div>
+                        ) : (
+                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                                Empty
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

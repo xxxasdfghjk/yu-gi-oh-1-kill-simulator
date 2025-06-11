@@ -42,7 +42,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             {/* プレイヤーモンスターゾーン（Grid配置） */}
             <div className="flex space-x-2 mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
-                <FieldZone className={cardSizeClass} type="field">
+                <FieldZone className={cardSizeClass} type="field" hasCard={!!field.fieldZone}>
                     <AnimationWrapper key={field.fieldZone?.id ?? "empty-field"} initial={{ ...fieldZoneInitial }}>
                         <Card card={field.fieldZone} />
                     </AnimationWrapper>
@@ -50,7 +50,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
-                    <FieldZone key={`monster-${index}`} className={cardSizeClass}>
+                    <FieldZone key={`monster-${index}`} className={cardSizeClass} hasCard={!!card}>
                         <AnimationWrapper key={card?.id ?? index} initial={{ ...monsterInitial }}>
                             <Card card={field.monsterZones[index]} />
                         </AnimationWrapper>
@@ -95,7 +95,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
-                    <FieldZone key={`spell-${index}`} className={cardSizeClass}>
+                    <FieldZone key={`spell-${index}`} className={cardSizeClass} hasCard={!!card}>
                         <AnimationWrapper key={card?.id ?? index} initial={{ ...spellInitial }}>
                             <Card card={card}></Card>
                         </AnimationWrapper>
