@@ -1,6 +1,6 @@
 import type { CommonMonster, LeveledMonsterCard } from "@/types/card";
 import { isMagicCard, monsterFilter } from "@/utils/cardManagement";
-import { withTurnAtOneceEffect, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { withTurnAtOneceEffect, withUserSelectCard, withUserSummon, withDelay } from "@/utils/effectUtils";
 import { sendCard, banish, releaseCard, addBuf } from "@/utils/cardMovement";
 import { draitronIgnitionCondition, getDraitronReleaseTargets } from "@/utils/draitronUtils";
 import type { GameStore } from "@/store/gameStore";
@@ -515,9 +515,16 @@ export const COMMON_MONSTERS = [
                             message: "除外する光属性モンスター2体を選択してください",
                         },
                         (state, card, selected) => {
-                            // Banish the selected light monsters - animations handled by UI
-                            selected.forEach((monster) => {
-                                banish(state, monster);
+                            // Sequential banishing with delay for proper animation
+                            selected.forEach((monster, index) => {
+                                withDelay(
+                                    state,
+                                    card,
+                                    { order: index + 1 },
+                                    (delayState) => {
+                                        banish(delayState, monster);
+                                    }
+                                );
                             });
                             // Special summon this card
                             withUserSummon(state, card, card, {}, () => {

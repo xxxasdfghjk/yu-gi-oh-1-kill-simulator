@@ -152,3 +152,27 @@ export const withUserSummon = (
         },
     });
 };
+
+export const withDelay = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        delay?: number;
+        order?: number;
+        message?: string;
+    },
+    callback: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    // Add delay to effect queue using notify type for auto-processing
+    pushQueue(state, {
+        id: uuidv4(),
+        order: options.order ?? 1,
+        type: "notify",
+        cardInstance: card,
+        effectType: "delay",
+        callback: (state: GameStore, cardInstance: CardInstance) => {
+            // Execute the callback after the delay
+            callback(state, cardInstance);
+        },
+    });
+};

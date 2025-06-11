@@ -88,6 +88,14 @@ export const GameBoard: React.FC = () => {
         if (currentEffect?.type === "notify") {
             if (currentEffect.effectType === "judge") {
                 judgeWin();
+            } else if (currentEffect.effectType === "delay") {
+                // Process delay effects automatically
+                setTimeout(() => {
+                    if (currentEffect.callback) {
+                        currentEffect.callback(gameState, currentEffect.cardInstance);
+                    }
+                    popQueue();
+                }, 300); // 300ms delay for animations
             }
         } else if (currentEffect?.type === "spell_end") {
             processQueueTop({ type: "spellend" });

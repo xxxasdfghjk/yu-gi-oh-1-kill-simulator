@@ -204,7 +204,7 @@ const SummonSelector = ({
                         selected={position === "defense"}
                         customSize={positionSizeClass}
                     >
-                        <Card card={cardInstance} disableActivate={true}></Card>
+                        <Card card={cardInstance} disableActivate={true} customSize={positionSizeClass}></Card>
                     </FieldZone>
                 )}
 

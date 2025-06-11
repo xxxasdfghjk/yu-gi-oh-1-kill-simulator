@@ -16,6 +16,7 @@ import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
     withOption,
+    withDelay,
 } from "@/utils/effectUtils";
 import { equipCard, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
@@ -285,7 +286,7 @@ export const EXTRA_MONSTERS = [
         hasRank: false as const,
         canNormalSummon: false,
         effect: {
-            onSummon: (gameState: GameStore) => {
+            onSummon: (gameState: GameStore, cardInstance: CardInstance) => {
                 const emptyZones = gameState.field.monsterZones
                     .map((zone, index) => ({ zone, index }))
                     .filter(({ zone }) => zone === null);
@@ -294,10 +295,19 @@ export const EXTRA_MONSTERS = [
 
                 const phantomBeastToken = TOKEN.find((token) => token.card_name === "幻獣機トークン")!;
 
-                // Summon tokens immediately - UI will handle animation sequencing
+                // Sequential token summoning with delay for proper animation
                 for (let i = 0; i < 3 && i < emptyZones.length; i++) {
                     const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
-                    summon(gameState, tokenInstance, emptyZones[i].index, "attack");
+                    const zoneIndex = emptyZones[i].index;
+                    
+                    withDelay(
+                        gameState,
+                        cardInstance,
+                        { order: i + 1 },
+                        (state) => {
+                            summon(state, tokenInstance, zoneIndex, "attack");
+                        }
+                    );
                 }
                 gameState.isLinkSummonProhibited = true;
             },
@@ -381,9 +391,16 @@ export const EXTRA_MONSTERS = [
                                     message: `リリースするモンスターを${chosenEffect.count}体選んでください`,
                                 },
                                 (releaseState, releaseCard, selected) => {
-                                    // Send cards to graveyard - animations handled by UI
-                                    selected.forEach((monster) => {
-                                        sendCard(releaseState, monster, "Graveyard");
+                                    // Sequential card sending with delay for proper animation
+                                    selected.forEach((monster, index) => {
+                                        withDelay(
+                                            releaseState,
+                                            releaseCard,
+                                            { order: index + 1 },
+                                            (state) => {
+                                                sendCard(state, monster, "Graveyard");
+                                            }
+                                        );
                                     });
 
                                     if (chosenEffect.count === 1) {
