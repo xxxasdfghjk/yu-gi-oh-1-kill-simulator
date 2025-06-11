@@ -169,12 +169,7 @@ export const useGameStore = create<GameStore>()(
     immer((set) => ({
         ...initialState,
         turnOnceUsedEffectMemo: {},
-        hokyuyoinState: null,
         effectQueue: [],
-        bonmawashiState: null,
-        linkSummonState: null,
-        xyzSummonState: null,
-        meteorKikougunState: null,
         initializeGame: () => {
             const deckData = DECK;
 
@@ -220,11 +215,6 @@ export const useGameStore = create<GameStore>()(
                 
                 // Reset special states
                 state.selectedCard = null;
-                state.hokyuyoinState = null;
-                state.bonmawashiState = null;
-                state.linkSummonState = null;
-                state.xyzSummonState = null;
-                state.meteorKikougunState = null;
 
                 // Clear effect queue
                 state.effectQueue = [];
