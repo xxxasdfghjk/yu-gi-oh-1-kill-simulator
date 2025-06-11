@@ -18,7 +18,6 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
     const cardSizeClass = CARD_SIZE.MEDIUM;
     const { currentTo, currentFrom } = useGameStore();
     const monsterInitial = currentTo.location === "MonsterField" ? getLocationVector(currentTo, currentFrom) : {};
-    console.log(monsterInitial);
     const opponentFieldInitial =
         currentTo.location === "OpponentField" ? getLocationVector(currentTo, currentFrom) : {};
 
@@ -30,7 +29,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
                 <div className={`${cardSizeClass}`}></div>
 
                 {/* 左のエクストラモンスターゾーン */}
-                <AnimationWrapper initial={monsterInitial}>
+                <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[0]?.id ?? 0}>
                     <FieldZone
                         card={extraMonsterZones[0]}
                         className={`${cardSizeClass} border-4 border-red-400`}
@@ -41,7 +40,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
                 <div className={`${cardSizeClass}`}></div>
 
                 {/* 右のエクストラモンスターゾーン */}
-                <AnimationWrapper initial={monsterInitial}>
+                <AnimationWrapper initial={monsterInitial} key={extraMonsterZones[1]?.id ?? 2}>
                     <FieldZone
                         card={extraMonsterZones[1]}
                         className={`${cardSizeClass} border-4 border-red-400`}

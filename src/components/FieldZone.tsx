@@ -49,30 +49,45 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
             <div
                 className={`border-2 ${borderColor} ${textColor} rounded bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors h-full ${bgColor} ${
                     disabled ? "opacity-50" : ""
-                }`}
+                } relative`}
                 onClick={handleClick}
             >
-                {card ? (
-                    <Card
-                        card={card}
-                        size="medium"
-                        customSize={customSize}
-                        disableActivate={disableActivate}
-                        rotate={rotate}
-                    />
-                ) : type === "deck" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Deck</div>
-                ) : type === "extra_deck" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>EX Deck</div>
-                ) : type === "graveyard" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
-                ) : type === "field" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Field</div>
-                ) : type === "extra_zone" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>EX Zone</div>
-                ) : (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Empty</div>
-                )}
+                <div className="absolute z-40">
+                    {card && (
+                        <Card
+                            card={card}
+                            size="medium"
+                            customSize={customSize}
+                            disableActivate={disableActivate}
+                            rotate={rotate}
+                        />
+                    )}
+                </div>
+                <div className="absolute -z-20">
+                    {type === "deck" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Deck
+                        </div>
+                    ) : type === "extra_deck" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            EX Deck
+                        </div>
+                    ) : type === "graveyard" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
+                    ) : type === "field" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Field
+                        </div>
+                    ) : type === "extra_zone" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            EX Zone
+                        </div>
+                    ) : (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Empty
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

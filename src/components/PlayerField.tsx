@@ -2,7 +2,6 @@ import React from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
 import { CARD_SIZE, getLocationVector } from "@/const/card";
-import { motion } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import AnimationWrapper from "./AnimationWrapper";
 import { Card } from "./Card";
@@ -43,7 +42,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             {/* プレイヤーモンスターゾーン（Grid配置） */}
             <div className="flex space-x-2 mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
-                <AnimationWrapper initial={{ ...fieldZoneInitial }}>
+                <AnimationWrapper key={field.fieldZone?.id ?? "empty-field"} initial={{ ...fieldZoneInitial }}>
                     <FieldZone card={field.fieldZone} className={cardSizeClass} onClick={() => {}} type="field" />
                 </AnimationWrapper>
 
