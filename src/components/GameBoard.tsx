@@ -38,6 +38,7 @@ export const GameBoard: React.FC = () => {
         checkExodiaWin,
         endGame,
         judgeWin,
+        draw,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -50,7 +51,7 @@ export const GameBoard: React.FC = () => {
         setTimeout(() => draw(), 300);
         setTimeout(() => draw(), 400);
         setTimeout(() => draw(), 500);
-    }, [initializeGame]);
+    }, [initializeGame, draw]);
 
     useEffect(() => {
         reset();
