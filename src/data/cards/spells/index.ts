@@ -1,6 +1,7 @@
 import type { MagicCard, CardInstance, MonsterCard, LeveledMonsterCard } from "@/types/card";
 import { hasLevelMonsterFilter, monsterFilter, isMagicCard, isTrapCard } from "@/utils/cardManagement";
 import {
+    withDelay,
     withOption,
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
@@ -479,12 +480,13 @@ export const MAGIC_CARDS = [
                                     }
                                     const otherCard = selectedList.find((c) => c.id !== selected[0].id)!;
                                     sendCard(state, otherCard, "OpponentField");
-
-                                    sendCard(state, selected[0], "FieldZone");
-                                    selected[0].card.effect.onSpell?.effect(state, selected[0]);
-                                    // Set the other card to opponent's field zone
-                                    // Enable field spell prohibition
-                                    state.isFieldSpellActivationProhibited = true;
+                                    withDelay(state, card, { order: 0 }, (state) => {
+                                        sendCard(state, selected[0], "FieldZone");
+                                        selected[0].card.effect.onSpell?.effect(state, selected[0]);
+                                        // Set the other card to opponent's field zone
+                                        // Enable field spell prohibition
+                                        state.isFieldSpellActivationProhibited = true;
+                                    });
                                 }
                             );
                         }
@@ -716,10 +718,13 @@ export const MAGIC_CARDS = [
                                     message: "儀式素材として墓地に送る通常モンスターを選択してください",
                                 },
                                 (state, card, selected) => {
-                                    for (const select of selected) {
-                                        sendCard(state, select, "Graveyard");
-                                    }
-                                    withUserSummon(state, card, ritualMonster[0], {}, () => {});
+                                    withUserSummon(state, card, ritualMonster[0], {}, (state, card) => {
+                                        for (let i = 0; i < selected.length; i++) {
+                                            withDelay(state, card, { delay: i * 20 }, (state) => {
+                                                sendCard(state, selected[i], "Graveyard");
+                                            });
+                                        }
+                                    });
                                 }
                             );
                         }

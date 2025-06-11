@@ -76,6 +76,11 @@ export const getLinkMonsterSummonalble = (
         return except(Array.from(new Set(linkMonsters)), existing);
     }
 };
+export const order = [2, 1, 3, 0, 4, 5, 6];
+
+export const placementPriority = (candidate: number[]) => {
+    return order.find((e) => candidate.includes(e)) ?? -1;
+};
 
 const SummonSelector = ({
     cardInstance,
@@ -108,7 +113,7 @@ const SummonSelector = ({
     const [position, setPosition] = useState<Exclude<Position, undefined>>("attack");
     const dummyCardInstance = { ...cardInstance, position: "back_defense" as const };
     useEffect(() => {
-        setZone(summonable?.[0] ?? -1);
+        setZone(placementPriority(summonable));
         setPosition(optionPosition[0]);
     }, []);
     return (

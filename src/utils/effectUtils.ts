@@ -170,6 +170,7 @@ export const withDelay = (
         type: "notify",
         cardInstance: card,
         effectType: "delay",
+        delay: options.delay,
         callback: (state: GameStore, cardInstance: CardInstance) => {
             // Execute the callback after the delay
             callback(state, cardInstance);

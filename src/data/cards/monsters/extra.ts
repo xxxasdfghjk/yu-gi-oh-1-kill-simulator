@@ -299,15 +299,9 @@ export const EXTRA_MONSTERS = [
                 for (let i = 0; i < 3 && i < emptyZones.length; i++) {
                     const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
                     const zoneIndex = emptyZones[i].index;
-                    
-                    withDelay(
-                        gameState,
-                        cardInstance,
-                        { order: i + 1 },
-                        (state) => {
-                            summon(state, tokenInstance, zoneIndex, "attack");
-                        }
-                    );
+                    withDelay(gameState, cardInstance, { order: i + 1 }, (state) => {
+                        summon(state, tokenInstance, zoneIndex, "attack");
+                    });
                 }
                 gameState.isLinkSummonProhibited = true;
             },
@@ -378,12 +372,9 @@ export const EXTRA_MONSTERS = [
                                 optionState,
                                 optionCard,
                                 (state: GameStore) => {
-                                    return [
-                                        ...state.field.monsterZones,
-                                        ...state.field.extraMonsterZones,
-                                        ...state.field.spellTrapZones,
-                                        state.field.fieldZone,
-                                    ].filter((target): target is CardInstance => target !== null);
+                                    return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+                                        (target): target is CardInstance => target !== null
+                                    );
                                 },
                                 {
                                     select: "multi",
@@ -393,14 +384,9 @@ export const EXTRA_MONSTERS = [
                                 (releaseState, releaseCard, selected) => {
                                     // Sequential card sending with delay for proper animation
                                     selected.forEach((monster, index) => {
-                                        withDelay(
-                                            releaseState,
-                                            releaseCard,
-                                            { order: index + 1 },
-                                            (state) => {
-                                                sendCard(state, monster, "Graveyard");
-                                            }
-                                        );
+                                        withDelay(releaseState, releaseCard, { order: index + 1 }, (state) => {
+                                            sendCard(state, monster, "Graveyard");
+                                        });
                                     });
 
                                     if (chosenEffect.count === 1) {
@@ -416,7 +402,10 @@ export const EXTRA_MONSTERS = [
                                             releaseState,
                                             releaseCard,
                                             destroyTargets,
-                                            { select: "single", message: "破壊するフィールドのカードを1枚選んでください" },
+                                            {
+                                                select: "single",
+                                                message: "破壊するフィールドのカードを1枚選んでください",
+                                            },
                                             (destroyState, _, destroySelected) => {
                                                 sendCard(destroyState, destroySelected[0], "Graveyard");
                                             }
@@ -432,7 +421,10 @@ export const EXTRA_MONSTERS = [
                                             releaseState,
                                             releaseCard,
                                             mpbMonsters,
-                                            { select: "single", message: "デッキから幻獣機モンスターを1体選んで特殊召喚してください" },
+                                            {
+                                                select: "single",
+                                                message: "デッキから幻獣機モンスターを1体選んで特殊召喚してください",
+                                            },
                                             (summonState, summonCard, summonSelected) => {
                                                 withUserSummon(
                                                     summonState,
@@ -453,7 +445,10 @@ export const EXTRA_MONSTERS = [
                                             releaseState,
                                             releaseCard,
                                             trapCards,
-                                            { select: "single", message: "墓地から罠カードを1枚選んで手札に加えてください" },
+                                            {
+                                                select: "single",
+                                                message: "墓地から罠カードを1枚選んで手札に加えてください",
+                                            },
                                             (trapState, _trapCard, trapSelected) => {
                                                 sendCard(trapState, trapSelected[0], "Hand");
                                             }
@@ -594,14 +589,20 @@ export const EXTRA_MONSTERS = [
                                                 card.card.element === typedMonster.element)
                                     );
                                 };
-                                withUserSelectCard(state, card, target, { select: "single", message: "装備するモンスターをデッキから1体選んでください" }, (state, _, selected) => {
-                                    const buffedCard = {
-                                        ...selected[0],
-                                        buf: { attack: 1000, defense: 0, level: 0 },
-                                    };
-                                    sendCard(state, buffedCard, "SpellField");
-                                    equipCard(state, equipTarget, buffedCard);
-                                });
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    target,
+                                    { select: "single", message: "装備するモンスターをデッキから1体選んでください" },
+                                    (state, _, selected) => {
+                                        const buffedCard = {
+                                            ...selected[0],
+                                            buf: { attack: 1000, defense: 0, level: 0 },
+                                        };
+                                        sendCard(state, buffedCard, "SpellField");
+                                        equipCard(state, equipTarget, buffedCard);
+                                    }
+                                );
                             }
                         );
                     });

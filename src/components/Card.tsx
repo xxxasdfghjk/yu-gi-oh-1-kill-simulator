@@ -124,9 +124,11 @@ export const Card: React.FC<CardProps> = ({
         >
             {!disableActivate && hoveringCard?.id === card.id && actionList.length > 0 && (
                 <ActionListSelector
+                    rotate={rotate}
                     actions={actionList}
                     onSelect={(action) => {
                         if (action === "summon") {
+                            console.log("aaa");
                             gameState.playCard(card);
                         } else if (action === "set") {
                             gameState.setCard(card);
@@ -145,7 +147,7 @@ export const Card: React.FC<CardProps> = ({
                 <img
                     src={imagePath}
                     alt={isFaceDown ? "Card Back" : card.card.card_name}
-                    className={`w-full h-full object-contain ${rotate ? "rotate-180" : ""}`}
+                    className={`w-full h-full object-contain`}
                     style={{
                         filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
                         backgroundColor: "transparent",

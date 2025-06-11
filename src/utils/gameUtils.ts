@@ -113,7 +113,7 @@ export const searchCombinationLinkSummon = (
     const availableMaterials = [
         ...monsterZones.filter((zone) => zone !== null),
         ...extraMonsterZones.filter((zone) => zone !== null),
-    ] as CardInstance[];
+    ].filter((e) => e?.position === "attack" || e?.position === "defense") as CardInstance[];
 
     if (availableMaterials.length === 0) return false;
 
@@ -163,7 +163,7 @@ export const searchCombinationXyzSummon = (
     const availableMaterials = [
         ...monsterZones.filter((zone) => zone !== null),
         ...extraMonsterZones.filter((zone) => zone !== null),
-    ] as CardInstance[];
+    ].filter((e) => e?.position === "attack" || e?.position === "defense") as CardInstance[];
 
     if (availableMaterials.length === 0) return false;
 

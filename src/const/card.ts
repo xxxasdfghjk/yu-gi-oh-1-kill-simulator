@@ -1,3 +1,5 @@
+import type { Position } from "@/utils/effectUtils";
+
 // カードサイズの定数定義
 export const CARD_SIZE = {
     // 基本サイズ（medium）
@@ -123,15 +125,24 @@ export const getHandToFieldVector = (
     return calcRelativeCoodinate(abs, getFieldCoodrinateAbsolute(field.location, field.index));
 };
 
-export const getLocationVector = (
-    fieldA: { location: DisplayField; index?: number; length?: number },
-    fieldB: { location: DisplayField; index?: number; length?: number }
+export const getLocationVectorWithPosition = (
+    fieldA: { location: DisplayField; index?: number; length?: number; position?: Position },
+    fieldB: { location: DisplayField; index?: number; length?: number; position?: Position }
 ) => {
     console.log(fieldA, fieldB);
-    return calcRelativeCoodinate(
-        getFieldCoodrinateAbsolute(fieldA.location, fieldA.index, fieldA.length),
-        getFieldCoodrinateAbsolute(fieldB.location, fieldB.index, fieldB.length)
-    );
+    const rotate =
+        ["attack", "back", undefined].findIndex((e) => e === fieldB?.position) !== -1 &&
+        ["attack", "back", undefined].findIndex((e) => e === fieldA?.position) !== -1
+            ? 0
+            : 90;
+    console.log(rotate);
+    return {
+        rotate,
+        ...calcRelativeCoodinate(
+            getFieldCoodrinateAbsolute(fieldA.location, fieldA.index, fieldA.length),
+            getFieldCoodrinateAbsolute(fieldB.location, fieldB.index, fieldB.length)
+        ),
+    };
 };
 
 export const CARD_RECT = { x: "10rem", y: "14rem" };

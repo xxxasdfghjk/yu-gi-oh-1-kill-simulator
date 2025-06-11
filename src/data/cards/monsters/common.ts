@@ -517,14 +517,9 @@ export const COMMON_MONSTERS = [
                         (state, card, selected) => {
                             // Sequential banishing with delay for proper animation
                             selected.forEach((monster, index) => {
-                                withDelay(
-                                    state,
-                                    card,
-                                    { order: index + 1 },
-                                    (delayState) => {
-                                        banish(delayState, monster);
-                                    }
-                                );
+                                withDelay(state, card, { order: index + 1 }, (delayState) => {
+                                    banish(delayState, monster);
+                                });
                             });
                             // Special summon this card
                             withUserSummon(state, card, card, {}, () => {

@@ -1,5 +1,6 @@
 import type { DisplayField } from "@/const/card";
 import type { CardInstance } from "./card";
+import type { Position } from "@/utils/effectUtils";
 
 export type GamePhase = "draw" | "standby" | "main1" | "battle" | "main2" | "end";
 
@@ -34,8 +35,8 @@ export interface GameState {
     turnRestrictions?: {
         cannotActivateEffects?: string[];
     };
-    currentFrom: { location: DisplayField; index?: number; length?: number };
-    currentTo: { location: DisplayField; index?: number; length?: number };
+    currentFrom: { location: DisplayField; index?: number; length?: number; position?: Position };
+    currentTo: { location: DisplayField; index?: number; length?: number; position?: Position };
 }
 
 export interface ChainLink {

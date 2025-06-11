@@ -1,7 +1,7 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
-import { CARD_SIZE, getLocationVector } from "@/const/card";
+import { CARD_SIZE, getLocationVectorWithPosition } from "@/const/card";
 import { useGameStore } from "@/store/gameStore";
 import AnimationWrapper from "./AnimationWrapper";
 import { Card } from "./Card";
@@ -31,11 +31,15 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     const { currentFrom, currentTo } = useGameStore();
 
     const cardSizeClass = CARD_SIZE.MEDIUM;
-    const fieldZoneInitial = currentTo.location === "FieldZone" ? getLocationVector(currentTo, currentFrom) : {};
+    const fieldZoneInitial =
+        currentTo.location === "FieldZone" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
 
-    const spellInitial = currentTo.location === "SpellField" ? getLocationVector(currentTo, currentFrom) : {};
-    const monsterInitial = currentTo.location === "MonsterField" ? getLocationVector(currentTo, currentFrom) : {};
-    const graveyardInitial = currentTo.location === "Graveyard" ? getLocationVector(currentTo, currentFrom) : {};
+    const spellInitial =
+        currentTo.location === "SpellField" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const monsterInitial =
+        currentTo.location === "MonsterField" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const graveyardInitial =
+        currentTo.location === "Graveyard" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
 
     return (
         <div>

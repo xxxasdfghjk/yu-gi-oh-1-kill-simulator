@@ -3,10 +3,12 @@ import type { CardInstance } from "@/types/card";
 export const ActionListSelector = ({
     actions,
     onSelect,
+    rotate,
 }: {
     actions: string[];
     card: CardInstance;
     onSelect: (action: string) => void;
+    rotate?: boolean;
 }) => {
     const actionList = actions.map((e) => {
         switch (e) {
@@ -24,7 +26,11 @@ export const ActionListSelector = ({
     });
 
     return (
-        <div className="absolute rounded z-10 flex flex-col items-center text-center w-full justify-center h-full hover:bg-black hover:bg-opacity-60 text-[18px] text-white">
+        <div
+            className={`absolute rounded z-10 flex flex-col items-center text-center w-full justify-center h-full hover:bg-black hover:bg-opacity-60 text-[18px] text-white ${
+                rotate ? "rotate-180" : ""
+            }`}
+        >
             {actionList.map((action) => (
                 <button
                     key={action.key}

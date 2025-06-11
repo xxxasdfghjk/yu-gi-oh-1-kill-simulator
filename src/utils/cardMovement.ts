@@ -100,7 +100,7 @@ export const sendCard = (
 
     // Remove from current location
     const from = excludeFromAnywhere(state, card);
-    state.currentFrom = from;
+    state.currentFrom = { ...from, position: card.position };
     // Update card location and add to new location
     const updatedCard = {
         ...card,
@@ -108,7 +108,6 @@ export const sendCard = (
         position: option?.reverse ? "back" : undefined,
         equipment: [],
     } satisfies CardInstance;
-    state.currentFrom = from;
 
     switch (to) {
         case "Deck":
@@ -140,6 +139,7 @@ export const sendCard = (
             // Find empty spell/trap zone
             if (option?.spellFieldIndex !== undefined) {
                 const position = option?.reverse ? "back" : ("attack" satisfies Position);
+                state.currentTo = { location: "SpellField", index: option.spellFieldIndex };
                 state.field.spellTrapZones[option.spellFieldIndex] = { ...updatedCard, position };
             } else {
                 const emptyZone = state.field.spellTrapZones.findIndex((zone) => zone === null);
@@ -358,7 +358,7 @@ export const getHandIndex = (state: GameStore, card: CardInstance) => {
 export const summon = (state: GameStore, monster: CardInstance, zone: number, position: Position) => {
     // Remove from current location
     const from = excludeFromAnywhere(state, monster);
-    state.currentFrom = from;
+    state.currentFrom = { ...from, position };
     // Create summoned monster instance
     const summonedMonster = {
         ...monster,
@@ -369,12 +369,13 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
 
     // Place in appropriate zone
     if (zone >= 0 && zone <= 4) {
-        state.currentTo = { location: "MonsterField", index: zone };
+        state.currentTo = { location: "MonsterField", index: zone, position: monster.position };
         state.field.monsterZones[zone] = summonedMonster;
     } else if (zone === 5 || zone === 6) {
-        state.currentTo = { location: "MonsterField", index: zone };
+        state.currentTo = { location: "MonsterField", index: zone, position: monster.position };
         state.field.extraMonsterZones[zone - 5] = summonedMonster;
     }
-    monster.card.effect.onSummon?.(state, monster);
+    if (summonedMonster.position === "attack" || summonedMonster.position === "defense")
+        monster.card.effect.onSummon?.(state, monster);
     return summonedMonster;
 };

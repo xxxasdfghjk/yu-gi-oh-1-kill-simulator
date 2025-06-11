@@ -23,7 +23,6 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
     disabled,
     selected,
     children,
-    hasCard = false,
 }) => {
     const textColor = selected ? "text-red-400" : "text-blue-400";
     const borderColor = selected ? "border-red-400" : "border-blue-400";
@@ -39,38 +38,49 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                 onClick={onClick}
             >
                 {/* カード部分 - 上層 */}
-                <div className="absolute z-30">
-                    {children}
+                <div className="absolute z-20">{children}</div>
+                <div className="absolute z-0 font-bold">
+                    {type === "deck" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Deck
+                        </div>
+                    ) : type === "extra_deck" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            EX Deck
+                        </div>
+                    ) : type === "graveyard" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
+                    ) : type === "field" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Field
+                        </div>
+                    ) : type === "extra_zone" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            EX Zone
+                        </div>
+                    ) : (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Empty
+                        </div>
+                    )}
                 </div>
-                
-                {/* ラベル部分 - 下層（カードがない場合のみ表示） */}
-                {!hasCard && (
-                    <div className="absolute z-10">
-                        {type === "deck" ? (
-                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                                Deck
-                            </div>
-                        ) : type === "extra_deck" ? (
-                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                                EX Deck
-                            </div>
-                        ) : type === "graveyard" ? (
-                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
-                        ) : type === "field" ? (
-                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                                Field
-                            </div>
-                        ) : type === "extra_zone" ? (
-                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                                EX Zone
-                            </div>
-                        ) : (
-                            <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                                Empty
-                            </div>
-                        )}
-                    </div>
-                )}
+                <div
+                    className={`absolute z-0
+         rounded cursor-pointer transition-transform
+        shadow-md border border-gray-600 overflow-hidden
+                 "bg-transparent"
+      `}
+                >
+                    <img
+                        src={`/card_image/reverse.jpg`}
+                        alt={"dummy"}
+                        className={`w-full h-full object-contain opacity-40`}
+                        style={{
+                            filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                            backgroundColor: "transparent",
+                        }}
+                    />
+                </div>
             </div>
         </div>
     );
