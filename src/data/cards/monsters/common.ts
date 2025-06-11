@@ -515,9 +515,11 @@ export const COMMON_MONSTERS = [
                             message: "除外する光属性モンスター2体を選択してください",
                         },
                         (state, card, selected) => {
-                            // Banish the selected light monsters
-                            selected.forEach((monster) => {
-                                banish(state, monster);
+                            // Banish the selected light monsters with sequential animation
+                            selected.forEach((monster, index) => {
+                                setTimeout(() => {
+                                    banish(state, monster);
+                                }, index * 200); // 200ms delay between each card
                             });
                             // Special summon this card
                             withUserSummon(state, card, card, {}, () => {

@@ -294,9 +294,15 @@ export const EXTRA_MONSTERS = [
 
                 const phantomBeastToken = TOKEN.find((token) => token.card_name === "幻獣機トークン")!;
 
+                // Sequential token summoning with delays for proper animation
                 for (let i = 0; i < 3 && i < emptyZones.length; i++) {
                     const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
-                    summon(gameState, tokenInstance, emptyZones[i].index, "attack");
+                    const zoneIndex = emptyZones[i].index;
+                    
+                    // Add delay for sequential animation
+                    setTimeout(() => {
+                        summon(gameState, tokenInstance, zoneIndex, "attack");
+                    }, i * 300); // 300ms delay between each token
                 }
                 gameState.isLinkSummonProhibited = true;
             },
@@ -380,8 +386,11 @@ export const EXTRA_MONSTERS = [
                                     message: `リリースするモンスターを${chosenEffect.count}体選んでください`,
                                 },
                                 (releaseState, releaseCard, selected) => {
-                                    selected.forEach((monster) => {
-                                        sendCard(releaseState, monster, "Graveyard");
+                                    // Sequential card sending with delays for proper animation
+                                    selected.forEach((monster, index) => {
+                                        setTimeout(() => {
+                                            sendCard(releaseState, monster, "Graveyard");
+                                        }, index * 200); // 200ms delay between each card
                                     });
 
                                     if (chosenEffect.count === 1) {
