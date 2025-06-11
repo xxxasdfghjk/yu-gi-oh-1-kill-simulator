@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useGameStore } from "@/store/gameStore";
 import { useSetAtom } from "jotai";
 import { graveyardModalAtom } from "@/store/graveyardModalAtom";
@@ -38,14 +38,25 @@ export const GameBoard: React.FC = () => {
         checkExodiaWin,
         endGame,
         judgeWin,
+        draw,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
-    console.log(effectQueue);
-    useEffect(() => {
+
+    const reset = useCallback(() => {
         initializeGame();
+        setTimeout(() => draw(), 100);
+        console.log("aaa");
+        setTimeout(() => draw(), 200);
+        setTimeout(() => draw(), 300);
+        setTimeout(() => draw(), 400);
+        setTimeout(() => draw(), 500);
     }, [initializeGame]);
+
+    useEffect(() => {
+        reset();
+    }, [reset]);
 
     const startSpecialSummon = (monster: CardInstance, summonType: "link" | "xyz" | "synchro" | "fusion") => {
         if (summonType === "link" && gameState.startLinkSummon) {
@@ -73,7 +84,6 @@ export const GameBoard: React.FC = () => {
 
         return searchCombinationXyzSummon(xyzMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
     };
-
     useEffect(() => {
         const currentEffect = effectQueue?.[0];
         if (currentEffect?.type === "notify") {
@@ -94,7 +104,7 @@ export const GameBoard: React.FC = () => {
             checkExodiaWin();
             endGame();
         }
-    }, [endGame, phase, turn]);
+    }, [checkExodiaWin, endGame, phase, turn]);
 
     return (
         <div className="min-h-screen min-w-[1920px] bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
@@ -131,21 +141,20 @@ export const GameBoard: React.FC = () => {
                         </div>
 
                         {/* 手札エリア */}
-                        <HandArea hand={hand} lifePoints={lifePoints} />
+                        <HandArea hand={hand} />
+                        {/* ライフポイント */}
                     </div>
                 </div>
 
                 {/* コントロールボタン */}
-                <ControlButtons isOpponentTurn={isOpponentTurn} nextPhase={nextPhase} initializeGame={initializeGame} />
+                <ControlButtons isOpponentTurn={isOpponentTurn} nextPhase={nextPhase} initializeGame={reset} />
 
                 {/* リンク */}
                 <div className="fixed bottom-4 right-8 space-y-2">
-                    <button className="block bg-sky-400 hover:bg-sky-500 text-white px-4 py-2 rounded">
-                        HOW TO PLAY
-                    </button>
-                    <button className="block bg-green-400 hover:bg-green-500 text-white px-4 py-2 rounded">
-                        不具合を報告
-                    </button>
+                    <div className="text-center ml-8">
+                        <span className="text-5xl font-bold text-blue-600">{lifePoints}</span>
+                        <button onClick={() => draw()}> draw</button>
+                    </div>
                 </div>
 
                 {/* 効果キューモーダル - 新しい統一システム */}

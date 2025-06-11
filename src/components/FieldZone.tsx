@@ -1,6 +1,7 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
+import { CARD_GAP } from "@/const/card";
 
 interface FieldZoneProps {
     card: CardInstance | null;

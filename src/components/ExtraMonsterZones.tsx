@@ -1,7 +1,9 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
-import { CARD_SIZE } from "@/const/card";
+import { CARD_SIZE, getLocationVector } from "@/const/card";
+import AnimationWrapper from "./AnimationWrapper";
+import { useGameStore } from "@/store/gameStore";
 
 interface ExtraMonsterZonesProps {
     extraMonsterZones: (CardInstance | null)[];
@@ -14,38 +16,49 @@ interface ExtraMonsterZonesProps {
 
 export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonsterZones, opponentField }) => {
     const cardSizeClass = CARD_SIZE.MEDIUM;
+    const { currentTo, currentFrom } = useGameStore();
+    const monsterInitial = currentTo.location === "MonsterField" ? getLocationVector(currentTo, currentFrom) : {};
+    console.log(monsterInitial);
+    const opponentFieldInitial =
+        currentTo.location === "OpponentField" ? getLocationVector(currentTo, currentFrom) : {};
 
     return (
-        <div className="my-2">
-            <div className="grid grid-cols-7 gap-2 max-w-6xl">
+        <div className="mb-2">
+            <div className="flex flex-row space-x-2">
                 {/* 空のスペース */}
                 <div className={`${cardSizeClass}`}></div>
                 <div className={`${cardSizeClass}`}></div>
 
                 {/* 左のエクストラモンスターゾーン */}
-                <FieldZone
-                    card={extraMonsterZones[0]}
-                    className={`${cardSizeClass} border-4 border-red-400`}
-                    type={"extra_zone"}
-                />
+                <AnimationWrapper initial={monsterInitial}>
+                    <FieldZone
+                        card={extraMonsterZones[0]}
+                        className={`${cardSizeClass} border-4 border-red-400`}
+                        type={"extra_zone"}
+                    />
+                </AnimationWrapper>
 
                 <div className={`${cardSizeClass}`}></div>
 
                 {/* 右のエクストラモンスターゾーン */}
-                <FieldZone
-                    card={extraMonsterZones[1]}
-                    className={`${cardSizeClass} border-4 border-red-400`}
-                    type={"extra_zone"}
-                />
+                <AnimationWrapper initial={monsterInitial}>
+                    <FieldZone
+                        card={extraMonsterZones[1]}
+                        className={`${cardSizeClass} border-4 border-red-400`}
+                        type={"extra_zone"}
+                    />
+                </AnimationWrapper>
 
                 <div className={`${cardSizeClass}`}></div>
                 {/* 相手のフィールド魔法（右側） */}
-                <FieldZone
-                    rotate={true}
-                    type="field"
-                    card={opponentField?.fieldZone || null}
-                    className={CARD_SIZE.MEDIUM}
-                />
+                <AnimationWrapper initial={opponentFieldInitial}>
+                    <FieldZone
+                        rotate={true}
+                        type="field"
+                        card={opponentField?.fieldZone || null}
+                        className={CARD_SIZE.MEDIUM}
+                    />
+                </AnimationWrapper>
             </div>
         </div>
     );

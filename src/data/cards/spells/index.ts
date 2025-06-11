@@ -188,7 +188,11 @@ export const MAGIC_CARDS = [
                                                 : [...prev, cur],
                                         []
                                     ),
-                            { select: "multi", condition: (cards) => cards.length === 3, message: "デッキから異なるレベル1モンスター3体を選択してください" },
+                            {
+                                select: "multi",
+                                condition: (cards) => cards.length === 3,
+                                message: "デッキから異なるレベル1モンスター3体を選択してください",
+                            },
                             (state, _cardInstance, selected) => {
                                 const rand = Math.floor(Math.random() * 3);
                                 const option = selected.filter((_, i) => i !== rand);
@@ -241,7 +245,10 @@ export const MAGIC_CARDS = [
                                         e.card.element === "光" &&
                                         e.card.canNormalSummon === false
                                 ),
-                            { select: "single" as const, message: "デッキから手札に加える機械族・光属性モンスターを選択してください" },
+                            {
+                                select: "single" as const,
+                                message: "デッキから手札に加える機械族・光属性モンスターを選択してください",
+                            },
                             (state, _cardInstance, selected) => {
                                 sendCard(state, selected[0], "Hand" as const);
                             }
@@ -273,7 +280,10 @@ export const MAGIC_CARDS = [
                             card,
                             (state) =>
                                 state.deck.filter((e) => monsterFilter(e.card) && e.card.card_name.includes("竜輝巧")),
-                            { select: "single", message: "デッキから特殊召喚するドライトロンモンスターを選択してください" },
+                            {
+                                select: "single",
+                                message: "デッキから特殊召喚するドライトロンモンスターを選択してください",
+                            },
                             (state, _cardInstance, selected) => {
                                 withUserSummon(state, _cardInstance, selected[0], {}, () => {});
                             }
@@ -313,7 +323,10 @@ export const MAGIC_CARDS = [
                             state,
                             card,
                             draitronSpellTrap,
-                            { select: "single", message: "デッキから手札に加えるドライトロン魔法・罠カードを選択してください" },
+                            {
+                                select: "single",
+                                message: "デッキから手札に加えるドライトロン魔法・罠カードを選択してください",
+                            },
                             (state, _cardInstance, selected) => {
                                 sendCard(state, selected[0], "Hand");
                             }
@@ -456,16 +469,20 @@ export const MAGIC_CARDS = [
                                 state,
                                 _cardInstance,
                                 () => selectedList,
-                                { select: "single", message: "自分のフィールドゾーンにセットするフィールド魔法カードを選択してください" },
+                                {
+                                    select: "single",
+                                    message: "自分のフィールドゾーンにセットするフィールド魔法カードを選択してください",
+                                },
                                 (state, _, selected) => {
                                     if (state.field.fieldZone !== null) {
                                         sendCard(state, state.field.fieldZone, "Graveyard");
                                     }
+                                    const otherCard = selectedList.find((c) => c.id !== selected[0].id)!;
+                                    sendCard(state, otherCard, "OpponentField");
+
                                     sendCard(state, selected[0], "FieldZone");
                                     selected[0].card.effect.onSpell?.effect(state, selected[0]);
                                     // Set the other card to opponent's field zone
-                                    const otherCard = selectedList.find((c) => c.id !== selected[0].id)!;
-                                    sendCard(state, otherCard, "OpponentField");
                                     // Enable field spell prohibition
                                     state.isFieldSpellActivationProhibited = true;
                                 }
@@ -605,7 +622,10 @@ export const MAGIC_CARDS = [
                                 [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
                                     (e): e is CardInstance => e !== null && e.card.card_name.includes("竜輝巧")
                                 ),
-                            { select: "single", message: "攻撃力を下げる対象のドライトロンモンスターを選択してください" },
+                            {
+                                select: "single",
+                                message: "攻撃力を下げる対象のドライトロンモンスターを選択してください",
+                            },
                             (state, instance, selected) => {
                                 addBuf(state, selected[0], { attack: -1000, defense: 0, level: 0 });
                                 sendCard(state, instance, "Hand");
@@ -734,7 +754,10 @@ export const MAGIC_CARDS = [
                                     e.card.monster_type === "儀式モンスター" &&
                                     e.card.level <= 7
                             ),
-                        { select: "single", message: "デッキから手札に加えるレベル7以下の儀式モンスターを選択してください" },
+                        {
+                            select: "single",
+                            message: "デッキから手札に加えるレベル7以下の儀式モンスターを選択してください",
+                        },
                         (state, _cardInstance, selected) => {
                             sendCard(state, selected[0], "Hand");
                             // Check if there are ritual spell cards in graveyard
@@ -749,7 +772,10 @@ export const MAGIC_CARDS = [
                                         state.graveyard.filter(
                                             (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
                                         ),
-                                    { select: "single", message: "墓地から手札に加える儀式魔法カードを選択してください" },
+                                    {
+                                        select: "single",
+                                        message: "墓地から手札に加える儀式魔法カードを選択してください",
+                                    },
                                     (state, _cardInstance, selected) => {
                                         sendCard(state, selected[0], "Hand");
                                     }

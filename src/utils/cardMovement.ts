@@ -1,6 +1,6 @@
+import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
-import { OpponentField } from "../components/OpponentField";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -99,8 +99,8 @@ export const sendCard = (
     }
 
     // Remove from current location
-    excludeFromAnywhere(state, card);
-
+    const from = excludeFromAnywhere(state, card);
+    state.currentFrom = from;
     // Update card location and add to new location
     const updatedCard = {
         ...card,
@@ -108,21 +108,28 @@ export const sendCard = (
         position: option?.reverse ? "back" : undefined,
         equipment: [],
     } satisfies CardInstance;
+    state.currentFrom = from;
 
     switch (to) {
         case "Deck":
+            state.currentTo = { location: "Deck" };
             state.deck.push(updatedCard);
             break;
         case "Hand":
+            state.currentTo = { location: "Hand", index: state.hand.length, length: state.hand.length + 1 };
             state.hand.push(updatedCard);
+
             break;
         case "Graveyard":
+            state.currentTo = { location: "Graveyard" };
             state.graveyard.push(updatedCard);
             break;
         case "Exclusion":
+            state.currentTo = { location: "Graveyard" };
             state.banished.push(updatedCard);
             break;
         case "ExtraDeck":
+            state.currentTo = { location: "ExtraDeck" };
             state.extraDeck.push(updatedCard);
             break;
         case "MonsterField":
@@ -138,6 +145,7 @@ export const sendCard = (
                 const emptyZone = state.field.spellTrapZones.findIndex((zone) => zone === null);
                 if (emptyZone !== -1) {
                     const position = option?.reverse ? "back" : ("attack" satisfies Position);
+                    state.currentTo = { location: "SpellField", index: emptyZone };
                     state.field.spellTrapZones[emptyZone] = { ...updatedCard, position };
                 }
             }
@@ -147,10 +155,12 @@ export const sendCard = (
             if (state.field.fieldZone !== null) {
                 sendCard(state, state!.field!.fieldZone!, "Graveyard");
             }
+            state.currentTo = { location: "FieldZone" };
             state.field.fieldZone = { ...updatedCard };
             break;
         }
         case "OpponentField": {
+            state.currentTo = { location: "OpponentField" };
             state.opponentField.fieldZone = { ...updatedCard };
         }
     }
@@ -159,49 +169,57 @@ export const sendCard = (
 };
 
 // Remove card from any location and return where it was
-export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Location => {
-    let originalLocation: Location = card.location;
-
+export const excludeFromAnywhere = (
+    state: GameStore,
+    card: CardInstance
+): { location: DisplayField; index?: number; length?: number } => {
+    let result: { location: DisplayField; index?: number; length?: number } = {
+        location: card.location as DisplayField,
+        index: undefined,
+        length: undefined,
+    };
     // Remove from hand
     const handIndex = state.hand.findIndex((c) => c.id === card.id);
     if (handIndex !== -1) {
+        const length = state.hand.length;
         state.hand.splice(handIndex, 1);
-        originalLocation = "Hand";
+        result = { location: "Hand", index: handIndex, length };
     }
 
     // Remove from deck
     const deckIndex = state.deck.findIndex((c) => c.id === card.id);
     if (deckIndex !== -1) {
         state.deck.splice(deckIndex, 1);
-        originalLocation = "Deck";
+        result = { location: "Deck" };
     }
 
     // Remove from graveyard
     const graveyardIndex = state.graveyard.findIndex((c) => c.id === card.id);
     if (graveyardIndex !== -1) {
         state.graveyard.splice(graveyardIndex, 1);
-        originalLocation = "Graveyard";
+        result = { location: "Graveyard" };
     }
 
     // Remove from banished
     const banishedIndex = state.banished.findIndex((c) => c.id === card.id);
     if (banishedIndex !== -1) {
         state.banished.splice(banishedIndex, 1);
-        originalLocation = "Exclusion";
+        //TODO:除外ゾーン
+        result = { location: "Graveyard" };
     }
 
     // Remove from extra deck
     const extraDeckIndex = state.extraDeck.findIndex((c) => c.id === card.id);
     if (extraDeckIndex !== -1) {
         state.extraDeck.splice(extraDeckIndex, 1);
-        originalLocation = "ExtraDeck";
+        result = { location: "ExtraDeck" };
     }
 
     // Remove from monster zones
     for (let i = 0; i < state.field.monsterZones.length; i++) {
         if (state.field.monsterZones[i]?.id === card.id) {
             state.field.monsterZones[i] = null;
-            originalLocation = "MonsterField";
+            result = { location: "MonsterField", index: i };
             break;
         }
     }
@@ -210,7 +228,8 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
     for (let i = 0; i < state.field.extraMonsterZones.length; i++) {
         if (state.field.extraMonsterZones[i]?.id === card.id) {
             state.field.extraMonsterZones[i] = null;
-            originalLocation = "MonsterField";
+            result = { location: "MonsterField", index: i + 5 };
+
             break;
         }
     }
@@ -219,7 +238,8 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
     for (let i = 0; i < state.field.spellTrapZones.length; i++) {
         if (state.field.spellTrapZones[i]?.id === card.id) {
             state.field.spellTrapZones[i] = null;
-            originalLocation = "SpellField";
+            result = { location: "SpellField", index: i };
+
             break;
         }
     }
@@ -227,7 +247,7 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
     // Remove from field zone
     if (state.field.fieldZone?.id === card.id) {
         state.field.fieldZone = null;
-        originalLocation = "SpellField";
+        result = { location: "FieldZone" };
     }
 
     // materials
@@ -238,7 +258,7 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
             );
             if (materialIndex !== -1) {
                 state.field.monsterZones[i]!.materials.splice(materialIndex, 1);
-                originalLocation = "MonsterField";
+                result = { location: "MonsterField", index: i };
                 break;
             }
         }
@@ -251,7 +271,7 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
             );
             if (materialIndex !== -1) {
                 state.field.extraMonsterZones[i]!.materials.splice(materialIndex, 1);
-                originalLocation = "MonsterField";
+                result = { location: "MonsterField", index: i + 5 };
                 break;
             }
         }
@@ -265,7 +285,6 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
             );
             if (equipmentIndex !== -1) {
                 state.field.monsterZones[i]!.equipment.splice(equipmentIndex, 1);
-                originalLocation = "FieldZone";
                 break;
             }
         }
@@ -278,13 +297,12 @@ export const excludeFromAnywhere = (state: GameStore, card: CardInstance): Locat
             );
             if (equipmentIndex !== -1) {
                 state.field.extraMonsterZones[i]!.equipment.splice(equipmentIndex, 1);
-                originalLocation = "FieldZone";
                 break;
             }
         }
     }
 
-    return originalLocation;
+    return result;
 };
 
 // Destroy a card by battle (triggers onDestroyByBattle effect)
@@ -327,10 +345,20 @@ export const banishFromRandomExtractDeck = (state: GameStore, excludeNum: number
     }
 };
 
+export const getHandIndex = (state: GameStore, card: CardInstance) => {
+    if (card.location === "Hand") {
+        for (let i = 0; i < state.hand.length; i++) {
+            if (state.hand[i].id === card.id) {
+                return { index: i, length: state.hand.length };
+            }
+        }
+    }
+};
+
 export const summon = (state: GameStore, monster: CardInstance, zone: number, position: Position) => {
     // Remove from current location
-    excludeFromAnywhere(state, monster);
-
+    const from = excludeFromAnywhere(state, monster);
+    state.currentFrom = from;
     // Create summoned monster instance
     const summonedMonster = {
         ...monster,
@@ -341,8 +369,10 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
 
     // Place in appropriate zone
     if (zone >= 0 && zone <= 4) {
+        state.currentTo = { location: "MonsterField", index: zone };
         state.field.monsterZones[zone] = summonedMonster;
     } else if (zone === 5 || zone === 6) {
+        state.currentTo = { location: "MonsterField", index: zone };
         state.field.extraMonsterZones[zone - 5] = summonedMonster;
     }
     monster.card.effect.onSummon?.(state, monster);

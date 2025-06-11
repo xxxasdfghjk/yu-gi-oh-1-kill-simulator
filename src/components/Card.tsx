@@ -116,6 +116,7 @@ export const Card: React.FC<CardProps> = ({
             onMouseLeave={() => {
                 setHoveringCard(null);
             }}
+            style={{ backfaceVisibility: "hidden" }}
         >
             {!disableActivate && hoveringCard?.id === card.id && actionList.length > 0 && (
                 <ActionListSelector

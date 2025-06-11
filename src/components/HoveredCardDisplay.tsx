@@ -7,7 +7,7 @@ export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
     const isBattleField = hoveredCard?.location === "MonsterField";
     return (
-        <div className="flex-[0.9] mx-auto h-[640px] mt-6">
+        <div className="flex-1 flex-row justify-center h-[640px] mt-6 px-8">
             <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">
                 {hoveredCard ? (
                     <>

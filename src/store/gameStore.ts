@@ -126,6 +126,7 @@ export interface GameStore extends GameState {
     checkExodiaWin: () => void;
     endGame: () => void;
     judgeWin: () => void;
+    draw: () => void;
 }
 
 const initialState: GameState = {
@@ -156,6 +157,8 @@ const initialState: GameState = {
     gameOver: false,
     winner: null,
     hasDrawnByEffect: false,
+    currentFrom: { location: "Deck" },
+    currentTo: { location: "Hand", index: 0 },
 };
 
 export const useGameStore = create<GameStore>()(
@@ -204,13 +207,6 @@ export const useGameStore = create<GameStore>()(
 
                 // Reset all turn-based flags
                 state.turnOnceUsedEffectMemo = {};
-            });
-
-            // Draw opening hand
-            set((state) => {
-                for (let i = 0; i < 5; i++) {
-                    sendCard(state, state.deck[i], "Hand");
-                }
             });
         },
 
@@ -290,6 +286,11 @@ export const useGameStore = create<GameStore>()(
         popQueue: () => {
             set((state) => {
                 state.effectQueue.shift();
+            });
+        },
+        draw: () => {
+            set((state) => {
+                sendCard(state, state.deck[0], "Hand");
             });
         },
 
@@ -454,7 +455,9 @@ export const useGameStore = create<GameStore>()(
                         const newMaterials = selected.map((e) => ({ ...e, location: "Material" as const }));
                         const newInstance = { ...card, materials: [...newMaterials] };
                         for (const card of selected) {
-                            excludeFromAnywhere(state, card);
+                            const from = excludeFromAnywhere(state, card);
+                            state.currentFrom = from;
+                            state.currentTo = { location: "ExtraDeck" };
                         }
                         withUserSummon(state, newInstance, newInstance, {}, () => {});
                     },

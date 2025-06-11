@@ -1,7 +1,11 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
-import { CARD_SIZE } from "@/const/card";
+import { CARD_SIZE, getLocationVector } from "@/const/card";
+import { motion } from "framer-motion";
+import { useGameStore } from "@/store/gameStore";
+import AnimationWrapper from "./AnimationWrapper";
+import { Card } from "./Card";
 
 interface PlayerFieldProps {
     field: {
@@ -25,35 +29,56 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     setShowGraveyard,
     setShowExtraDeck,
 }) => {
+    const { currentFrom, currentTo } = useGameStore();
+
     const cardSizeClass = CARD_SIZE.MEDIUM;
+    const fieldZoneInitial = currentTo.location === "FieldZone" ? getLocationVector(currentTo, currentFrom) : {};
+
+    const spellInitial = currentTo.location === "SpellField" ? getLocationVector(currentTo, currentFrom) : {};
+    const monsterInitial = currentTo.location === "MonsterField" ? getLocationVector(currentTo, currentFrom) : {};
+    const graveyardInitial = currentTo.location === "Graveyard" ? getLocationVector(currentTo, currentFrom) : {};
 
     return (
         <div>
             {/* プレイヤーモンスターゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
+            <div className="flex space-x-2 mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
-                <FieldZone card={field.fieldZone} className={cardSizeClass} onClick={() => {}} type="field" />
+                <AnimationWrapper initial={{ ...fieldZoneInitial }}>
+                    <FieldZone card={field.fieldZone} className={cardSizeClass} onClick={() => {}} type="field" />
+                </AnimationWrapper>
 
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
-                    <FieldZone key={`monster-${index}`} card={card} className={cardSizeClass} />
+                    <AnimationWrapper key={card?.id ?? index} initial={{ ...monsterInitial }}>
+                        <FieldZone key={`monster-${index}`} card={card} className={cardSizeClass} />
+                    </AnimationWrapper>
                 ))}
                 {/* 墓地 */}
-                <div className="text-center">
-                    <div
-                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors`}
-                        onClick={() => setShowGraveyard(true)}
-                    >
-                        <div>
-                            <div className="text-xs">GY</div>
-                            <div className="text-lg">{graveyard.length}</div>
+                <AnimationWrapper>
+                    <div className="text-center relative">
+                        <div
+                            className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-10 absolute opacity-80`}
+                            onClick={() => setShowGraveyard(true)}
+                        >
+                            <div className="-z-10">
+                                <div className="text-xs">GY</div>
+                                <div className="text-lg">{graveyard.length}</div>
+                            </div>
                         </div>
+
+                        {graveyard.map((e) => (
+                            <div key={e.id} className={"absolute"}>
+                                <AnimationWrapper initial={{ ...graveyardInitial }}>
+                                    <Card key={e.id} card={e} />
+                                </AnimationWrapper>
+                            </div>
+                        ))}
                     </div>
-                </div>
+                </AnimationWrapper>
             </div>
 
             {/* 魔法・罠ゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
+            <div className="flex space-x-2">
                 {/* エクストラデッキ */}
                 <div className="text-center">
                     <div
@@ -69,7 +94,9 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
-                    <FieldZone key={`spell-${index}`} card={card} className={cardSizeClass} />
+                    <AnimationWrapper key={card?.id ?? index} initial={{ ...spellInitial }}>
+                        <FieldZone key={`spell-${index}`} card={card} className={cardSizeClass} />
+                    </AnimationWrapper>
                 ))}
 
                 {/* デッキ */}
