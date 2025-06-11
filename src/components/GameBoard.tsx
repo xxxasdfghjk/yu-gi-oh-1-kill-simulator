@@ -38,8 +38,6 @@ export const GameBoard: React.FC = () => {
         checkExodiaWin,
         endGame,
         judgeWin,
-        draw,
-        addBonmawashiToHand,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -101,7 +99,7 @@ export const GameBoard: React.FC = () => {
         };
         func();
     }, [effectQueue, popQueue, gameState, sendSpellToGraveyard, processQueueTop, judgeWin]);
-
+    console.log(effectQueue);
     useEffect(() => {
         checkExodiaWin();
     }, [checkExodiaWin, hand]);
@@ -160,10 +158,6 @@ export const GameBoard: React.FC = () => {
                 <div className="fixed bottom-4 right-8 space-y-2">
                     <div className="text-center ml-8">
                         <span className="text-5xl font-bold text-blue-600">{lifePoints}</span>
-                        <button onClick={() => draw()}> draw</button>
-                        <button onClick={() => addBonmawashiToHand()} className="ml-2 px-2 py-1 bg-green-500 text-white rounded">
-                            盆回し追加
-                        </button>
                     </div>
                 </div>
 
