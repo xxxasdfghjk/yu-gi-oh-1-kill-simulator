@@ -7,8 +7,8 @@ export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
     const isBattleField = hoveredCard?.location === "MonsterField";
     return (
-        <div className="flex-1 flex-row justify-center h-[640px] mt-6 px-8">
-            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">
+        <div className={`flex-1 flex flex-row justify-center h-[668px] w-[240px] mt-6 px-8`}>
+            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full flex-1">
                 {hoveredCard ? (
                     <>
                         {/* カード画像 */}
@@ -16,7 +16,7 @@ export const HoveredCardDisplay = () => {
                             <img
                                 src={hoveredCard.card.image ? `/card_image/${hoveredCard.card.image}` : ""}
                                 alt={hoveredCard.card.card_name}
-                                className="w-48 h-auto rounded-lg shadow-md"
+                                className="w-40 h-auto rounded-lg shadow-md"
                                 onError={(e) => {
                                     e.currentTarget.style.display = "none";
                                 }}
@@ -70,7 +70,7 @@ export const HoveredCardDisplay = () => {
                                                 "attack" in hoveredCard.card && isBattleField
                                                     ? getAttack(hoveredCard) > hoveredCard.card.attack
                                                         ? "text-blue-600"
-                                                        : getAttack(hoveredCard) > hoveredCard.card.attack
+                                                        : getAttack(hoveredCard) < hoveredCard.card.attack
                                                         ? "text-red-500"
                                                         : ""
                                                     : ""
@@ -133,7 +133,7 @@ export const HoveredCardDisplay = () => {
                                 )}
 
                             {/* カードテキスト */}
-                            <div className="text-[14px] text-gray-600 max-h-36 overflow-y-auto border-t pt-2 whitespace-pre-wrap">
+                            <div className="text-[14px] text-gray-600 max-h-60 overflow-y-scroll border-t pt-2 whitespace-pre-wrap">
                                 {hoveredCard.card.text}
                             </div>
                         </div>

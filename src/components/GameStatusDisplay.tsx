@@ -31,7 +31,7 @@ export const GameStatusDisplay: React.FC<GameStatusDisplayProps> = ({ turn, phas
 
     return (
         <motion.div
-            className="fixed top-4 right-4 z-50"
+            className="absolute top-4 right-4 z-50"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -43,9 +43,7 @@ export const GameStatusDisplay: React.FC<GameStatusDisplayProps> = ({ turn, phas
                     <div className="flex items-center gap-2">
                         <div className="text-4xl font-bold text-gray-800">{turn}</div>
                         {isOpponentTurn && (
-                            <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                OPPONENT
-                            </div>
+                            <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">OPPONENT</div>
                         )}
                     </div>
                 </div>
@@ -70,9 +68,7 @@ export const GameStatusDisplay: React.FC<GameStatusDisplayProps> = ({ turn, phas
                         <div
                             key={p}
                             className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                                p === phase
-                                    ? "bg-gradient-to-r " + phaseColor
-                                    : "bg-gray-300"
+                                p === phase ? "bg-gradient-to-r " + phaseColor : "bg-gray-300"
                             }`}
                         />
                     ))}

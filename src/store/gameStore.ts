@@ -384,9 +384,15 @@ export const useGameStore = create<GameStore>()(
                         // Field spells go to field zone
                         if (state.field.fieldZone !== null) {
                             sendCard(state, state.field.fieldZone, "Graveyard");
+                            withDelay(state, card, { order: -1 }, (state, card) => {
+                                sendCard(state, card, "FieldZone");
+                                card.card.effect.onSpell?.effect(state, card);
+                            });
+                            return;
+                        } else {
+                            sendCard(state, card, "FieldZone");
+                            card.card.effect.onSpell?.effect(state, card);
                         }
-                        sendCard(state, card, "FieldZone");
-                        card.card.effect.onSpell?.effect(state, card);
                     }
                 } else if (card.card.card_type === "罠") {
                     const index = getSpellTrapZoneIndex(state, card);

@@ -14,13 +14,13 @@ export const CARD_SIZE = {
 
 export const CONTAINER_PADDING_X = 16;
 export const CONTAINER_PADDING_Y = 8;
-
+export const RIHGT_CONTAINER_WIDTH = 288;
 export const PAGE_WIDTH = 1920;
 export const CARD_WIDTH = 160;
 export const CARD_HEIGHT = 224;
 export const CARD_MARGIN = 8;
 
-export const DISPLAY_INFO_WIDTH = 544;
+export const DISPLAY_INFO_WIDTH = 432;
 
 export const CONTAINER_WIDTH = PAGE_WIDTH - CONTAINER_PADDING_X * 2;
 export const CONTAINER_RIGHT_MARGIN = 1;

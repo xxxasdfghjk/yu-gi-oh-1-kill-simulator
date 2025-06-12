@@ -16,6 +16,7 @@ import { isXyzMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
+import { Tooltip } from "./Tooltip";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -119,17 +120,10 @@ export const GameBoard: React.FC = () => {
         <div className="min-h-screen min-w-[1920px] bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
             <div>
                 <div className="px-4 py-2 relative">
-                    {/* 新しいゲーム状態表示 */}
-                    <GameStatusDisplay 
-                        turn={turn} 
-                        phase={phase} 
-                        isOpponentTurn={isOpponentTurn} 
-                    />
-
                     <div>
-                        <div className=" flex justify-between">
+                        <div className=" flex justify-end">
                             <HoveredCardDisplay />
-                            <div className="mr-44">
+                            <div>
                                 {/* エクストラモンスターゾーン（相手と自分の間） */}
                                 <ExtraMonsterZones
                                     extraMonsterZones={field.extraMonsterZones}
@@ -146,31 +140,41 @@ export const GameBoard: React.FC = () => {
                                     setShowExtraDeck={setShowExtraDeck}
                                 />
                             </div>
+                            <div className="w-72">
+                                {/* 新しいゲーム状態表示 */}
+                                <GameStatusDisplay turn={turn} phase={phase} isOpponentTurn={isOpponentTurn} />
+
+                                {/* コントロールボタン */}
+                                <ControlButtons
+                                    isOpponentTurn={isOpponentTurn}
+                                    nextPhase={() => {
+                                        if (phase === "main1") {
+                                            // ターンエンド時にアニメーション表示
+                                            setShowTurnEndAnimation(true);
+                                        }
+                                        nextPhase();
+                                    }}
+                                    initializeGame={reset}
+                                />
+                                {/* ライフポイント表示 */}
+                                <div className="absolute bottom-4 right-8 space-y-2">
+                                    <div className="text-center ml-8">
+                                        <div className="text-sm text-gray-600 mb-1">LIFE POINTS</div>
+                                        <Tooltip 
+                                            content={`現在のライフポイント: ${lifePoints}`}
+                                            position="top"
+                                        >
+                                            <span className="text-5xl font-bold text-blue-600 cursor-help">
+                                                {lifePoints}
+                                            </span>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* 手札エリア */}
                         <HandArea hand={hand} />
-                        {/* ライフポイント */}
-                    </div>
-                </div>
-
-                {/* コントロールボタン */}
-                <ControlButtons 
-                    isOpponentTurn={isOpponentTurn} 
-                    nextPhase={() => {
-                        if (phase === "main1") {
-                            // ターンエンド時にアニメーション表示
-                            setShowTurnEndAnimation(true);
-                        }
-                        nextPhase();
-                    }} 
-                    initializeGame={reset} 
-                />
-
-                {/* リンク */}
-                <div className="fixed bottom-4 right-8 space-y-2">
-                    <div className="text-center ml-8">
-                        <span className="text-5xl font-bold text-blue-600">{lifePoints}</span>
                     </div>
                 </div>
 
@@ -214,12 +218,9 @@ export const GameBoard: React.FC = () => {
                         </div>
                     </div>
                 )}
-                
+
                 {/* ターンエンドアニメーション */}
-                <TurnEndAnimation 
-                    show={showTurnEndAnimation} 
-                    onComplete={() => setShowTurnEndAnimation(false)}
-                />
+                <TurnEndAnimation show={showTurnEndAnimation} onComplete={() => setShowTurnEndAnimation(false)} />
             </div>
         </div>
     );
