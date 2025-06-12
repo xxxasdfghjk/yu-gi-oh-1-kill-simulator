@@ -62,8 +62,8 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
 
     return (
         <>
-            <ModalWrapper isOpen={isOpen} onClose={onCancel}>
-                <div className={`flex flex-col h-full -m-6 transition-opacity duration-300 ${isTransparent ? 'opacity-30' : ''}`}>
+            <ModalWrapper isOpen={isOpen} onClose={onCancel} isTransparent={isTransparent}>
+                <div className="flex flex-col h-full -m-6">
                 {/* Fixed header */}
                 <div className="px-6 py-4 bg-white border-b">
                     <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
