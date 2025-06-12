@@ -59,7 +59,12 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
                     <FieldZone key={`monster-${index}`} className={cardSizeClass} hasCard={!!card}>
-                        <AnimationWrapper card={card} enableTokenFadeOut={true} initial={{ ...monsterInitial }}>
+                        <AnimationWrapper 
+                            card={card} 
+                            enableTokenFadeOut={true} 
+                            enableFlipAnimation={true}
+                            initial={{ ...monsterInitial }}
+                        >
                             <Card card={card} />
                         </AnimationWrapper>
                     </FieldZone>
@@ -122,7 +127,12 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
                     <FieldZone key={`spell-${index}`} className={cardSizeClass} type="spell_trap" hasCard={!!card}>
-                        <AnimationWrapper key={card?.id ?? index} initial={{ ...spellInitial }}>
+                        <AnimationWrapper 
+                            key={card?.id ?? index} 
+                            card={card}
+                            enableFlipAnimation={true}
+                            initial={{ ...spellInitial }}
+                        >
                             <Card card={card}></Card>
                         </AnimationWrapper>
                     </FieldZone>

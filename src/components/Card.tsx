@@ -107,7 +107,7 @@ export const Card: React.FC<CardProps> = ({
         ${selected ? "ring-4 ring-yellow-400" : ""}
         z-50 rounded cursor-pointer hover:scale-105 transition-transform
         shadow-md border border-gray-600 overflow-hidden
-        ${!imagePath ? getCardColor() + " flex flex-col items-center justify-center p-1 text-white" : "bg-transparent"}
+        relative
         ${(card.position === "defense" || card.position === "back_defense") && !forceAttack ? " -rotate-90" : ""}
       `}
             onClick={onClick}
@@ -120,7 +120,7 @@ export const Card: React.FC<CardProps> = ({
             onMouseLeave={() => {
                 setHoveringCard(null);
             }}
-            style={{ backfaceVisibility: "hidden" }}
+            style={{ transformStyle: "preserve-3d" }}
         >
             {!disableActivate && hoveringCard?.id === card.id && actionList.length > 0 && (
                 <ActionListSelector
@@ -142,41 +142,63 @@ export const Card: React.FC<CardProps> = ({
                     card={card}
                 />
             )}
-            {imagePath ? (
+            {/* Card Front Face */}
+            <div 
+                className="absolute inset-0 w-full h-full rounded"
+                style={{ 
+                    backfaceVisibility: "hidden",
+                    transform: isFaceDown ? "rotateY(180deg)" : "rotateY(0deg)"
+                }}
+            >
+                {card.card.image ? (
+                    <img
+                        src={`/card_image/${card.card.image}`}
+                        alt={card.card.card_name}
+                        className="w-full h-full object-contain"
+                        style={{
+                            filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                            backgroundColor: "transparent",
+                        }}
+                        onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                        }}
+                    />
+                ) : null}
+                
+                {/* Front Fallback */}
+                <div
+                    className={`${
+                        card.card.image ? "hidden" : ""
+                    } w-full h-full ${getCardColor()} flex flex-col items-center justify-center p-1 text-white`}
+                >
+                    <div className="text-xs font-bold text-center line-clamp-2">{card.card.card_name}</div>
+                    {monsterFilter(card.card) && "attack" in card.card && (
+                        <div className="text-xs mt-auto">
+                            ATK: {card.card.attack}
+                            {card.card.hasDefense ? ` / DEF: ${(card.card as DefensableMonsterCard).defense}` : ""}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Card Back Face */}
+            <div 
+                className="absolute inset-0 w-full h-full rounded"
+                style={{ 
+                    backfaceVisibility: "hidden",
+                    transform: isFaceDown ? "rotateY(0deg)" : "rotateY(-180deg)"
+                }}
+            >
                 <img
-                    src={imagePath}
-                    alt={isFaceDown ? "Card Back" : card.card.card_name}
-                    className={`w-full h-full object-contain`}
+                    src="/card_image/reverse.jpg"
+                    alt="Card Back"
+                    className="w-full h-full object-contain"
                     style={{
                         filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
                         backgroundColor: "transparent",
                     }}
-                    onError={(e) => {
-                        // 画像読み込みエラー時はフォールバック表示
-                        e.currentTarget.style.display = "none";
-                        e.currentTarget.nextElementSibling?.classList.remove("hidden");
-                    }}
                 />
-            ) : null}
-
-            {/* フォールバック表示（画像がない場合や読み込みエラー時） */}
-            <div
-                className={`${
-                    imagePath ? "hidden" : ""
-                } w-full h-full ${getCardColor()} flex flex-col items-center justify-center p-1 text-white`}
-            >
-                {!isFaceDown && (
-                    <>
-                        <div className="text-xs font-bold text-center line-clamp-2">{card.card.card_name}</div>
-                        {monsterFilter(card.card) && "attack" in card.card && (
-                            <div className="text-xs mt-auto">
-                                ATK: {card.card.attack}
-                                {card.card.hasDefense ? ` / DEF: ${(card.card as DefensableMonsterCard).defense}` : ""}
-                            </div>
-                        )}
-                    </>
-                )}
-                {isFaceDown && <div className="text-xs text-gray-400">???</div>}
             </div>
         </div>
     );

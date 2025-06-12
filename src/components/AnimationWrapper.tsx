@@ -1,4 +1,4 @@
-import { type ComponentProps, type ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CardInstance } from "@/types/card";
 
@@ -6,9 +6,54 @@ type Props = ComponentProps<typeof motion.div> & {
     children: ReactNode;
     card?: CardInstance | null;
     enableTokenFadeOut?: boolean;
+    enableFlipAnimation?: boolean;
 };
 
-const AnimationWrapper = ({ children, card, enableTokenFadeOut = false, ...rest }: Props) => {
+const AnimationWrapper = ({ children, card, enableTokenFadeOut = false, enableFlipAnimation = false, ...rest }: Props) => {
+    const previousPositionRef = useRef<string | undefined>(card?.position);
+    
+    // Helper function to determine if position is face down
+    const isFaceDown = (position: string | undefined) => {
+        return position === "back" || position === "back_defense";
+    };
+    
+    // Detect position changes for flip animation
+    const shouldFlip = enableFlipAnimation && card && 
+        previousPositionRef.current !== undefined &&
+        isFaceDown(previousPositionRef.current) !== isFaceDown(card.position);
+    
+    useEffect(() => {
+        if (card?.position !== undefined) {
+            previousPositionRef.current = card.position;
+        }
+    }, [card?.position]);
+    
+    // Handle flip animation
+    if (enableFlipAnimation && card) {
+        const currentIsFaceDown = isFaceDown(card.position);
+        return (
+            <motion.div
+                layout
+                animate={{ 
+                    opacity: 1, 
+                    x: 0, 
+                    y: 0, 
+                    rotate: 0, 
+                    scale: 1,
+                    rotateY: currentIsFaceDown ? 180 : 0
+                }}
+                transition={{ 
+                    duration: shouldFlip ? 0.6 : 0.5,
+                    rotateY: { duration: 0.6, ease: "easeInOut" }
+                }}
+                style={{ transformStyle: "preserve-3d" }}
+                {...rest}
+            >
+                {children}
+            </motion.div>
+        );
+    }
+    
     if (enableTokenFadeOut) {
         return (
             <AnimatePresence mode="wait">
