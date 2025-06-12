@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState } from "@/types/game";
 import { DECK, MAGIC_CARDS } from "@/data/cards";
-import { createCardInstance } from "@/utils/cardManagement";
+import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { withDelay, withUserSummon, type Position } from "@/utils/effectUtils";
@@ -132,6 +132,7 @@ export interface GameStore extends GameState {
     draw: () => void;
     addBonmawashiToHand: () => void;
     resetAnimationState: () => void;
+    setGameOver: (winner: "player" | "timeout") => void;
 }
 
 const initialState: GameState = {
@@ -293,7 +294,6 @@ export const useGameStore = create<GameStore>()(
                     }
 
                     default:
-                        console.warn("Unknown payload type:", payload);
                         break;
                 }
             });
@@ -455,10 +455,14 @@ export const useGameStore = create<GameStore>()(
                     targetMonster: linkMonster,
                     summonType: "link",
                     getAvailableCards: (state) => {
-                        return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (e): e is CardInstance =>
-                                e !== null && (e.position === "attack" || e.position === "defense")
-                        );
+                        return [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                            .filter(
+                                (e): e is CardInstance =>
+                                    e !== null && (e.position === "attack" || e.position === "defense")
+                            )
+                            .filter(
+                                (e) => isLinkMonster(linkMonster.card) && linkMonster.card.filterAvailableMaterials(e)
+                            );
                     },
                     callback: (state, card, selected) => {
                         for (let i = 0; i < selected.length; i++) {
@@ -490,10 +494,14 @@ export const useGameStore = create<GameStore>()(
                     effectType: "xyz_material_selection",
                     targetMonster: xyzMonster,
                     getAvailableCards: (state) => {
-                        return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                            (e): e is CardInstance =>
-                                e !== null && (e.position === "attack" || e.position === "defense")
-                        );
+                        return [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                            .filter(
+                                (e): e is CardInstance =>
+                                    e !== null && (e.position === "attack" || e.position === "defense")
+                            )
+                            .filter(
+                                (e) => isXyzMonster(xyzMonster.card) && xyzMonster.card.filterAvailableMaterials(e)
+                            );
                     },
                     summonType: "xyz",
                     callback: (state, card, selected) => {
@@ -518,9 +526,9 @@ export const useGameStore = create<GameStore>()(
 
         // Card effect implementations are handled by the cards themselves via the effect system
 
-        checkExodiaWin: () => {
+        checkExodiaWin: (onExodiaWin?: (pieces: CardInstance[]) => void) => {
             set((state) => {
-                const exodiaPieces = [
+                const exodiaPieceNames = [
                     "封印されしエクゾディア",
                     "封印されし者の右腕",
                     "封印されし者の左腕",
@@ -528,12 +536,17 @@ export const useGameStore = create<GameStore>()(
                     "封印されし者の左足",
                 ];
 
-                const hasAllPieces = exodiaPieces.every((pieceName) =>
-                    state.hand.some((card) => card.card.card_name === pieceName)
-                );
-                if (hasAllPieces) {
-                    state.gameOver = true;
-                    state.winner = "player";
+                const exodiaPieces = exodiaPieceNames
+                    .map((pieceName) => state.hand.find((card) => card.card.card_name === pieceName))
+                    .filter(Boolean) as CardInstance[];
+
+                if (exodiaPieces.length === 5) {
+                    if (onExodiaWin) {
+                        onExodiaWin(exodiaPieces);
+                    } else {
+                        state.gameOver = true;
+                        state.winner = "player";
+                    }
                 }
             });
         },
@@ -559,6 +572,13 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 state.currentFrom = { location: "Deck" };
                 state.currentTo = { location: "Hand" };
+            });
+        },
+
+        setGameOver: (winner: "player" | "timeout") => {
+            set((state) => {
+                state.gameOver = true;
+                state.winner = winner;
             });
         },
     }))

@@ -3,20 +3,14 @@ import type { GameState } from "@/types/game";
 import { isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 
 export const canNormalSummon = (gameState: GameState, card: CardInstance): boolean => {
-    console.log(gameState);
     if (!monsterFilter(card.card)) return false;
-    console.log("summon");
     if (gameState.hasNormalSummoned) return false;
-    console.log("normal_summon");
 
     if (gameState.phase !== "main1" && gameState.phase !== "main2") return false;
-    console.log("phase");
     // 特殊召喚モンスターは通常召喚できない
     if (!card.card.canNormalSummon) return false;
-    console.log("special");
 
     const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
-    console.log(hasEmpty);
     return hasEmpty;
 };
 

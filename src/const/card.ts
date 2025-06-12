@@ -133,13 +133,11 @@ export const getLocationVectorWithPosition = (
     fieldA: { location: DisplayField; index?: number; length?: number; position?: Position },
     fieldB: { location: DisplayField; index?: number; length?: number; position?: Position }
 ) => {
-    console.log(fieldA, fieldB);
     const rotate =
         ["attack", "back", undefined].findIndex((e) => e === fieldB?.position) !== -1 &&
         ["attack", "back", undefined].findIndex((e) => e === fieldA?.position) !== -1
             ? 0
             : 90;
-    console.log(rotate);
     return {
         rotate,
         ...calcRelativeCoodinate(

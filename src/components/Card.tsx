@@ -128,7 +128,6 @@ export const Card: React.FC<CardProps> = ({
                     actions={actionList}
                     onSelect={(action) => {
                         if (action === "summon") {
-                            console.log("aaa");
                             gameState.playCard(card);
                         } else if (action === "set") {
                             gameState.setCard(card);

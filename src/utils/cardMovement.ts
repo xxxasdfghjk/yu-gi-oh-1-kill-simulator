@@ -1,6 +1,7 @@
 import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
+import { getPrioritySetSpellTrapZoneIndex } from "./gameUtils";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -93,6 +94,7 @@ export const sendCard = (
     if (isLeavingField && card.equipment && card.equipment.length > 0) {
         // Send all equipped cards to graveyard using sendCard recursively
         const equipmentCopy = [...card.equipment]; // Make a copy to avoid modification during iteration
+
         equipmentCopy.forEach((equipmentCard) => {
             sendCard(state, equipmentCard, "Graveyard");
         });
@@ -141,7 +143,6 @@ export const sendCard = (
             break;
         case "MonsterField":
             // This should be handled by summon function
-            console.warn("Use summon() function for MonsterField");
             break;
         case "SpellField": {
             // Find empty spell/trap zone
@@ -150,7 +151,7 @@ export const sendCard = (
                 state.currentTo = { location: "SpellField", index: option.spellFieldIndex };
                 state.field.spellTrapZones[option.spellFieldIndex] = { ...updatedCard, position };
             } else {
-                const emptyZone = state.field.spellTrapZones.findIndex((zone) => zone === null);
+                const emptyZone = getPrioritySetSpellTrapZoneIndex(state);
                 if (emptyZone !== -1) {
                     const position = option?.reverse ? "back" : ("attack" satisfies Position);
                     state.currentTo = { location: "SpellField", index: emptyZone };
