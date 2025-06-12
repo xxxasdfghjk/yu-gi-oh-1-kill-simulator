@@ -47,11 +47,11 @@ export const GameBoard: React.FC = () => {
 
     const reset = useCallback(() => {
         initializeGame();
-        setTimeout(() => draw(), 100);
-        setTimeout(() => draw(), 200);
-        setTimeout(() => draw(), 300);
-        setTimeout(() => draw(), 400);
-        setTimeout(() => draw(), 500);
+        setTimeout(() => draw(), 10);
+        setTimeout(() => draw(), 20);
+        setTimeout(() => draw(), 30);
+        setTimeout(() => draw(), 40);
+        setTimeout(() => draw(), 50);
     }, [initializeGame, draw]);
 
     useEffect(() => {
@@ -153,11 +153,7 @@ export const GameBoard: React.FC = () => {
                 </div>
 
                 {/* コントロールボタン */}
-                <ControlButtons
-                    isOpponentTurn={isOpponentTurn}
-                    nextPhase={nextPhase}
-                    initializeGame={reset}
-                />
+                <ControlButtons isOpponentTurn={isOpponentTurn} nextPhase={nextPhase} initializeGame={reset} />
 
                 {/* リンク */}
                 <div className="fixed bottom-4 right-8 space-y-2">

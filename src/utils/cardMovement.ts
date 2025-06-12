@@ -92,7 +92,7 @@ export const sendCard = (
         to !== "MonsterField" &&
         to !== "SpellField";
 
-    if (isLeavingField && card.equipment && card.equipment.length > 0) {
+    if (isLeavingField) {
         // Send all equipped cards to graveyard using sendCard recursively
         const equipmentCopy = [...card.equipment]; // Make a copy to avoid modification during iteration
         const materialCopy = [...card.materials]; // Make a copy to avoid modification during iteration
@@ -104,7 +104,7 @@ export const sendCard = (
             sendCard(state, materialCard, "Graveyard");
         });
         if (isExtraDeckMonster(card.card) && (to === "Deck" || to === "Hand")) {
-            sendCard(state, card, "ExtraDeck");
+            sendCard(state, { ...card, equipment: [], materials: [] }, "ExtraDeck");
             return;
         }
     }
@@ -126,6 +126,7 @@ export const sendCard = (
         location: to,
         position: option?.reverse ? "back" : undefined,
         equipment: [],
+        materials: [],
     } satisfies CardInstance;
 
     switch (to) {
