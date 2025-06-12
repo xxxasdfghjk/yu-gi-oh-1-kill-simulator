@@ -42,6 +42,8 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
         currentTo.location === "Graveyard" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
     const extraDeckInitial =
         currentTo.location === "ExtraDeck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const deckInitial =
+        currentTo.location === "Deck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
 
     return (
         <div>
@@ -127,15 +129,30 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 ))}
 
                 {/* デッキ */}
-                <div className="text-center">
+                <div className="text-center relative">
+                    {/* スペース確保用の透明な要素 */}
+                    <div className={`${cardSizeClass}`}></div>
+                    
                     <div
-                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900`}
+                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-10 absolute top-0 opacity-80 border-2 border-orange-900`}
                     >
-                        <div>
+                        <div className="-z-10">
                             <div className="text-xs">DECK</div>
                             <div className="text-lg">{deck.length}</div>
                         </div>
                     </div>
+
+                    {deck.map((e) => (
+                        <div key={e.id} className={"absolute top-0"}>
+                            <AnimationWrapper initial={{ ...deckInitial }}>
+                                <Card 
+                                    key={e.id} 
+                                    card={{ ...e, position: "back" as const }}
+                                    disableActivate={true}
+                                />
+                            </AnimationWrapper>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
