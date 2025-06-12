@@ -40,6 +40,8 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
         currentTo.location === "MonsterField" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
     const graveyardInitial =
         currentTo.location === "Graveyard" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const extraDeckInitial =
+        currentTo.location === "ExtraDeck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
 
     return (
         <div>
@@ -85,16 +87,28 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
             {/* 魔法・罠ゾーン（Grid配置） */}
             <div className="flex space-x-2">
                 {/* エクストラデッキ */}
-                <div className="text-center">
+                <div className="text-center relative">
                     <div
-                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900`}
+                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors z-10 absolute opacity-80 border-2 border-green-900`}
                         onClick={() => setShowExtraDeck(true)}
                     >
-                        <div>
+                        <div className="-z-10">
                             <div className="text-xs">EX</div>
                             <div className="text-lg">{extraDeck.length}</div>
                         </div>
                     </div>
+
+                    {extraDeck.map((e, index) => (
+                        <div key={e.id} className={"absolute"}>
+                            <AnimationWrapper initial={{ ...extraDeckInitial }}>
+                                <Card 
+                                    key={e.id} 
+                                    card={index === extraDeck.length - 1 ? { ...e, position: "back" as const } : e} 
+                                    disableActivate={true}
+                                />
+                            </AnimationWrapper>
+                        </div>
+                    ))}
                 </div>
 
                 {/* 魔法・罠ゾーン */}
