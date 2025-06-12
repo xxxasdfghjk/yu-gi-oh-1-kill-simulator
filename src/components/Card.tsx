@@ -14,7 +14,6 @@ interface CardProps {
     size?: "small" | "medium" | "large";
     onClick?: () => void;
     selected?: boolean;
-    faceDown?: boolean;
     customSize?: string;
     reverse?: boolean;
     forceAttack?: boolean;
@@ -60,7 +59,6 @@ export const Card: React.FC<CardProps> = ({
     onClick,
     forceAttack,
     selected = false,
-    faceDown = false,
     customSize = undefined,
     disableActivate = false,
     rotate = false,
@@ -68,7 +66,7 @@ export const Card: React.FC<CardProps> = ({
     const setHoveredCard = useSetAtom(hoveredCardAtom);
     const setGraveyardModalOpen = useSetAtom(graveyardModalAtom);
     // カードが伏せ状態かどうかをチェック
-    const isFaceDown = faceDown || card?.position === "back" || card?.position === "back_defense";
+    const isFaceDown = card?.position === "back" || card?.position === "back_defense";
     const sizeClasses = {
         small: CARD_SIZE.SMALL,
         medium: CARD_SIZE.MEDIUM,
@@ -80,20 +78,9 @@ export const Card: React.FC<CardProps> = ({
     };
 
     // 画像パスを取得
-    const getImagePath = () => {
-        if (isFaceDown && !forceAttack) {
-            return `/card_image/reverse.jpg`; // 裏面はフォールバック表示を使用
-        }
-        if (card?.card.image) {
-            const imageName = card.card.image;
-            return `/card_image/${imageName}`;
-        }
-        return null;
-    };
     const [actionList, setActionList] = useState<string[]>([]);
     const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
 
-    const imagePath = getImagePath();
     const gameState = useGameStore();
 
     if (card === null || card === undefined) {
