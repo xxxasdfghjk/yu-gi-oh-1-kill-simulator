@@ -1,7 +1,7 @@
 import type { GameStore } from "@/store/gameStore";
 import type { Card, CardInstance, TrapCard } from "@/types/card";
 import type { GameState } from "@/types/game";
-import { getLinkMonsterSummonalble } from "@/components/SummonSelector";
+import { getLinkMonsterSummonalble, placementPriority } from "@/components/SummonSelector";
 import { isLinkMonster, isXyzMonster } from "./cardManagement";
 
 export const getLevel = (cardInstance: CardInstance) => {
@@ -16,6 +16,51 @@ export const getAttack = (cardInstance: CardInstance) => {
     }, 0);
 
     return cardInstance.buf.attack + attack + equip;
+};
+
+export const hasEmptyMonsterZone = (state: GameStore) => {
+    return state.field.monsterZones.filter((e) => e === null).length > 0;
+};
+
+export const hasEmptyMonsterZoneWithExclude = (state: GameStore, exclude: CardInstance[]) => {
+    if (hasEmptyMonsterZone(state)) {
+        return true;
+    }
+    const target = state.field.monsterZones;
+    for (const card of exclude) {
+        if (target.findIndex((e) => e?.id === card.id) !== -1) {
+            return true;
+        }
+    }
+    return true;
+};
+
+export const getAllMonsterInMonsterZones = (state: GameStore, includeExtraZones: boolean) => {
+    if (includeExtraZones) {
+        return [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
+            (e): e is CardInstance => e !== null
+        );
+    } else {
+        return [...state.field.monsterZones].filter((e): e is CardInstance => e !== null);
+    }
+};
+
+export const getPrioritySetSpellTrapZoneIndex = (state: GameStore) => {
+    const setable = [
+        ...state.field.spellTrapZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
+    ].map((e) => e.index);
+    return placementPriority(setable);
+};
+
+export const getPrioritySetMonsterZoneIndex = (state: GameStore, includeExtra: boolean) => {
+    const target = includeExtra
+        ? [...state.field.extraMonsterZones, ...state.field.monsterZones]
+        : state.field.monsterZones;
+    const setable = target
+        .map((e, index) => ({ elem: e, index }))
+        .filter(({ elem }) => elem === null)
+        .map((e) => e.index);
+    return placementPriority(setable);
 };
 
 export const shuffleDeck = (state: GameStore): void => {

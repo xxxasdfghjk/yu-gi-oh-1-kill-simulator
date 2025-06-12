@@ -22,7 +22,7 @@ import { equipCard, sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { TOKEN } from "../tokens";
-import { calcCanSummonLink, getAttack, getLevel } from "@/utils/gameUtils";
+import { calcCanSummonLink, getAttack, getLevel, getPrioritySetMonsterZoneIndex } from "@/utils/gameUtils";
 
 // Define extra monsters as literal objects with proper typing
 export const EXTRA_MONSTERS = [
@@ -296,10 +296,10 @@ export const EXTRA_MONSTERS = [
                 const phantomBeastToken = TOKEN.find((token) => token.card_name === "幻獣機トークン")!;
 
                 // Sequential token summoning with delay for proper animation
-                for (let i = 0; i < 3 && i < emptyZones.length; i++) {
-                    const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
-                    const zoneIndex = emptyZones[i].index;
+                for (let i = 0; i < 3 && i < 3; i++) {
                     withDelay(gameState, cardInstance, { order: i + 1, delay: i * 20 }, (state) => {
+                        const tokenInstance = createCardInstance(phantomBeastToken, "MonsterField", true);
+                        const zoneIndex = getPrioritySetMonsterZoneIndex(state, false);
                         summon(state, tokenInstance, zoneIndex, "attack");
                     });
                 }
@@ -604,6 +604,7 @@ export const EXTRA_MONSTERS = [
                                             ...selected[0],
                                             buf: { attack: 1000, defense: 0, level: 0 },
                                         };
+
                                         sendCard(state, buffedCard, "SpellField");
                                         equipCard(state, equipTarget, buffedCard);
                                     }

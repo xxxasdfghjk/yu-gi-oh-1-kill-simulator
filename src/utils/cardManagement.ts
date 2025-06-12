@@ -44,6 +44,16 @@ export const isXyzMonster = (card: Card): card is XyzMonsterCard => {
     return monsterFilter(card) && card.monster_type === "エクシーズモンスター";
 };
 
+export const isExtraDeckMonster = (card: Card): card is MonsterCard => {
+    return (
+        monsterFilter(card) &&
+        (card.monster_type === "エクシーズモンスター" ||
+            card.monster_type === "シンクロモンスター" ||
+            card.monster_type === "リンクモンスター" ||
+            card.monster_type === "融合モンスター")
+    );
+};
+
 export const isTrapCard = (card: Card): card is TrapCard => {
     return card.card_type === "罠";
 };

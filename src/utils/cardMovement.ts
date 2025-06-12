@@ -2,6 +2,7 @@ import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
 import { getPrioritySetSpellTrapZoneIndex } from "./gameUtils";
+import { isExtraDeckMonster } from "./cardManagement";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -94,10 +95,18 @@ export const sendCard = (
     if (isLeavingField && card.equipment && card.equipment.length > 0) {
         // Send all equipped cards to graveyard using sendCard recursively
         const equipmentCopy = [...card.equipment]; // Make a copy to avoid modification during iteration
+        const materialCopy = [...card.materials]; // Make a copy to avoid modification during iteration
 
         equipmentCopy.forEach((equipmentCard) => {
             sendCard(state, equipmentCard, "Graveyard");
         });
+        materialCopy.forEach((materialCard) => {
+            sendCard(state, materialCard, "Graveyard");
+        });
+        if (isExtraDeckMonster(card.card) && (to === "Deck" || to === "Hand")) {
+            sendCard(state, card, "ExtraDeck");
+            return;
+        }
     }
 
     // Remove from current location
