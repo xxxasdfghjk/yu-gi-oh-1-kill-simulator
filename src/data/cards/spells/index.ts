@@ -10,7 +10,14 @@ import {
 } from "@/utils/effectUtils";
 import { addBuf, banishFromRandomExtractDeck, sendCard } from "@/utils/cardMovement";
 import type { GameStore } from "@/store/gameStore";
-import { getLevel, shuffleDeck } from "@/utils/gameUtils";
+import {
+    getAllMonsterInMonsterZones,
+    getAttack,
+    getLevel,
+    hasEmptyMonsterZone,
+    hasEmptyMonsterZoneWithExclude,
+    shuffleDeck,
+} from "@/utils/gameUtils";
 
 export const MAGIC_CARDS = [
     {
@@ -85,6 +92,9 @@ export const MAGIC_CARDS = [
                         state.hand.filter((e) => monsterFilter(e.card)).length === 1 &&
                         state.hand.filter((e) => hasLevelMonsterFilter(e.card) && e.card.level === 1).length === 1
                     ) {
+                        return false;
+                    }
+                    if (!hasEmptyMonsterZone(state)) {
                         return false;
                     }
                     return true;
@@ -272,7 +282,7 @@ export const MAGIC_CARDS = [
                         card,
                         (state) =>
                             state.deck.filter((e) => monsterFilter(e.card) && e.card.card_name.includes("竜輝巧"))
-                                .length > 0
+                                .length > 0 && hasEmptyMonsterZone(state)
                     ),
                 effect: (state, card) =>
                     withTurnAtOneceEffect(state, card, () => {
@@ -534,11 +544,32 @@ export const MAGIC_CARDS = [
                             )
                             .map((e) => e.card) as MonsterCard[];
                         const sumOfMaterialsAttack = materials.reduce((prev, cur) => prev + cur.attack, 0);
-                        return (
-                            ritualMonsters.length > 0 &&
-                            materials.length > 0 &&
-                            sumOfMaterialsAttack >= minRitualMonstersAttack
-                        );
+                        if (
+                            !(
+                                ritualMonsters.length > 0 &&
+                                materials.length > 0 &&
+                                sumOfMaterialsAttack >= minRitualMonstersAttack
+                            )
+                        ) {
+                            return false;
+                        }
+                        if (hasEmptyMonsterZone(state)) {
+                            return true;
+                        } else {
+                            const monsters = getAllMonsterInMonsterZones(state, false);
+                            if (
+                                monsters.find(
+                                    (e) =>
+                                        monsterFilter(e.card) &&
+                                        e.card.race === "機械" &&
+                                        getAttack(e) > minRitualMonstersAttack
+                                )
+                            ) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
                     }
                 },
                 effect: (state, card) => {
@@ -581,13 +612,14 @@ export const MAGIC_CARDS = [
                                 },
                                 {
                                     select: "multi",
-                                    condition: (cardList) => {
+                                    condition: (cardList, state) => {
                                         const ritualMonster = ritual[0].card as MonsterCard;
                                         const monsterList = cardList.map((e) => e.card) as MonsterCard[];
                                         const sumOfAttack = monsterList.reduce((prev, cur) => prev + cur.attack, 0);
                                         return (
                                             sumOfAttack >= ritualMonster.attack &&
-                                            monsterList.every((e) => sumOfAttack - e.attack < ritualMonster.attack)
+                                            monsterList.every((e) => sumOfAttack - e.attack < ritualMonster.attack) &&
+                                            hasEmptyMonsterZoneWithExclude(state, cardList)
                                         );
                                     },
                                     message: "儀式素材として使用する機械族モンスターを選択してください",
@@ -611,7 +643,8 @@ export const MAGIC_CARDS = [
                         (state, instance) =>
                             instance.location === "Graveyard" &&
                             [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                                (e): e is CardInstance => e !== null && e.card.card_name.includes("竜輝巧")
+                                (e): e is CardInstance =>
+                                    e !== null && e.card.card_name.includes("竜輝巧") && getAttack(e) >= 1000
                             ).length > 0
                     );
                 },
@@ -622,7 +655,8 @@ export const MAGIC_CARDS = [
                             instance,
                             (state) =>
                                 [...state.field.monsterZones, ...state.field.extraMonsterZones].filter(
-                                    (e): e is CardInstance => e !== null && e.card.card_name.includes("竜輝巧")
+                                    (e): e is CardInstance =>
+                                        e !== null && e.card.card_name.includes("竜輝巧") && getAttack(e) >= 1000
                                 ),
                             {
                                 select: "single",
@@ -666,7 +700,12 @@ export const MAGIC_CARDS = [
                             [0]
                         );
                         const summonableRitualMonster = ritualMonsters.filter((e) => summonableLevel.includes(e.level));
-                        return ritualMonsters.length > 0 && materials.length > 0 && summonableRitualMonster.length > 0;
+                        return (
+                            ritualMonsters.length > 0 &&
+                            materials.length > 0 &&
+                            summonableRitualMonster.length > 0 &&
+                            hasEmptyMonsterZone(state)
+                        );
                     });
                 },
                 effect: (state, card) => {

@@ -5,6 +5,7 @@ import { sendCard, banish, releaseCard, addBuf } from "@/utils/cardMovement";
 import { draitronIgnitionCondition, getDraitronReleaseTargets } from "@/utils/draitronUtils";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance } from "@/types/card";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export const COMMON_MONSTERS = [
     {
@@ -390,6 +391,9 @@ export const COMMON_MONSTERS = [
                                                 card.card.attack === 2000
                                         );
                                         if (draitronMonsters.length === 0) {
+                                            return;
+                                        }
+                                        if (!hasEmptyMonsterZone(state)) {
                                             return;
                                         }
                                         withUserSelectCard(

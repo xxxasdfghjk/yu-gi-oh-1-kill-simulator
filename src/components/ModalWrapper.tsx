@@ -38,7 +38,7 @@ const ModalWrapper = ({ children, isOpen = true, onClose }: ModalWrapperProps) =
     return (
         <div
             className={`fixed inset-0 flex items-center justify-center z-50 transition-all duration-200 ease-out ${
-                isVisible ? "bg-black bg-opacity-50" : "bg-black bg-opacity-0"
+                isVisible ? "bg-black bg-opacity-0" : "bg-black bg-opacity-0"
             }`}
             onClick={handleBackdropClick}
         >
