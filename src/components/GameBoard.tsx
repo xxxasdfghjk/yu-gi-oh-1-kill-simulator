@@ -14,6 +14,8 @@ import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
 import { isXyzMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
+import { TurnEndAnimation } from "./TurnEndAnimation";
+import { GameStatusDisplay } from "./GameStatusDisplay";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -44,6 +46,7 @@ export const GameBoard: React.FC = () => {
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
+    const [showTurnEndAnimation, setShowTurnEndAnimation] = useState(false);
 
     const reset = useCallback(() => {
         initializeGame();
@@ -116,13 +119,12 @@ export const GameBoard: React.FC = () => {
         <div className="min-h-screen min-w-[1920px] bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
             <div>
                 <div className="px-4 py-2 relative">
-                    <div className=" absolute right-10">
-                        <div className="text-xs text-gray-600 mt-1">Turn {turn}</div>
-                        <div className="text-xs text-gray-600">
-                            {isOpponentTurn ? "Opponent " : ""}
-                            {phase}
-                        </div>
-                    </div>
+                    {/* 新しいゲーム状態表示 */}
+                    <GameStatusDisplay 
+                        turn={turn} 
+                        phase={phase} 
+                        isOpponentTurn={isOpponentTurn} 
+                    />
 
                     <div>
                         <div className=" flex justify-between">
@@ -153,7 +155,17 @@ export const GameBoard: React.FC = () => {
                 </div>
 
                 {/* コントロールボタン */}
-                <ControlButtons isOpponentTurn={isOpponentTurn} nextPhase={nextPhase} initializeGame={reset} />
+                <ControlButtons 
+                    isOpponentTurn={isOpponentTurn} 
+                    nextPhase={() => {
+                        if (phase === "main1") {
+                            // ターンエンド時にアニメーション表示
+                            setShowTurnEndAnimation(true);
+                        }
+                        nextPhase();
+                    }} 
+                    initializeGame={reset} 
+                />
 
                 {/* リンク */}
                 <div className="fixed bottom-4 right-8 space-y-2">
@@ -202,6 +214,12 @@ export const GameBoard: React.FC = () => {
                         </div>
                     </div>
                 )}
+                
+                {/* ターンエンドアニメーション */}
+                <TurnEndAnimation 
+                    show={showTurnEndAnimation} 
+                    onComplete={() => setShowTurnEndAnimation(false)}
+                />
             </div>
         </div>
     );
