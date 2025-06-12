@@ -121,7 +121,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
-                    <FieldZone key={`spell-${index}`} className={cardSizeClass} hasCard={!!card}>
+                    <FieldZone key={`spell-${index}`} className={cardSizeClass} type="spell_trap" hasCard={!!card}>
                         <AnimationWrapper key={card?.id ?? index} initial={{ ...spellInitial }}>
                             <Card card={card}></Card>
                         </AnimationWrapper>

@@ -4,7 +4,7 @@ interface FieldZoneProps {
     onClick?: () => void;
     label?: string;
     className?: string;
-    type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone";
+    type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone" | "spell_trap";
     disabled?: boolean;
     selected?: boolean;
     customSize?: string;
@@ -37,12 +37,16 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                         ? "bg-blue-500/30" 
                         : type === "field" 
                         ? "bg-green-500/25" 
+                        : type === "spell_trap"
+                        ? "bg-green-600/40"
                         : "bg-white/20"
                 } flex items-center justify-center cursor-pointer ${
                     type === "extra_zone" 
                         ? "hover:bg-blue-500/40" 
                         : type === "field" 
                         ? "hover:bg-green-500/35" 
+                        : type === "spell_trap"
+                        ? "hover:bg-green-600/50"
                         : "hover:bg-white/30"
                 } transition-colors h-full ${bgColor} ${
                     disabled ? "opacity-50" : ""
@@ -69,6 +73,10 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                     ) : type === "extra_zone" ? (
                         <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
                             EX Zone
+                        </div>
+                    ) : type === "spell_trap" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            S/T
                         </div>
                     ) : (
                         <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
