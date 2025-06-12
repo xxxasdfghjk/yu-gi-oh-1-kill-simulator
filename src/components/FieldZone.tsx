@@ -80,7 +80,7 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                         </div>
                     ) : (
                         <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            Empty
+                            Monster
                         </div>
                     )}
                 </div>
