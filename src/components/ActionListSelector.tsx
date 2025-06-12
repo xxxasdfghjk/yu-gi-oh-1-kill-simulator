@@ -27,7 +27,7 @@ export const ActionListSelector = ({
 
     return (
         <div
-            className={`absolute rounded z-10 flex flex-col items-center text-center w-full justify-center h-full hover:bg-black hover:bg-opacity-60 text-[18px] text-white ${
+            className={`absolute rounded z-20 flex flex-col items-center text-center w-full justify-center h-full hover:bg-black hover:bg-opacity-60 text-[18px] text-white ${
                 rotate ? "rotate-180" : ""
             }`}
         >

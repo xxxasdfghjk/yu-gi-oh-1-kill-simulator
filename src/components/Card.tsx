@@ -8,6 +8,7 @@ import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "@/ut
 import { useGameStore, type GameStore } from "@/store/gameStore";
 import { canNormalSummon } from "@/utils/summonUtils";
 import { ActionListSelector } from "./ActionListSelector";
+import { motion } from "framer-motion";
 
 interface CardProps {
     card: CardInstance | null | undefined;
@@ -52,7 +53,6 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
 
     return actions;
 };
-
 export const Card: React.FC<CardProps> = ({
     card,
     size = "medium",
@@ -66,20 +66,13 @@ export const Card: React.FC<CardProps> = ({
     const setHoveredCard = useSetAtom(hoveredCardAtom);
     const setGraveyardModalOpen = useSetAtom(graveyardModalAtom);
 
-    // 状態管理
     const [actionList, setActionList] = useState<string[]>([]);
     const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
 
-    // カードが伏せ状態かどうかをチェック
-    const isFaceDown = card?.position === "back" || card?.position === "back_defense";
     const sizeClasses = {
         small: CARD_SIZE.SMALL,
         medium: CARD_SIZE.MEDIUM,
         large: CARD_SIZE.LARGE,
-    };
-
-    const getCardColor = () => {
-        if (isFaceDown) return "bg-gray-700";
     };
 
     const gameState = useGameStore();
@@ -91,13 +84,17 @@ export const Card: React.FC<CardProps> = ({
     return (
         <div
             className={`
-        ${customSize ?? sizeClasses[size]} 
-        ${selected ? "ring-4 ring-yellow-400" : ""}
-        z-50 rounded cursor-pointer hover:scale-105 transition-transform
-        shadow-md border border-gray-600 overflow-hidden
-        relative
-        ${(card.position === "defense" || card.position === "back_defense") && !forceAttack ? " -rotate-90" : ""}
-      `}
+                ${customSize ?? sizeClasses[size]} 
+                ${selected ? "ring-4 ring-yellow-400" : ""}
+                rounded cursor-pointer hover:scale-105 transition-transform
+                shadow-md border border-gray-600 overflow-hidden
+                relative
+                ${
+                    (card.position === "defense" || card.position === "back_defense") && !forceAttack
+                        ? " -rotate-90"
+                        : ""
+                }
+            `}
             onClick={onClick}
             onMouseEnter={() => {
                 setHoveringCard(card);
@@ -109,27 +106,18 @@ export const Card: React.FC<CardProps> = ({
                 setHoveringCard(null);
             }}
             style={{
-                transformStyle: "preserve-3d",
-                perspective: "1000px",
+                perspective: "1000px", // 親要素にperspectiveを設定
             }}
         >
-            {/* Card Inner Container for 3D flip */}
-            <div
-                className="absolute inset-0 w-full h-full"
-                style={{
-                    transformStyle: "preserve-3d",
-                    transform: "rotateY(0deg)",
-                    transition: "transform 0.8s ease-in-out",
-                }}
+            {/* 3D回転コンテナ */}
+            <motion.div
+                className="relative w-full h-full"
+                style={{ transformStyle: "preserve-3d" }}
+                transition={{ duration: disableActivate ? 0 : 0.6, ease: "easeInOut" }}
+                animate={{ rotateY: card.position === "back" || card.position === "back_defense" ? 180 : 0 }}
             >
-                {/* Card Front Face */}
-                <div
-                    className="absolute inset-0 w-full h-full rounded"
-                    style={{
-                        backfaceVisibility: "hidden",
-                        transform: isFaceDown && !forceAttack ? "rotateY(-180deg)" : "rotateY(0deg)",
-                    }}
-                >
+                {/* 表面 */}
+                <div className="absolute inset-0 w-full h-full rounded" style={{ backfaceVisibility: "hidden" }}>
                     {card.card.image ? (
                         <img
                             src={`/card_image/${card.card.image}`}
@@ -146,11 +134,11 @@ export const Card: React.FC<CardProps> = ({
                         />
                     ) : null}
 
-                    {/* Front Fallback */}
+                    {/* 表面のフォールバック */}
                     <div
                         className={`${
                             card.card.image ? "hidden" : ""
-                        } w-full h-full ${getCardColor()} flex flex-col items-center justify-center p-1 text-white`}
+                        } w-full h-full bg-gray-700 flex flex-col items-center justify-center p-1 text-white`}
                     >
                         <div className="text-xs font-bold text-center line-clamp-2">{card.card.card_name}</div>
                         {monsterFilter(card.card) && "attack" in card.card && (
@@ -162,12 +150,12 @@ export const Card: React.FC<CardProps> = ({
                     </div>
                 </div>
 
-                {/* Card Back Face */}
+                {/* 裏面 */}
                 <div
                     className="absolute inset-0 w-full h-full rounded"
                     style={{
                         backfaceVisibility: "hidden",
-                        transform: isFaceDown && !forceAttack ? "rotateY(0deg)" : "rotateY(180deg)",
+                        transform: "rotateY(180deg)", // 初期状態で180度回転
                     }}
                 >
                     <img
@@ -180,26 +168,31 @@ export const Card: React.FC<CardProps> = ({
                         }}
                     />
                 </div>
-            </div>
+            </motion.div>
+
+            {/* ActionListSelectorを3D変形の外に配置 */}
             {!disableActivate && hoveringCard?.id === card.id && actionList.length > 0 && (
-                <ActionListSelector
-                    rotate={rotate}
-                    actions={actionList}
-                    onSelect={(action) => {
-                        if (action === "summon") {
-                            gameState.playCard(card);
-                        } else if (action === "set") {
-                            gameState.setCard(card);
-                        } else if (action === "activate") {
-                            gameState.playCard(card);
-                        } else if (action === "effect") {
-                            gameState.activateEffect(card);
-                            setGraveyardModalOpen(false);
-                        }
-                        setHoveringCard(null);
-                    }}
-                    card={card}
-                />
+                <div className="absolute inset-0 z-50">
+                    {/* z-50で最前面に */}
+                    <ActionListSelector
+                        rotate={rotate}
+                        actions={actionList}
+                        onSelect={(action) => {
+                            if (action === "summon") {
+                                gameState.playCard(card);
+                            } else if (action === "set") {
+                                gameState.setCard(card);
+                            } else if (action === "activate") {
+                                gameState.playCard(card);
+                            } else if (action === "effect") {
+                                gameState.activateEffect(card);
+                                setGraveyardModalOpen(false);
+                            }
+                            setHoveringCard(null);
+                        }}
+                        card={card}
+                    />
+                </div>
             )}
         </div>
     );

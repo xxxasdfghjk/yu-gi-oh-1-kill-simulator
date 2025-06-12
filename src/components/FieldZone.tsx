@@ -33,24 +33,22 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
             {label && <div className="absolute -top-5 left-0 text-xs text-gray-600">{label}</div>}
             <div
                 className={`border-2 ${borderColor} ${textColor} rounded ${
-                    type === "extra_zone" 
-                        ? "bg-blue-500/30" 
-                        : type === "field" 
-                        ? "bg-green-500/25" 
+                    type === "extra_zone"
+                        ? "bg-blue-500/30"
+                        : type === "field"
+                        ? "bg-green-500/25"
                         : type === "spell_trap"
                         ? "bg-green-600/40"
                         : "bg-white/20"
                 } flex items-center justify-center cursor-pointer ${
-                    type === "extra_zone" 
-                        ? "hover:bg-blue-500/40" 
-                        : type === "field" 
-                        ? "hover:bg-green-500/35" 
+                    type === "extra_zone"
+                        ? "hover:bg-blue-500/40"
+                        : type === "field"
+                        ? "hover:bg-green-500/35"
                         : type === "spell_trap"
                         ? "hover:bg-green-600/50"
                         : "hover:bg-white/30"
-                } transition-colors h-full ${bgColor} ${
-                    disabled ? "opacity-50" : ""
-                } relative`}
+                } transition-colors h-full ${bgColor} ${disabled ? "opacity-50" : ""} relative`}
                 onClick={onClick}
             >
                 {/* カード部分 - 上層 */}
@@ -75,9 +73,7 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
                             EX Zone
                         </div>
                     ) : type === "spell_trap" ? (
-                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
-                            S/T
-                        </div>
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>S/T</div>
                     ) : (
                         <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
                             Monster

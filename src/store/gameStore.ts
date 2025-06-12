@@ -344,6 +344,7 @@ export const useGameStore = create<GameStore>()(
         },
 
         playCard: (card: CardInstance) => {
+            console.log(card);
             set((state) => {
                 // Pure card type classification - UI has already checked conditions
                 if (card.card.card_type === "魔法") {
