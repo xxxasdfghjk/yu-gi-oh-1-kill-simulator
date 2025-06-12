@@ -65,6 +65,11 @@ export const Card: React.FC<CardProps> = ({
 }) => {
     const setHoveredCard = useSetAtom(hoveredCardAtom);
     const setGraveyardModalOpen = useSetAtom(graveyardModalAtom);
+
+    // 状態管理
+    const [actionList, setActionList] = useState<string[]>([]);
+    const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
+
     // カードが伏せ状態かどうかをチェック
     const isFaceDown = card?.position === "back" || card?.position === "back_defense";
     const sizeClasses = {
@@ -76,10 +81,6 @@ export const Card: React.FC<CardProps> = ({
     const getCardColor = () => {
         if (isFaceDown) return "bg-gray-700";
     };
-
-    // 画像パスを取得
-    const [actionList, setActionList] = useState<string[]>([]);
-    const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
 
     const gameState = useGameStore();
 
@@ -107,8 +108,79 @@ export const Card: React.FC<CardProps> = ({
             onMouseLeave={() => {
                 setHoveringCard(null);
             }}
-            style={{ transformStyle: "preserve-3d" }}
+            style={{
+                transformStyle: "preserve-3d",
+                perspective: "1000px",
+            }}
         >
+            {/* Card Inner Container for 3D flip */}
+            <div
+                className="absolute inset-0 w-full h-full"
+                style={{
+                    transformStyle: "preserve-3d",
+                    transform: "rotateY(0deg)",
+                    transition: "transform 0.8s ease-in-out",
+                }}
+            >
+                {/* Card Front Face */}
+                <div
+                    className="absolute inset-0 w-full h-full rounded"
+                    style={{
+                        backfaceVisibility: "hidden",
+                        transform: isFaceDown && !forceAttack ? "rotateY(-180deg)" : "rotateY(0deg)",
+                    }}
+                >
+                    {card.card.image ? (
+                        <img
+                            src={`/card_image/${card.card.image}`}
+                            alt={card.card.card_name}
+                            className="w-full h-full object-contain"
+                            style={{
+                                filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                                backgroundColor: "transparent",
+                            }}
+                            onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                            }}
+                        />
+                    ) : null}
+
+                    {/* Front Fallback */}
+                    <div
+                        className={`${
+                            card.card.image ? "hidden" : ""
+                        } w-full h-full ${getCardColor()} flex flex-col items-center justify-center p-1 text-white`}
+                    >
+                        <div className="text-xs font-bold text-center line-clamp-2">{card.card.card_name}</div>
+                        {monsterFilter(card.card) && "attack" in card.card && (
+                            <div className="text-xs mt-auto">
+                                ATK: {card.card.attack}
+                                {card.card.hasDefense ? ` / DEF: ${(card.card as DefensableMonsterCard).defense}` : ""}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Card Back Face */}
+                <div
+                    className="absolute inset-0 w-full h-full rounded"
+                    style={{
+                        backfaceVisibility: "hidden",
+                        transform: isFaceDown && !forceAttack ? "rotateY(0deg)" : "rotateY(180deg)",
+                    }}
+                >
+                    <img
+                        src="/card_image/reverse.jpg"
+                        alt="Card Back"
+                        className="w-full h-full object-contain"
+                        style={{
+                            filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                            backgroundColor: "transparent",
+                        }}
+                    />
+                </div>
+            </div>
             {!disableActivate && hoveringCard?.id === card.id && actionList.length > 0 && (
                 <ActionListSelector
                     rotate={rotate}
@@ -129,64 +201,6 @@ export const Card: React.FC<CardProps> = ({
                     card={card}
                 />
             )}
-            {/* Card Front Face */}
-            <div
-                className="absolute inset-0 w-full h-full rounded"
-                style={{
-                    backfaceVisibility: "hidden",
-                    transform: isFaceDown && !forceAttack ? "rotateY(-180deg)" : "rotateY(0deg)",
-                }}
-            >
-                {card.card.image ? (
-                    <img
-                        src={`/card_image/${card.card.image}`}
-                        alt={card.card.card_name}
-                        className="w-full h-full object-contain"
-                        style={{
-                            filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
-                            backgroundColor: "transparent",
-                        }}
-                        onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.nextElementSibling?.classList.remove("hidden");
-                        }}
-                    />
-                ) : null}
-
-                {/* Front Fallback */}
-                <div
-                    className={`${
-                        card.card.image ? "hidden" : ""
-                    } w-full h-full ${getCardColor()} flex flex-col items-center justify-center p-1 text-white`}
-                >
-                    <div className="text-xs font-bold text-center line-clamp-2">{card.card.card_name}</div>
-                    {monsterFilter(card.card) && "attack" in card.card && (
-                        <div className="text-xs mt-auto">
-                            ATK: {card.card.attack}
-                            {card.card.hasDefense ? ` / DEF: ${(card.card as DefensableMonsterCard).defense}` : ""}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Card Back Face */}
-            <div
-                className="absolute inset-0 w-full h-full rounded"
-                style={{
-                    backfaceVisibility: "hidden",
-                    transform: isFaceDown && !forceAttack ? "rotateY(0deg)" : "rotateY(180deg)",
-                }}
-            >
-                <img
-                    src="/card_image/reverse.jpg"
-                    alt="Card Back"
-                    className="w-full h-full object-contain"
-                    style={{
-                        filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
-                        backgroundColor: "transparent",
-                    }}
-                />
-            </div>
         </div>
     );
 };
