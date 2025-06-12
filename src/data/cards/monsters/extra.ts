@@ -91,7 +91,7 @@ export const EXTRA_MONSTERS = [
                     cardInstance,
                     ritualCards,
                     { select: "single", message: "デッキから儀式モンスターまたは儀式魔法カードを1枚選んでください" },
-                    (gameState, card, selected) => {
+                    (gameState, _card, selected) => {
                         sendCard(gameState, selected[0], "Hand");
                     }
                 );

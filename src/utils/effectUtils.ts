@@ -130,7 +130,7 @@ export const withUserConfirm = (
 
 export const withUserSummon = (
     state: GameStore,
-    card: CardInstance,
+    _card: CardInstance,
     monster: CardInstance,
     {
         canSelectPosition,

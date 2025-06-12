@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 
 interface TooltipProps {
     children: ReactNode;
@@ -8,12 +8,12 @@ interface TooltipProps {
     className?: string;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ 
-    children, 
-    content, 
-    position = "top", 
+export const Tooltip: React.FC<TooltipProps> = ({
+    children,
+    content,
+    position = "top",
     show = true,
-    className = ""
+    className = "",
 }) => {
     const getPositionClasses = () => {
         switch (position) {
@@ -52,7 +52,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
     return (
         <div className={`relative group ${className}`}>
             {children}
-            <div className={`absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${getPositionClasses()} px-3 py-2 bg-black text-white text-sm rounded-lg whitespace-nowrap z-50`}>
+            <div
+                className={`absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${getPositionClasses()} px-3 py-2 bg-black text-white text-sm rounded-lg whitespace-nowrap z-50`}
+            >
                 {content}
                 <div className={getArrowClasses()}></div>
             </div>

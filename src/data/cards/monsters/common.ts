@@ -126,7 +126,7 @@ export const COMMON_MONSTERS = [
                     card,
                     target,
                     { select: "single", order: 999, message: "天使族・光属性モンスターを選択してください" },
-                    (state, card, selected) => {
+                    (state, _card, selected) => {
                         sendCard(state, selected[0], "Hand");
                     }
                 );
@@ -330,7 +330,7 @@ export const COMMON_MONSTERS = [
                                                 select: "single",
                                                 message: "手札に加える儀式魔法カードを選択してください",
                                             },
-                                            (state, card, selected) => {
+                                            (state, _card, selected) => {
                                                 sendCard(state, selected[0], "Hand");
                                             }
                                         );
