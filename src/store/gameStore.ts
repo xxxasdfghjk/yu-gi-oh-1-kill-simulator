@@ -133,6 +133,7 @@ export interface GameStore extends GameState {
     addBonmawashiToHand: () => void;
     resetAnimationState: () => void;
     setGameOver: (winner: "player" | "timeout") => void;
+    animationExodiaWin: () => void;
 }
 
 const initialState: GameState = {
@@ -165,6 +166,7 @@ const initialState: GameState = {
     hasDrawnByEffect: false,
     currentFrom: { location: "Deck" },
     currentTo: { location: "Hand" },
+    throne: [null, null, null, null, null],
 };
 
 export const useGameStore = create<GameStore>()(
@@ -223,6 +225,7 @@ export const useGameStore = create<GameStore>()(
 
                 // Reset all turn-based flags
                 state.turnOnceUsedEffectMemo = {};
+                state.throne = [null, null, null, null, null];
             });
         },
 
@@ -344,7 +347,6 @@ export const useGameStore = create<GameStore>()(
         },
 
         playCard: (card: CardInstance) => {
-            console.log(card);
             set((state) => {
                 // Pure card type classification - UI has already checked conditions
                 if (card.card.card_type === "魔法") {
@@ -553,6 +555,29 @@ export const useGameStore = create<GameStore>()(
                     } else {
                         state.gameOver = true;
                         state.winner = "player";
+                    }
+                }
+            });
+        },
+
+        animationExodiaWin: () => {
+            set((state) => {
+                const exodiaPieceNames = [
+                    "封印されしエクゾディア",
+                    "封印されし者の右腕",
+                    "封印されし者の左腕",
+                    "封印されし者の右足",
+                    "封印されし者の左足",
+                ];
+                const targetList = [...state.hand, ...state.deck];
+                let count = 0;
+                for (const target of targetList) {
+                    console.log(target.card.card_name);
+                    if (exodiaPieceNames.includes(target.card.card_name)) {
+                        count++;
+                        withDelay(state, target, { delay: (count + 1) * 60 }, (state, target) => {
+                            sendCard(state, target, "Throne");
+                        });
                     }
                 }
             });

@@ -17,6 +17,7 @@ import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
 import { Tooltip } from "./Tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -48,6 +49,7 @@ export const GameBoard: React.FC = () => {
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
     const [showTurnEndAnimation, setShowTurnEndAnimation] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
 
     const reset = useCallback(() => {
         initializeGame();
@@ -57,6 +59,17 @@ export const GameBoard: React.FC = () => {
         setTimeout(() => draw(), 40);
         setTimeout(() => draw(), 50);
     }, [initializeGame, draw]);
+
+    const handleGameReset = useCallback(() => {
+        if (isResetting) return; // 連打防止
+        setIsResetting(true);
+        reset();
+
+        // 2秒後にボタンを再度有効化
+        setTimeout(() => {
+            setIsResetting(false);
+        }, 2000);
+    }, [reset, isResetting]);
 
     useEffect(() => {
         reset();
@@ -115,7 +128,6 @@ export const GameBoard: React.FC = () => {
             endGame();
         }
     }, [checkExodiaWin, endGame, phase, turn]);
-
     return (
         <div className="min-h-screen min-w-[1920px] bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200">
             <div>
@@ -140,7 +152,7 @@ export const GameBoard: React.FC = () => {
                                     setShowExtraDeck={setShowExtraDeck}
                                 />
                             </div>
-                            <div className="w-72">
+                            <div className="w-72 flex flex-col itmes-center justify-between">
                                 {/* 新しいゲーム状態表示 */}
                                 <GameStatusDisplay turn={turn} phase={phase} isOpponentTurn={isOpponentTurn} />
 
@@ -157,13 +169,10 @@ export const GameBoard: React.FC = () => {
                                     initializeGame={reset}
                                 />
                                 {/* ライフポイント表示 */}
-                                <div className="absolute bottom-4 right-8 space-y-2">
+                                <div className="space-y-2">
                                     <div className="text-center ml-8">
                                         <div className="text-sm text-gray-600 mb-1">LIFE POINTS</div>
-                                        <Tooltip 
-                                            content={`現在のライフポイント: ${lifePoints}`}
-                                            position="top"
-                                        >
+                                        <Tooltip content={`現在のライフポイント: ${lifePoints}`} position="top">
                                             <span className="text-5xl font-bold text-blue-600 cursor-help">
                                                 {lifePoints}
                                             </span>
@@ -200,24 +209,147 @@ export const GameBoard: React.FC = () => {
                 />
 
                 {/* YOU WIN オーバーレイ */}
-                {gameOver && winner === "player" && (
-                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                        <ExodiaVictoryRotationAnime isVisible={true} />
+                <AnimatePresence>
+                    {gameOver && winner === "player" && (
+                        <motion.div
+                            className="fixed inset-0 z-50"
+                            initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
+                            animate={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}
+                            exit={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
+                            transition={{ duration: 1.2, ease: "easeInOut" }}
+                        >
+                            {/* エクゾディアアニメーション（背景） */}
+                            <div className="absolute inset-0 z-10">
+                                <ExodiaVictoryRotationAnime isVisible={true} />
+                            </div>
 
-                        <div className="text-center">
-                            <h1 className="text-8xl font-bold text-yellow-400 mb-4 animate-pulse">YOU WIN</h1>
-                            <p className="text-2xl text-white">エクゾディアの5つのパーツが揃いました！</p>
-                        </div>
-                    </div>
-                )}
-                {gameOver && winner === "timeout" && (
-                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                        <div className="text-center">
-                            <h1 className="text-8xl font-bold text-yellow-400 mb-4 animate-pulse">YOU LOSE</h1>
-                            <p className="text-2xl text-white">あなたの負けです！</p>
-                        </div>
-                    </div>
-                )}
+                            {/* テキストとボタン（前景） */}
+                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                                <motion.div
+                                    className="text-center"
+                                    initial={{ opacity: 0, scale: 0.5, y: 50 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    transition={{
+                                        delay: 4,
+                                        duration: 0.8,
+                                        ease: "easeOut",
+                                        type: "spring",
+                                        stiffness: 100,
+                                    }}
+                                >
+                                    <motion.h1
+                                        className="text-8xl font-bold text-yellow-400 mb-4"
+                                        animate={{
+                                            textShadow: [
+                                                "0 0 20px rgba(255, 255, 0, 0.8)",
+                                                "0 0 40px rgba(255, 255, 0, 1)",
+                                                "0 0 20px rgba(255, 255, 0, 0.8)",
+                                            ],
+                                        }}
+                                        transition={{
+                                            duration: 2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                        }}
+                                    >
+                                        YOU WIN
+                                    </motion.h1>
+                                    <motion.p
+                                        className="text-2xl text-white mb-8"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 4.6, duration: 0.6 }}
+                                    >
+                                        エクゾディアの5つのパーツが揃いました！
+                                    </motion.p>
+                                    <motion.button
+                                        className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${
+                                            isResetting
+                                                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                        }`}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 5.2, duration: 0.6 }}
+                                        whileHover={!isResetting ? { scale: 1.05 } : {}}
+                                        whileTap={!isResetting ? { scale: 0.95 } : {}}
+                                        onClick={handleGameReset}
+                                        disabled={isResetting}
+                                    >
+                                        {isResetting ? "リセット中..." : "最初から始める"}
+                                    </motion.button>
+                                </motion.div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {gameOver && winner === "timeout" && (
+                        <motion.div
+                            className="fixed inset-0 flex items-center justify-center z-50"
+                            initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
+                            animate={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}
+                            exit={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
+                            transition={{ duration: 1.2, ease: "easeInOut" }}
+                        >
+                            <motion.div
+                                className="text-center"
+                                initial={{ opacity: 0, scale: 0.5, y: 50 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                transition={{
+                                    delay: 0.8,
+                                    duration: 0.8,
+                                    ease: "easeOut",
+                                    type: "spring",
+                                    stiffness: 100,
+                                }}
+                            >
+                                <motion.h1
+                                    className="text-8xl font-bold text-red-400 mb-4"
+                                    animate={{
+                                        textShadow: [
+                                            "0 0 20px rgba(255, 100, 100, 0.8)",
+                                            "0 0 40px rgba(255, 50, 50, 1)",
+                                            "0 0 20px rgba(255, 100, 100, 0.8)",
+                                        ],
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        repeat: Infinity,
+                                        ease: "easeInOut",
+                                    }}
+                                >
+                                    YOU LOSE
+                                </motion.h1>
+                                <motion.p
+                                    className="text-2xl text-white mb-8"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 1.2, duration: 0.6 }}
+                                >
+                                    あなたの負けです！
+                                </motion.p>
+                                <motion.button
+                                    className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${
+                                        isResetting
+                                            ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                                            : "bg-red-600 hover:bg-red-700 text-white"
+                                    }`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 1.8, duration: 0.6 }}
+                                    whileHover={!isResetting ? { scale: 1.05 } : {}}
+                                    whileTap={!isResetting ? { scale: 0.95 } : {}}
+                                    onClick={handleGameReset}
+                                    disabled={isResetting}
+                                >
+                                    {isResetting ? "リセット中..." : "最初から始める"}
+                                </motion.button>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* ターンエンドアニメーション */}
                 <TurnEndAnimation show={showTurnEndAnimation} onComplete={() => setShowTurnEndAnimation(false)} />

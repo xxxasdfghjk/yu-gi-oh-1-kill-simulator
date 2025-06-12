@@ -135,6 +135,8 @@ export interface TrapCard extends Card {
     trap_type: TrapType;
 }
 
+type SpecialLocation = "TokenRemove" | "Throne";
+
 export type Location =
     | "Deck"
     | "Hand"
@@ -146,7 +148,7 @@ export type Location =
     | "FieldZone"
     | "OpponentField"
     | "Material"
-    | "TokenRemove";
+    | SpecialLocation;
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
 export interface CardInstance {

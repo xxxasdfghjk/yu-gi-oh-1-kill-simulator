@@ -9,7 +9,7 @@ interface ControlButtonsProps {
 
 export const ControlButtons: React.FC<ControlButtonsProps> = ({ isOpponentTurn, nextPhase, initializeGame }) => {
     return (
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 space-y-4">
+        <div className="flex flex-col justify-center space-y-4 items-center">
             <Tooltip content={isOpponentTurn ? "押すと負けます" : "相手にターンを回します"} position="top">
                 <button
                     onClick={nextPhase}

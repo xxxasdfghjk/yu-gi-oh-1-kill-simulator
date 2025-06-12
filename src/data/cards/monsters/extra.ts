@@ -543,7 +543,7 @@ export const EXTRA_MONSTERS = [
                             .filter((monster) => {
                                 const typedMonster = monster.card as MonsterCard;
                                 return (
-                                    state.deck.filter(
+                                    [...state.hand, ...state.deck].filter(
                                         (card) =>
                                             monsterFilter(card.card) &&
                                             (card.card.race === typedMonster.race ||
@@ -569,7 +569,7 @@ export const EXTRA_MONSTERS = [
                                 .filter((monster) => {
                                     const typedMonster = monster.card as MonsterCard;
                                     return (
-                                        state.deck.filter(
+                                        [...state.hand, ...state.deck].filter(
                                             (card) =>
                                                 monsterFilter(card.card) &&
                                                 (card.card.race === typedMonster.race ||

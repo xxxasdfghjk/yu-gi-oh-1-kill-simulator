@@ -12,6 +12,10 @@ export const CARD_SIZE = {
     EXTRA_LARGE: "w-32 h-44",
 } as const;
 
+export const EXODIA_CENTER_X = 960;
+export const EXODIA_CENTER_Y = 540;
+export const EXODIA_RADIUS = 0;
+
 export const CONTAINER_PADDING_X = 16;
 export const CONTAINER_PADDING_Y = 8;
 export const RIHGT_CONTAINER_WIDTH = 288;
@@ -65,7 +69,8 @@ export type DisplayField =
     | "FieldZone"
     | "OpponentField"
     | "Hand"
-    | "TokenRemove";
+    | "TokenRemove"
+    | "Throne";
 export const getFieldCoodrinateAbsolute = (
     fieldType: DisplayField,
     index: number = 0,
@@ -116,6 +121,15 @@ export const getFieldCoodrinateAbsolute = (
         case "TokenRemove":
             // フィールドの同じ位置（フェードアウト用）
             return getFieldCoodrinateAbsolute("MonsterField", index);
+        case "Throne":
+            console.log(index, {
+                x: EXODIA_CENTER_X + EXODIA_RADIUS * Math.cos(Math.PI / 2 - (index * Math.PI) / 5),
+                y: EXODIA_CENTER_Y + EXODIA_RADIUS * Math.sin(Math.PI / 2 - (index * Math.PI) / 5),
+            });
+            return {
+                x: EXODIA_CENTER_X + EXODIA_RADIUS * Math.cos(Math.PI / 2 - (index * Math.PI) / 5),
+                y: EXODIA_CENTER_Y + EXODIA_RADIUS * Math.sin(Math.PI / 2 - (index * Math.PI) / 5),
+            };
     }
 };
 
@@ -148,6 +162,10 @@ export const getLocationVectorWithPosition = (
         (["attack", "defense", undefined].findIndex((e) => e === fieldA?.position) !== -1)
             ? 0
             : 180;
+    console.log(
+        (getFieldCoodrinateAbsolute(fieldA.location, fieldA.index, fieldA.length),
+        getFieldCoodrinateAbsolute(fieldB.location, fieldB.index, fieldB.length))
+    );
     return {
         roteteY: flip,
         rotate,

@@ -44,6 +44,16 @@ export const isXyzMonster = (card: Card): card is XyzMonsterCard => {
     return monsterFilter(card) && card.monster_type === "エクシーズモンスター";
 };
 
+export const isExodia = (card: Card) => {
+    return [
+        "封印されしエクゾディア",
+        "封印されし者の右腕",
+        "封印されし者の左腕",
+        "封印されし者の右足",
+        "封印されし者の左足",
+    ].includes(card.card_name);
+};
+
 export const isExtraDeckMonster = (card: Card): card is MonsterCard => {
     return (
         monsterFilter(card) &&

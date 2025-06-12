@@ -181,6 +181,22 @@ export const sendCard = (
         case "OpponentField": {
             state.currentTo = { location: "OpponentField" };
             state.opponentField.fieldZone = { ...updatedCard };
+            break;
+        }
+        case "Throne": {
+            const index = [
+                "封印されしエクゾディア",
+                "封印されし者の左腕",
+                "封印されし者の左足",
+                "封印されし者の右足",
+                "封印されし者の右腕",
+            ].indexOf(card.card.card_name);
+            state.currentTo = {
+                location: "Throne",
+                index,
+            };
+            state.throne[index] = { ...updatedCard };
+            break;
         }
     }
     // Trigger effects after the card has been moved

@@ -5,6 +5,7 @@ import { getLocationVectorWithPosition } from "@/const/card";
 import { useGameStore } from "@/store/gameStore";
 import AnimationWrapper from "./AnimationWrapper";
 import { Card } from "./Card";
+import { isExodia } from "@/utils/cardManagement";
 interface HandAreaProps {
     hand: CardInstance[];
 }
@@ -15,7 +16,10 @@ export const HandArea: React.FC<HandAreaProps> = ({ hand }) => {
     const { currentFrom, currentTo } = useGameStore();
     const initial = currentTo.location === "Hand" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
     return (
-        <div className="flex space-x-2 justify-center items-center mt-2 min-w-full">
+        <div
+            className={`relative flex space-x-2 justify-center items-center mt-2 min-w-full 
+            `}
+        >
             <div className="flex space-x-2 mb-2 overflow-visible">
                 <AnimatePresence mode={"popLayout"}>
                     {hand.map((card) => (
