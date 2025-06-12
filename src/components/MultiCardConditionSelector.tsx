@@ -3,6 +3,8 @@ import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import type { GameStore } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
+import { GraveyardModal } from "./GraveyardModal";
+import { ExtraDeckModal } from "./ExtraDeckModal";
 
 interface MultiCardConditionSelectorProps {
     type: "multi" | "single";
@@ -163,76 +165,21 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
                 </div>
             </ModalWrapper>
             
-            {/* Local Graveyard Modal */}
-            <ModalWrapper isOpen={showGraveyardLocal} onClose={() => setShowGraveyardLocal(false)}>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold">墓地 ({state.graveyard.length}枚)</h3>
-                    <button onClick={() => setShowGraveyardLocal(false)} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">
-                        ×
-                    </button>
-                </div>
-
-                {state.graveyard.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">墓地にカードはありません</div>
-                ) : (
-                    <div className="grid grid-cols-5 gap-3 overflow-y-scroll max-h-[600px]">
-                        {state.graveyard.map((card, index) => (
-                            <div
-                                key={`${card.id}-${index}`}
-                                className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded`}
-                            >
-                                <Card card={card} size="small" customSize="w-30" disableActivate />
-                                <div className="text-xs text-center mt-1 truncate w-30">{card.card.card_name}</div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                <div className="flex justify-center mt-6">
-                    <button
-                        onClick={() => setShowGraveyardLocal(false)}
-                        className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded font-bold"
-                    >
-                        閉じる
-                    </button>
-                </div>
-            </ModalWrapper>
+            {/* 既存のGraveyardModalを使用 */}
+            <GraveyardModal 
+                graveyard={state.graveyard}
+                gameState={state}
+                isOpen={showGraveyardLocal}
+                onClose={() => setShowGraveyardLocal(false)}
+            />
             
-            {/* Local Extra Deck Modal */}
-            <ModalWrapper isOpen={showExtraDeckLocal} onClose={() => setShowExtraDeckLocal(false)}>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold">エクストラデッキ ({state.extraDeck.length}枚)</h3>
-                    <button onClick={() => setShowExtraDeckLocal(false)} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">
-                        ×
-                    </button>
-                </div>
-
-                {state.extraDeck.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">エクストラデッキにカードはありません</div>
-                ) : (
-                    <div className="grid grid-cols-5 gap-2 max-h-[640px] overflow-y-scroll">
-                        {state.extraDeck.map((card, index) => (
-                            <div
-                                key={`${card.id}-${index}`}
-                                className="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-green-300 rounded"
-                            >
-                                <Card card={card} size="small" customSize="w-30" disableActivate />
-                                <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
-                                <div className="text-xs text-center text-gray-600">{card.card.card_type}</div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                <div className="flex justify-center mt-6">
-                    <button
-                        onClick={() => setShowExtraDeckLocal(false)}
-                        className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded font-bold"
-                    >
-                        閉じる
-                    </button>
-                </div>
-            </ModalWrapper>
+            {/* 既存のExtraDeckModalを確認のみモードで使用 */}
+            <ExtraDeckModal 
+                isOpen={showExtraDeckLocal}
+                onClose={() => setShowExtraDeckLocal(false)}
+                extraDeck={state.extraDeck}
+                viewOnly={true}
+            />
         </>
     );
 };

@@ -8,16 +8,19 @@ interface ExtraDeckModalProps {
     isOpen: boolean;
     onClose: () => void;
     extraDeck: CardInstance[];
-    canPerformLinkSummon: (card: CardInstance) => boolean;
-    canPerformXyzSummon: (card: CardInstance) => boolean;
-    startLinkSummon: (card: CardInstance) => void;
-    startXyzSummon: (card: CardInstance) => void;
+    // 確認のみモード（召喚機能を使わない場合）
+    viewOnly?: boolean;
+    canPerformLinkSummon?: (card: CardInstance) => boolean;
+    canPerformXyzSummon?: (card: CardInstance) => boolean;
+    startLinkSummon?: (card: CardInstance) => void;
+    startXyzSummon?: (card: CardInstance) => void;
 }
 
 export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
     isOpen,
     onClose,
     extraDeck,
+    viewOnly = false,
     canPerformLinkSummon,
     canPerformXyzSummon,
     startLinkSummon,
@@ -43,30 +46,35 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                     {extraDeck.map((card, index) => (
                         <div
                             key={`${card.id}-${index}`}
-                            className={`cursor-pointer transition-transform hover:scale-105 hover:ring-2 rounded ${
-                                isLinkMonster(card.card) && canPerformLinkSummon(card)
+                            className={`${
+                                !viewOnly ? "cursor-pointer" : "cursor-default"
+                            } transition-transform hover:scale-105 hover:ring-2 rounded ${
+                                !viewOnly && isLinkMonster(card.card) && canPerformLinkSummon?.(card)
                                     ? "hover:ring-blue-400 ring-2 ring-blue-200"
                                     : "hover:ring-green-300"
                             }`}
                             onClick={() => {
-                                if (isLinkMonster(card.card) && canPerformLinkSummon(card)) {
+                                if (viewOnly) return;
+                                if (isLinkMonster(card.card) && canPerformLinkSummon?.(card) && startLinkSummon) {
                                     startLinkSummon(card);
                                     onClose();
-                                } else if (isXyzMonster(card.card) && canPerformXyzSummon(card)) {
+                                } else if (isXyzMonster(card.card) && canPerformXyzSummon?.(card) && startXyzSummon) {
                                     startXyzSummon(card);
                                     onClose();
                                 }
                             }}
                         >
-                            <Card card={card} size="small" customSize="w-30" />
+                            <div className="relative w-32 h-48">
+                                <Card card={card} size="small" customSize="w-32 h-48" />
+                            </div>
                             <div className="text-xs text-center mt-1 truncate">{card.card.card_name}</div>
                             <div className="text-xs text-center text-gray-600">{card.card.card_type}</div>
-                            {isLinkMonster(card.card) && (
+                            {!viewOnly && isLinkMonster(card.card) && canPerformLinkSummon && (
                                 <div className="text-xs text-center text-blue-600 font-bold">
                                     {canPerformLinkSummon(card) ? "リンク召喚可能" : "召喚不能"}
                                 </div>
                             )}
-                            {isXyzMonster(card.card) && (
+                            {!viewOnly && isXyzMonster(card.card) && canPerformXyzSummon && (
                                 <div className="text-xs text-center text-purple-600 font-bold">
                                     {canPerformXyzSummon(card) ? "エクシーズ召喚可能" : "素材不足"}
                                 </div>

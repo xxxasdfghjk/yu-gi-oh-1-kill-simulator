@@ -9,11 +9,21 @@ import { graveyardModalAtom } from "@/store/graveyardModalAtom";
 interface GraveyardModalProps {
     graveyard: CardInstance[];
     gameState: GameStore;
+    // ローカル状態オーバーライド用 (指定時はjotaiを使わない)
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
-export const GraveyardModal: React.FC<GraveyardModalProps> = ({ graveyard }) => {
-    const [isOpen, setIsOpen] = useAtom(graveyardModalAtom);
-    const onClose = () => setIsOpen(false);
+export const GraveyardModal: React.FC<GraveyardModalProps> = ({
+    graveyard,
+    isOpen: isOpenProp,
+    onClose: onCloseProp,
+}) => {
+    const [isOpenAtom, setIsOpenAtom] = useAtom(graveyardModalAtom);
+
+    // Props指定時はpropsを使用、そうでなければjotaiを使用
+    const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenAtom;
+    const onClose = onCloseProp || (() => setIsOpenAtom(false));
 
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
@@ -33,8 +43,8 @@ export const GraveyardModal: React.FC<GraveyardModalProps> = ({ graveyard }) => 
                             key={`${card.id}-${index}`}
                             className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded`}
                         >
-                            <Card card={card} size="small" customSize="w-30" />
-                            <div className="text-xs text-center mt-1 truncate w-30">{card.card.card_name}</div>
+                            <Card card={card} size="small" customSize="w-32 h-48" />
+                            <div className="text-xs text-center mt-1 truncate w-32">{card.card.card_name}</div>
                         </div>
                     ))}
                 </div>
