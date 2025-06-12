@@ -39,9 +39,3 @@ export interface GameState {
     currentTo: { location: DisplayField; index?: number; length?: number; position?: Position };
     throne: [CardInstance | null, CardInstance | null, CardInstance | null, CardInstance | null, CardInstance | null];
 }
-
-export interface ChainLink {
-    card: CardInstance;
-    effect: string;
-    player: "player" | "opponent";
-}

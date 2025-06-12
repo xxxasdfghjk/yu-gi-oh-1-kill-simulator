@@ -4,11 +4,11 @@ import type { CardInstance, DefensableMonsterCard } from "@/types/card";
 import { CARD_SIZE } from "@/const/card";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
 import { graveyardModalAtom } from "@/store/graveyardModalAtom";
-import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "@/utils/cardManagement";
-import { useGameStore, type GameStore } from "@/store/gameStore";
-import { canNormalSummon } from "@/utils/summonUtils";
+import { monsterFilter } from "@/utils/cardManagement";
+import { useGameStore } from "@/store/gameStore";
 import { ActionListSelector } from "./ActionListSelector";
 import { motion } from "framer-motion";
+import { getCardActions } from "@/utils/effectUtils";
 
 interface CardProps {
     card: CardInstance | null | undefined;
@@ -22,37 +22,6 @@ interface CardProps {
     rotate?: boolean;
 }
 
-export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
-    const actions: string[] = [];
-    if (monsterFilter(card.card) && canNormalSummon(gameState, card) && card.location === "Hand") {
-        actions.push("summon");
-    }
-    if (
-        (isMagicCard(card.card) &&
-            card.card.effect.onSpell?.condition(gameState, card) &&
-            (hasEmptySpellField(gameState) || card.location === "SpellField") &&
-            (card.location === "Hand" || card.location === "SpellField") &&
-            !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited)) ||
-        (isTrapCard(card.card) &&
-            card.card.effect.onSpell?.condition(gameState, card) &&
-            card.location === "SpellField" &&
-            (card?.setTurn ?? 999999) < gameState.turn)
-    ) {
-        actions.push("activate");
-    }
-    if (
-        (isTrapCard(card.card) || (isMagicCard(card.card) && card.card.magic_type !== "フィールド魔法")) &&
-        hasEmptySpellField(gameState) &&
-        card.location === "Hand"
-    ) {
-        actions.push("set");
-    }
-    if (card.card.effect.onIgnition?.condition(gameState, card)) {
-        actions.push("effect");
-    }
-
-    return actions;
-};
 export const Card: React.FC<CardProps> = ({
     card,
     size = "medium",

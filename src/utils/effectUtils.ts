@@ -3,6 +3,8 @@ import type { CardInstance } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
 import { summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
+import { canNormalSummon } from "./summonUtils";
+import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
@@ -176,4 +178,36 @@ export const withDelay = (
             callback(state, cardInstance);
         },
     });
+};
+
+export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
+    const actions: string[] = [];
+    if (monsterFilter(card.card) && canNormalSummon(gameState, card) && card.location === "Hand") {
+        actions.push("summon");
+    }
+    if (
+        (isMagicCard(card.card) &&
+            card.card.effect.onSpell?.condition(gameState, card) &&
+            (hasEmptySpellField(gameState) || (card.location === "SpellField" && card.position === "back")) &&
+            (card.location === "Hand" || card.location === "SpellField") &&
+            !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited)) ||
+        (isTrapCard(card.card) &&
+            card.card.effect.onSpell?.condition(gameState, card) &&
+            card.location === "SpellField" &&
+            (card?.setTurn ?? 999999) < gameState.turn)
+    ) {
+        actions.push("activate");
+    }
+    if (
+        (isTrapCard(card.card) || (isMagicCard(card.card) && card.card.magic_type !== "フィールド魔法")) &&
+        hasEmptySpellField(gameState) &&
+        card.location === "Hand"
+    ) {
+        actions.push("set");
+    }
+    if (card.card.effect.onIgnition?.condition(gameState, card)) {
+        actions.push("effect");
+    }
+
+    return actions;
 };

@@ -5,7 +5,6 @@ import { getLocationVectorWithPosition } from "@/const/card";
 import { useGameStore } from "@/store/gameStore";
 import AnimationWrapper from "./AnimationWrapper";
 import { Card } from "./Card";
-import { isExodia } from "@/utils/cardManagement";
 interface HandAreaProps {
     hand: CardInstance[];
 }
