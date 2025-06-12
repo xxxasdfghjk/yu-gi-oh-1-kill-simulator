@@ -32,7 +32,7 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
         <div className={`relative ${className} z-3`}>
             {label && <div className="absolute -top-5 left-0 text-xs text-gray-600">{label}</div>}
             <div
-                className={`border-2 ${borderColor} ${textColor} rounded bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors h-full ${bgColor} ${
+                className={`border-2 ${borderColor} ${textColor} rounded ${type === "extra_zone" ? "bg-blue-500/30" : "bg-white/20"} flex items-center justify-center cursor-pointer ${type === "extra_zone" ? "hover:bg-blue-500/40" : "hover:bg-white/30"} transition-colors h-full ${bgColor} ${
                     disabled ? "opacity-50" : ""
                 } relative`}
                 onClick={onClick}

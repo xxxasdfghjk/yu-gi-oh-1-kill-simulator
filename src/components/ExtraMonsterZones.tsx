@@ -33,7 +33,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
 
                 {/* 左のエクストラモンスターゾーン */}
                 <FieldZone
-                    className={`${cardSizeClass} border-4 border-red-400`}
+                    className={`${cardSizeClass}`}
                     type={"extra_zone"}
                     hasCard={!!extraMonsterZones[0]}
                 >
@@ -50,7 +50,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
 
                 {/* 右のエクストラモンスターゾーン */}
                 <FieldZone
-                    className={`${cardSizeClass} border-4 border-red-400`}
+                    className={`${cardSizeClass}`}
                     type={"extra_zone"}
                     hasCard={!!extraMonsterZones[1]}
                 >
