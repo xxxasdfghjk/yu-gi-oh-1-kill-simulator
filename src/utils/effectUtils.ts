@@ -190,7 +190,8 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
             card.card.effect.onSpell?.condition(gameState, card) &&
             (hasEmptySpellField(gameState) || (card.location === "SpellField" && card.position === "back")) &&
             (card.location === "Hand" || card.location === "SpellField") &&
-            !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited)) ||
+            !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited) &&
+            gameState.phase === "main1") ||
         (isTrapCard(card.card) &&
             card.card.effect.onSpell?.condition(gameState, card) &&
             card.location === "SpellField" &&
@@ -201,11 +202,12 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     if (
         (isTrapCard(card.card) || (isMagicCard(card.card) && card.card.magic_type !== "フィールド魔法")) &&
         hasEmptySpellField(gameState) &&
-        card.location === "Hand"
+        card.location === "Hand" &&
+        gameState.phase === "main1"
     ) {
         actions.push("set");
     }
-    if (card.card.effect.onIgnition?.condition(gameState, card)) {
+    if (card.card.effect.onIgnition?.condition(gameState, card) && gameState.phase === "main1") {
         actions.push("effect");
     }
 

@@ -572,7 +572,6 @@ export const useGameStore = create<GameStore>()(
                 const targetList = [...state.hand, ...state.deck];
                 let count = 0;
                 for (const target of targetList) {
-                    console.log(target.card.card_name);
                     if (exodiaPieceNames.includes(target.card.card_name)) {
                         count++;
                         withDelay(state, target, { delay: (count + 1) * 60 }, (state, target) => {

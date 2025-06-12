@@ -122,10 +122,6 @@ export const getFieldCoodrinateAbsolute = (
             // フィールドの同じ位置（フェードアウト用）
             return getFieldCoodrinateAbsolute("MonsterField", index);
         case "Throne":
-            console.log(index, {
-                x: EXODIA_CENTER_X + EXODIA_RADIUS * Math.cos(Math.PI / 2 - (index * Math.PI) / 5),
-                y: EXODIA_CENTER_Y + EXODIA_RADIUS * Math.sin(Math.PI / 2 - (index * Math.PI) / 5),
-            });
             return {
                 x: EXODIA_CENTER_X + EXODIA_RADIUS * Math.cos(Math.PI / 2 - (index * Math.PI) / 5),
                 y: EXODIA_CENTER_Y + EXODIA_RADIUS * Math.sin(Math.PI / 2 - (index * Math.PI) / 5),
@@ -162,10 +158,6 @@ export const getLocationVectorWithPosition = (
         (["attack", "defense", undefined].findIndex((e) => e === fieldA?.position) !== -1)
             ? 0
             : 180;
-    console.log(
-        (getFieldCoodrinateAbsolute(fieldA.location, fieldA.index, fieldA.length),
-        getFieldCoodrinateAbsolute(fieldB.location, fieldB.index, fieldB.length))
-    );
     return {
         roteteY: flip,
         rotate,

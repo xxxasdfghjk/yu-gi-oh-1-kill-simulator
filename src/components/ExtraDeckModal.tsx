@@ -76,7 +76,7 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                             )}
                             {!viewOnly && isXyzMonster(card.card) && canPerformXyzSummon && (
                                 <div className="text-xs text-center text-purple-600 font-bold">
-                                    {canPerformXyzSummon(card) ? "エクシーズ召喚可能" : "素材不足"}
+                                    {canPerformXyzSummon(card) ? "エクシーズ召喚可能" : "召喚不能"}
                                 </div>
                             )}
                         </div>

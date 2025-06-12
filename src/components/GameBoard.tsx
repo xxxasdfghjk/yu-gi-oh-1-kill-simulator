@@ -88,6 +88,9 @@ export const GameBoard: React.FC = () => {
         if (gameState.isLinkSummonProhibited) {
             return false;
         }
+        if (gameState.phase !== "main1") {
+            return false;
+        }
 
         return searchCombinationLinkSummon(
             linkMonster,
@@ -98,6 +101,9 @@ export const GameBoard: React.FC = () => {
 
     const canPerformXyzSummon = (xyzMonster: CardInstance): boolean => {
         if (!isXyzMonster(xyzMonster.card)) return false;
+        if (gameState.phase !== "main1") {
+            return false;
+        }
 
         return searchCombinationXyzSummon(xyzMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
     };
