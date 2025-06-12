@@ -143,11 +143,11 @@ export const Card: React.FC<CardProps> = ({
                 />
             )}
             {/* Card Front Face */}
-            <div 
+            <div
                 className="absolute inset-0 w-full h-full rounded"
-                style={{ 
+                style={{
                     backfaceVisibility: "hidden",
-                    transform: isFaceDown ? "rotateY(180deg)" : "rotateY(0deg)"
+                    transform: isFaceDown && !forceAttack ? "rotateY(-180deg)" : "rotateY(0deg)",
                 }}
             >
                 {card.card.image ? (
@@ -165,7 +165,7 @@ export const Card: React.FC<CardProps> = ({
                         }}
                     />
                 ) : null}
-                
+
                 {/* Front Fallback */}
                 <div
                     className={`${
@@ -183,11 +183,11 @@ export const Card: React.FC<CardProps> = ({
             </div>
 
             {/* Card Back Face */}
-            <div 
+            <div
                 className="absolute inset-0 w-full h-full rounded"
-                style={{ 
+                style={{
                     backfaceVisibility: "hidden",
-                    transform: isFaceDown ? "rotateY(0deg)" : "rotateY(-180deg)"
+                    transform: isFaceDown && !forceAttack ? "rotateY(0deg)" : "rotateY(180deg)",
                 }}
             >
                 <img

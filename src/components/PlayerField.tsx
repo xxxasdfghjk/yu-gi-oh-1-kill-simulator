@@ -75,17 +75,17 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     <div className={`${cardSizeClass}`}></div>
                     
                     <div
-                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-10 absolute top-0 opacity-80`}
+                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-20 absolute top-0 opacity-80`}
                         onClick={() => setShowGraveyard(true)}
                     >
-                        <div className="-z-10">
+                        <div>
                             <div className="text-xs">GY</div>
                             <div className="text-lg">{graveyard.length}</div>
                         </div>
                     </div>
 
                     {graveyard.map((e) => (
-                        <div key={e.id} className={"absolute top-0"}>
+                        <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
                             <AnimationWrapper initial={{ ...graveyardInitial }}>
                                 <Card key={e.id} card={e} />
                             </AnimationWrapper>
@@ -102,17 +102,17 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     <div className={`${cardSizeClass}`}></div>
                     
                     <div
-                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors z-10 absolute top-0 opacity-80 border-2 border-green-900`}
+                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors z-20 absolute top-0 opacity-80 border-2 border-green-900`}
                         onClick={() => setShowExtraDeck(true)}
                     >
-                        <div className="-z-10">
+                        <div>
                             <div className="text-xs">EX</div>
                             <div className="text-lg">{extraDeck.length}</div>
                         </div>
                     </div>
 
                     {extraDeck.map((e, index) => (
-                        <div key={e.id} className={"absolute top-0"}>
+                        <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
                             <AnimationWrapper initial={{ ...extraDeckInitial }}>
                                 <Card 
                                     key={e.id} 
@@ -144,16 +144,16 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     <div className={`${cardSizeClass}`}></div>
                     
                     <div
-                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-10 absolute top-0 opacity-80 border-2 border-orange-900`}
+                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-20 absolute top-0 opacity-80 border-2 border-orange-900`}
                     >
-                        <div className="-z-10">
+                        <div>
                             <div className="text-xs">DECK</div>
                             <div className="text-lg">{deck.length}</div>
                         </div>
                     </div>
 
                     {deck.map((e) => (
-                        <div key={e.id} className={"absolute top-0"}>
+                        <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
                             <AnimationWrapper initial={{ ...deckInitial }}>
                                 <Card 
                                     key={e.id} 
