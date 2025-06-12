@@ -13,6 +13,7 @@ import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
 import { isXyzMonster } from "@/utils/cardManagement";
+import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -100,7 +101,6 @@ export const GameBoard: React.FC = () => {
         };
         func();
     }, [effectQueue, popQueue, gameState, sendSpellToGraveyard, processQueueTop, judgeWin]);
-    console.log(effectQueue);
     useEffect(() => {
         checkExodiaWin();
     }, [checkExodiaWin, hand]);
@@ -153,7 +153,11 @@ export const GameBoard: React.FC = () => {
                 </div>
 
                 {/* コントロールボタン */}
-                <ControlButtons isOpponentTurn={isOpponentTurn} nextPhase={nextPhase} initializeGame={reset} />
+                <ControlButtons
+                    isOpponentTurn={isOpponentTurn}
+                    nextPhase={nextPhase}
+                    initializeGame={reset}
+                />
 
                 {/* リンク */}
                 <div className="fixed bottom-4 right-8 space-y-2">
@@ -186,6 +190,8 @@ export const GameBoard: React.FC = () => {
                 {/* YOU WIN オーバーレイ */}
                 {gameOver && winner === "player" && (
                     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                        <ExodiaVictoryRotationAnime isVisible={true} />
+
                         <div className="text-center">
                             <h1 className="text-8xl font-bold text-yellow-400 mb-4 animate-pulse">YOU WIN</h1>
                             <p className="text-2xl text-white">エクゾディアの5つのパーツが揃いました！</p>

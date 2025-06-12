@@ -22,7 +22,7 @@ export const ExtraMonsterZones: React.FC<ExtraMonsterZonesProps> = ({ extraMonst
         currentTo.location === "MonsterField" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
     const opponentFieldInitial =
         currentTo.location === "OpponentField"
-            ? { rotate: 180, ...getLocationVectorWithPosition(currentTo, currentFrom) }
+            ? { ...getLocationVectorWithPosition(currentTo, currentFrom), rotate: 180 }
             : {};
     return (
         <div className="mb-2">
