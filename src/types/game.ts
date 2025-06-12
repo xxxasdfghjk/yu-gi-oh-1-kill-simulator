@@ -1,4 +1,6 @@
+import type { DisplayField } from "@/const/card";
 import type { CardInstance } from "./card";
+import type { Position } from "@/utils/effectUtils";
 
 export type GamePhase = "draw" | "standby" | "main1" | "battle" | "main2" | "end";
 
@@ -25,58 +27,15 @@ export interface GameState {
     hasNormalSummoned: boolean;
     hasSpecialSummoned: boolean;
     hasDrawnByEffect: boolean;
-    hasActivatedExtravagance: boolean;
-    hasActivatedChickenRace: boolean;
-    hasActivatedFafnir: boolean;
-    hasActivatedBanAlpha: boolean;
-    hasActivatedCritter: boolean;
-    hasActivatedEmergencyCyber: boolean;
-    hasActivatedEruGanma: boolean;
-    hasActivatedAruZeta: boolean;
-    hasActivatedJackInTheHand: boolean;
-    hasActivatedFafnirSummonEffect: boolean;
-    hasActivatedDreitronNova: boolean;
-    hasActivatedDivinerSummonEffect: boolean;
-    hasActivatedBeatriceEffect: boolean;
-    hasActivatedPtolemyM7Effect: boolean;
-    hasActivatedAuroradonEffect: boolean;
-    hasActivatedUnionCarrierEffect: boolean;
-    hasActivatedMeteorKikougunGraveyardEffect: boolean;
     isLinkSummonProhibited: boolean;
+    isFieldSpellActivationProhibited: boolean;
     isOpponentTurn: boolean;
-    pendingTrapActivation: CardInstance | null;
-    bonmawashiRestriction: boolean;
-    currentChain: ChainLink[];
-    canActivateEffects: boolean;
     gameOver: boolean;
     winner: "player" | "timeout" | null;
-    linkSummonState: {
-        phase: "select_materials";
-        linkMonster?: CardInstance;
-        requiredMaterials?: number;
-        selectedMaterials?: CardInstance[];
-        availableMaterials?: CardInstance[];
-    } | null;
-    xyzSummonState: {
-        phase: "select_materials";
-        xyzMonster?: CardInstance;
-        requiredRank?: number;
-        requiredMaterials?: number;
-        selectedMaterials?: CardInstance[];
-        availableMaterials?: CardInstance[];
-    } | null;
-    meteorKikougunState: {
-        phase: "select_ritual_monster" | "select_materials";
-        selectedRitualMonster?: CardInstance;
-        requiredAttack?: number;
-        availableRitualMonsters?: CardInstance[];
-        availableMaterials?: CardInstance[];
-        selectedMaterials?: CardInstance[];
-    } | null;
-}
-
-export interface ChainLink {
-    card: CardInstance;
-    effect: string;
-    player: "player" | "opponent";
+    turnRestrictions?: {
+        cannotActivateEffects?: string[];
+    };
+    currentFrom: { location: DisplayField; index?: number; length?: number; position?: Position };
+    currentTo: { location: DisplayField; index?: number; length?: number; position?: Position };
+    throne: [CardInstance | null, CardInstance | null, CardInstance | null, CardInstance | null, CardInstance | null];
 }

@@ -1,26 +1,30 @@
-import React, { useState } from "react";
+import React from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
-import { ActionListSelector, getCardActions } from "./HandArea";
 import type { GameStore } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
+import { useAtom } from "jotai";
+import { graveyardModalAtom } from "@/store/graveyardModalAtom";
 
 interface GraveyardModalProps {
-    isOpen: boolean;
-    onClose: () => void;
     graveyard: CardInstance[];
     gameState: GameStore;
-    handleEffect: (card: CardInstance) => void;
+    // ローカル状態オーバーライド用 (指定時はjotaiを使わない)
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
 export const GraveyardModal: React.FC<GraveyardModalProps> = ({
-    isOpen,
-    onClose,
     graveyard,
-    gameState,
-    handleEffect,
+    isOpen: isOpenProp,
+    onClose: onCloseProp,
 }) => {
-    const [hoveringCard, setHoveringCard] = useState<CardInstance | null>(null);
+    const [isOpenAtom, setIsOpenAtom] = useAtom(graveyardModalAtom);
+
+    // Props指定時はpropsを使用、そうでなければjotaiを使用
+    const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenAtom;
+    const onClose = onCloseProp || (() => setIsOpenAtom(false));
+
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
             <div className="flex justify-between items-center mb-4">
@@ -33,31 +37,14 @@ export const GraveyardModal: React.FC<GraveyardModalProps> = ({
             {graveyard.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">墓地にカードはありません</div>
             ) : (
-                <div className="grid grid-cols-5 gap-3">
+                <div className="grid grid-cols-5 gap-3 overflow-y-scroll max-h-[600px]">
                     {graveyard.map((card, index) => (
                         <div
                             key={`${card.id}-${index}`}
                             className={`relative cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-purple-300 rounded`}
-                            onMouseEnter={() => {
-                                setHoveringCard(card);
-                            }}
-                            onMouseLeave={() => {
-                                setHoveringCard(null);
-                            }}
                         >
-                            {hoveringCard?.id === card.id &&
-                                getCardActions(gameState, card).filter((e) => e === "effect").length > 0 && (
-                                    <ActionListSelector
-                                        card={card}
-                                        actions={getCardActions(gameState, card).filter((e) => e === "effect")}
-                                        onSelect={() => {
-                                            handleEffect(card);
-                                            onClose();
-                                        }}
-                                    />
-                                )}
-                            <Card card={card} size="small" customSize="w-30" />
-                            <div className="text-xs text-center mt-1 truncate w-30">{card.card.card_name}</div>
+                            <Card card={card} size="small" customSize="w-32 h-48" />
+                            <div className="text-xs text-center mt-1 truncate w-32">{card.card.card_name}</div>
                         </div>
                     ))}
                 </div>

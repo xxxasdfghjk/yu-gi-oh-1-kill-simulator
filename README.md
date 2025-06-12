@@ -1,54 +1,126 @@
-# React + TypeScript + Vite
+# 遊戯王 1ターンキル シミュレーター
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+遊戯王OCGの1ターンのみをプレイできるWebアプリケーションです。特定のデッキを使用して、1ターンで勝利を目指すシミュレーターです。
 
-Currently, two official plugins are available:
+## 🎮 概要
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+このプロジェクトは、遊戯王OCGの複雑なルールと効果処理を実装し、ブラウザ上で1ターンのみのゲームをプレイできるようにしたものです。エグゾディアやドライトロンなどの1ターンキルデッキを体験できます。
 
-## Expanding the ESLint configuration
+## ✨ 主な機能
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **カードプレイ**: 手札からモンスターの召喚、魔法・罠カードの発動
+- **特殊召喚**: リンク召喚、エクシーズ召喚、シンクロ召喚、融合召喚に対応
+- **効果処理**: カードの効果を自動的に処理し、適切なタイミングで発動
+- **アニメーション**: カード移動時のスムーズなアニメーション
+- **エグゾディア勝利演出**: 5つのパーツが揃った際の特別な勝利アニメーション
+- **ダークモード対応**: ライト/ダークテーマの切り替え
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 🛠️ 技術スタック
+
+- **フロントエンド**: React 18 + TypeScript
+- **状態管理**: Zustand (with Immer)
+- **スタイリング**: Tailwind CSS
+- **アニメーション**: Framer Motion
+- **ビルドツール**: Vite
+- **その他**: Jotai (モーダル状態管理)
+
+## 📦 セットアップ
+
+### 必要な環境
+- Node.js 18以上
+- npm または yarn
+
+### インストール
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/yourusername/yu-gi-oh-1-kill.git
+cd yu-gi-oh-1-kill
+
+# 依存関係のインストール
+npm install
+
+# 開発サーバーの起動
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+開発サーバーが起動したら、ブラウザで `http://localhost:5173` にアクセスしてください。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🎯 使い方
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+1. **ゲーム開始**: アプリケーションを開くと自動的にゲームが開始され、5枚のカードがドローされます
+2. **カードプレイ**: 手札のカードをクリックして、召喚・セット・発動などのアクションを選択
+3. **効果処理**: カードの効果が自動的に処理され、必要に応じて選択画面が表示されます
+4. **ターンエンド**: 右側のコントロールボタンから「TURN END」をクリック
+5. **リセット**: いつでも「RESET」ボタンでゲームを最初からやり直せます
+
+## 📁 プロジェクト構造
+
 ```
+src/
+├── components/        # Reactコンポーネント
+│   ├── GameBoard.tsx # メインゲームボード
+│   ├── Card.tsx      # カードコンポーネント
+│   └── ...
+├── store/            # 状態管理
+│   └── gameStore.ts  # Zustand store
+├── data/            # カードデータ
+│   └── cards/       # カード定義
+├── utils/           # ユーティリティ関数
+│   ├── cardMovement.ts  # カード移動処理
+│   ├── effectUtils.ts   # 効果処理
+│   └── ...
+├── types/           # TypeScript型定義
+└── const/           # 定数定義
+```
+
+## 🎴 実装されているカード
+
+### モンスターカード
+- エグゾディアパーツ（封印されしエクゾディア、右腕、左腕、右足、左足）
+- ドライトロンシリーズ
+- 儀式モンスター各種
+- リンク・エクシーズ・シンクロモンスター
+
+### 魔法カード
+- おろかな埋葬
+- ジャック・イン・ザ・ハンド
+- 儀式の準備
+- テラ・フォーミング
+- その他多数
+
+### 罠カード
+- 無限泡影
+- その他
+
+## 🔧 開発
+
+### コマンド
+
+```bash
+# 開発サーバー起動
+npm run dev
+
+# ビルド
+npm run build
+
+# リント
+npm run lint
+
+# プレビュー
+npm run preview
+```
+
+### 新しいカードの追加
+
+1. `src/data/cards/` 配下の適切なファイルにカード定義を追加
+2. カードの効果は `effect` オブジェクト内に実装
+3. 必要に応じて `src/utils/` にユーティリティ関数を追加
+
+## 📝 ライセンス
+
+このプロジェクトは教育目的で作成されています。遊戯王OCGの著作権は株式会社コナミデジタルエンタテインメントに帰属します。
+
+## 🤝 貢献
+
+バグ報告や機能提案は、GitHubのIssuesにてお願いします。

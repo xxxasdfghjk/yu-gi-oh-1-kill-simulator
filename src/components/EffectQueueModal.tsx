@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { MultiCardConditionSelector } from "./MultiCardConditionSelector";
 import { MultiOptionSelector } from "./MultiOptionSelector";
 import SummonSelector from "./SummonSelector";
-import type { EffectQueueItem, GameStore } from "@/store/gameStore";
+import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/gameStore";
+import ModalWrapper from "./ModalWrapper";
+import { type LinkMonsterCard } from "../types/card";
+import { canLinkSummonAfterRelease, canXyzSummonAfterRelease } from "@/utils/gameUtils";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
     gameState: GameStore;
-    processQueueTop: (action: any) => void;
+    processQueueTop: (payload: ProcessQueuePayload) => void;
     popQueue: () => void;
 }
 
@@ -17,9 +20,8 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
     processQueueTop,
     popQueue,
 }) => {
-    const [currentEffect, setCurrentEffect] = useState<any>(null);
+    const [currentEffect, setCurrentEffect] = useState<EffectQueueItem | null>(null);
     const [isClosing, setIsClosing] = useState(false);
-
     useEffect(() => {
         if (effectQueue.length > 0 && !isClosing) {
             const effect = effectQueue[0];
@@ -27,7 +29,9 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                 effect.type === "option" ||
                 effect.type === "select" ||
                 effect.type === "multiselect" ||
-                effect.type === "summon"
+                effect.type === "summon" ||
+                effect.type === "confirm" ||
+                effect.type === "material_select"
             ) {
                 setCurrentEffect(effect);
             } else {
@@ -44,9 +48,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setIsClosing(false);
         }, 300); // Match animation duration
     };
-
     if (!currentEffect) return null;
-
     switch (currentEffect.type) {
         case "option":
             return (
@@ -80,7 +82,6 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     title={`${currentEffect.cardInstance.card.card_name}: ${currentEffect.effectName}`}
                     onSelect={(card) => handleClose(() => processQueueTop({ type: "cardSelect", cardList: card }))}
                     onCancel={currentEffect.canCancel ? () => handleClose(() => popQueue()) : undefined}
-                    filterFunction={currentEffect.filterFunction}
                     type={"multi"}
                     state={gameState}
                     getAvailableCards={currentEffect.getAvailableCards}
@@ -99,6 +100,73 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                         handleClose(() => processQueueTop({ type: "summon", zone, position }))
                     }
                     state={gameState}
+                    isOpen={!isClosing}
+                />
+            );
+
+        case "confirm":
+            return (
+                <ModalWrapper isOpen={!isClosing}>
+                    <h3 className="text-lg font-bold mb-4">{currentEffect.cardInstance.card.card_name}</h3>
+                    <p className="mb-6">{currentEffect.effectName}</p>
+                    <div className="flex justify-end space-x-3">
+                        {currentEffect.canCancel && (
+                            <button
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                onClick={() =>
+                                    handleClose(() => {
+                                        processQueueTop({ type: "confirm", confirmed: false });
+                                    })
+                                }
+                            >
+                                キャンセル
+                            </button>
+                        )}
+                        <button
+                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            onClick={() =>
+                                handleClose(() => {
+                                    processQueueTop({ type: "confirm", confirmed: true });
+                                })
+                            }
+                        >
+                            発動
+                        </button>
+                    </div>
+                </ModalWrapper>
+            );
+
+        case "material_select":
+            return (
+                <MultiCardConditionSelector
+                    condition={(selectedCards, state) => {
+                        const effect = currentEffect;
+                        const canSummon =
+                            currentEffect.summonType === "link"
+                                ? canLinkSummonAfterRelease(
+                                      selectedCards,
+                                      state.field.extraMonsterZones,
+                                      state.field.monsterZones
+                                  )
+                                : canXyzSummonAfterRelease(
+                                      selectedCards,
+                                      state.field.extraMonsterZones,
+                                      state.field.monsterZones
+                                  );
+                        return (
+                            (effect.targetMonster.card as LinkMonsterCard).materialCondition(selectedCards) && canSummon
+                        );
+                    }}
+                    getAvailableCards={currentEffect.getAvailableCards}
+                    state={gameState}
+                    title={`${currentEffect.targetMonster.card.card_name}: 素材選択`}
+                    onSelect={(selectedMaterials) => {
+                        // Add perform_summon job to queue with selected materials
+
+                        handleClose(() => processQueueTop({ type: "cardSelect", cardList: selectedMaterials }));
+                    }}
+                    onCancel={() => handleClose(() => popQueue())}
+                    type={"multi"}
                     isOpen={!isClosing}
                 />
             );

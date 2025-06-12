@@ -3,6 +3,8 @@ import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import type { GameStore } from "@/store/gameStore";
 import ModalWrapper from "./ModalWrapper";
+import { GraveyardModal } from "./GraveyardModal";
+import { ExtraDeckModal } from "./ExtraDeckModal";
 
 interface MultiCardConditionSelectorProps {
     type: "multi" | "single";
@@ -12,7 +14,7 @@ interface MultiCardConditionSelectorProps {
     onSelect: (selectedCards: CardInstance[]) => void;
     onCancel?: () => void;
     condition: (selectedCards: CardInstance[], state: GameStore) => boolean;
-    filterFunction?: (card: CardInstance, alreadySelected: CardInstance[]) => boolean;
+    filterFunction?: (card: CardInstance) => boolean;
     isOpen?: boolean;
 }
 
@@ -28,6 +30,9 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
     isOpen = true,
 }) => {
     const [selectedCards, setSelectedCards] = useState<CardInstance[]>([]);
+    const [showGraveyardLocal, setShowGraveyardLocal] = useState(false);
+    const [showExtraDeckLocal, setShowExtraDeckLocal] = useState(false);
+    const [isTransparent, setIsTransparent] = useState(false);
     const cards = getAvailableCards(state);
     const handleCardClick = (card: CardInstance) => {
         if (type === "multi") {
@@ -36,9 +41,7 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
                 // カードの選択を解除
                 setSelectedCards((prev) => prev.filter((c) => c.id !== card.id));
             } else {
-                if (!filterFunction || filterFunction(card, selectedCards)) {
-                    setSelectedCards((prev) => [...prev, card]);
-                }
+                setSelectedCards((prev) => [...prev, card]);
             }
         } else {
             const isSelected = selectedCards.some((c) => c.id === card.id);
@@ -51,15 +54,6 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
         }
     };
 
-    // フィルター関数に基づいて利用可能なカードを決定
-    const availableCards = cards.filter((card) => {
-        const isAlreadySelected = selectedCards.some((c) => c.id === card.id);
-        if (isAlreadySelected) return true; // 既に選択されているカードは表示
-
-        if (!filterFunction) return true;
-        return filterFunction(card, selectedCards);
-    });
-
     const canConfirm = condition(selectedCards, state);
     const handleConfirm = () => {
         if (canConfirm) {
@@ -69,58 +63,123 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
     };
 
     return (
-        <ModalWrapper isOpen={isOpen} onClose={onCancel}>
-            <div className="mb-4">
-                <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
-                <p className="text-center text-gray-600">{selectedCards.length} 枚選択中</p>
-            </div>
+        <>
+            <ModalWrapper isOpen={isOpen} onClose={onCancel} isTransparent={isTransparent}>
+                <div className="flex flex-col h-full -m-6">
+                {/* Fixed header */}
+                <div className="px-6 py-4 bg-white border-b">
+                    <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
+                    <p className="text-center text-gray-600">{selectedCards.length} 枚選択中</p>
+                </div>
 
-            <div className="grid grid-cols-5  mb-6 gap-y-4 gap-x-2">
-                {availableCards.map((card) => {
-                    const isSelected = selectedCards.some((c) => c.id === card.id);
-                    const isSelectable = !filterFunction || filterFunction(card, selectedCards) || isSelected;
+                {/* Scrollable card area */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[700px]">
+                    <div className="grid grid-cols-5 gap-y-4 gap-x-2">
+                        {cards
+                            .filter((e) => {
+                                return filterFunction?.(e) ?? true;
+                            })
+                            .map((card) => {
+                                const isSelected = selectedCards.some((c) => c.id === card.id);
+                                const isSelectable = true;
+                                return (
+                                    <div
+                                        key={card.id}
+                                        className={`mx-auto justify-center cursor-pointer transition-all ${
+                                            isSelected
+                                                ? "ring-4 ring-blue-500 scale-105 bg-blue-200 rounded"
+                                                : isSelectable
+                                                ? "hover:scale-105 hover:ring-2 hover:ring-gray-300 rounded"
+                                                : "opacity-50 rounded cursor-not-allowed"
+                                        }`}
+                                        onClick={() => isSelectable && handleCardClick(card)}
+                                    >
+                                        <Card
+                                            card={card}
+                                            size="small"
+                                            customSize="w-32 h-48"
+                                            forceAttack
+                                            disableActivate
+                                        />
+                                        <div className="text-xs text-center mt-1 w-32 truncate">
+                                            {card.card.card_name}
+                                        </div>
+                                        <div className="text-xs text-center mt-1 truncate">{card.location}</div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                </div>
 
-                    return (
-                        <div
-                            key={card.id}
-                            className={`mx-auto justify-center cursor-pointer transition-all ${
-                                isSelected
-                                    ? "ring-4 ring-blue-500 scale-105 bg-blue-200 rounded"
-                                    : isSelectable
-                                    ? "hover:scale-105 hover:ring-2 hover:ring-gray-300 rounded"
-                                    : "opacity-50 rounded cursor-not-allowed"
+                {/* Fixed footer with buttons */}
+                <div className="px-6 py-4 bg-white border-t relative">
+                    <div className="flex gap-3 justify-center">
+                        <button
+                            onClick={handleConfirm}
+                            disabled={!canConfirm}
+                            className={`px-6 py-3 rounded font-bold ${
+                                canConfirm
+                                    ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }`}
-                            onClick={() => isSelectable && handleCardClick(card)}
                         >
-                            <Card card={card} size="small" customSize="w-32 h-48" forceAttack />
-                            <div className="text-xs text-center mt-1 w-32 truncate">{card.card.card_name}</div>
-                            <div className="text-xs text-center mt-1 truncate">{card.location}</div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            <div className="flex gap-3 justify-center">
-                <button
-                    onClick={handleConfirm}
-                    disabled={!canConfirm}
-                    className={`px-6 py-3 rounded font-bold ${
-                        canConfirm
-                            ? "bg-blue-500 hover:bg-blue-600 text-white"
-                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    }`}
-                >
-                    確定 ({selectedCards.length})
-                </button>
-                {onCancel && (
-                    <button
-                        onClick={onCancel}
-                        className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
-                    >
-                        キャンセル
-                    </button>
-                )}
-            </div>
-        </ModalWrapper>
+                            確定 ({selectedCards.length})
+                        </button>
+                        {onCancel && (
+                            <button
+                                onClick={onCancel}
+                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-bold"
+                            >
+                                キャンセル
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* View icons in bottom-right */}
+                    <div className="absolute bottom-4 right-4 flex gap-2">
+                        <button
+                            onClick={() => setIsTransparent(!isTransparent)}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                                isTransparent ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                            }`}
+                            title="盤面確認"
+                        >
+                            👁️
+                        </button>
+                        <button
+                            onClick={() => setShowGraveyardLocal(true)}
+                            className="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold text-gray-700"
+                            title="墓地確認"
+                        >
+                            ⚰️
+                        </button>
+                        <button
+                            onClick={() => setShowExtraDeckLocal(true)}
+                            className="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold text-gray-700"
+                            title="エクストラデッキ確認"
+                        >
+                            🎴
+                        </button>
+                    </div>
+                </div>
+                </div>
+            </ModalWrapper>
+            
+            {/* 既存のGraveyardModalを使用 */}
+            <GraveyardModal 
+                graveyard={state.graveyard}
+                gameState={state}
+                isOpen={showGraveyardLocal}
+                onClose={() => setShowGraveyardLocal(false)}
+            />
+            
+            {/* 既存のExtraDeckModalを確認のみモードで使用 */}
+            <ExtraDeckModal 
+                isOpen={showExtraDeckLocal}
+                onClose={() => setShowExtraDeckLocal(false)}
+                extraDeck={state.extraDeck}
+                viewOnly={true}
+            />
+        </>
     );
 };

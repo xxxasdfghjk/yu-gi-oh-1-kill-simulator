@@ -1,7 +1,7 @@
-import { GameBoardNew } from './components/GameBoardNew';
+import { GameBoard } from './components/GameBoard';
 
 function App() {
-  return <GameBoardNew />;
+  return <GameBoard />;
 }
 
 export default App;

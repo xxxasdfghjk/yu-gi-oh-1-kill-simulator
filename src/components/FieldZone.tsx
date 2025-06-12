@@ -1,71 +1,102 @@
-import React from "react";
-import type { CardInstance } from "@/types/card";
-import { Card } from "./Card";
+import React, { type ReactNode } from "react";
 
 interface FieldZoneProps {
-    card: CardInstance | null;
     onClick?: () => void;
-    onCardClick?: (card: CardInstance, event?: React.MouseEvent) => void;
     label?: string;
     className?: string;
-    type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone";
+    type?: "deck" | "extra_deck" | "banished" | "graveyard" | "field" | "extra_zone" | "spell_trap";
     disabled?: boolean;
     selected?: boolean;
     customSize?: string;
     reverse?: boolean;
+    disableActivate?: true;
+    rotate?: boolean;
+    children?: ReactNode;
+    hasCard?: boolean; // カードの存在を明示的に指定
 }
 
 export const FieldZone: React.FC<FieldZoneProps> = ({
-    card,
     onClick,
-    onCardClick,
     label,
     className = "",
     type,
     disabled,
     selected,
-    customSize,
+    children,
 }) => {
-    const handleClick = (event: React.MouseEvent) => {
-        if (card && onCardClick) {
-            onCardClick(card, event);
-        } else if (onClick) {
-            onClick();
-        }
-    };
-
     const textColor = selected ? "text-red-400" : "text-blue-400";
     const borderColor = selected ? "border-red-400" : "border-blue-400";
     const bgColor = selected ? "bg-red-100" : "";
 
     return (
-        <div className={`relative ${className}`}>
+        <div className={`relative ${className} z-3`}>
             {label && <div className="absolute -top-5 left-0 text-xs text-gray-600">{label}</div>}
             <div
-                className={`border-2 ${borderColor} ${textColor} rounded bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors h-full ${bgColor} ${
-                    disabled ? "opacity-50" : ""
-                }`}
-                onClick={handleClick}
+                className={`border-2 ${borderColor} ${textColor} rounded ${
+                    type === "extra_zone"
+                        ? "bg-blue-500/30"
+                        : type === "field"
+                        ? "bg-green-500/25"
+                        : type === "spell_trap"
+                        ? "bg-green-600/40"
+                        : "bg-white/20"
+                } flex items-center justify-center cursor-pointer ${
+                    type === "extra_zone"
+                        ? "hover:bg-blue-500/40"
+                        : type === "field"
+                        ? "hover:bg-green-500/35"
+                        : type === "spell_trap"
+                        ? "hover:bg-green-600/50"
+                        : "hover:bg-white/30"
+                } transition-colors h-full ${bgColor} ${disabled ? "opacity-50" : ""} relative`}
+                onClick={onClick}
             >
-                {card ? (
-                    <Card 
-                        card={card} 
-                        size="medium" 
-                        customSize={customSize} 
+                {/* カード部分 - 上層 */}
+                <div className="absolute z-20">{children}</div>
+                <div className="absolute z-0 font-bold">
+                    {type === "deck" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Deck
+                        </div>
+                    ) : type === "extra_deck" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            EX Deck
+                        </div>
+                    ) : type === "graveyard" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
+                    ) : type === "field" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Field
+                        </div>
+                    ) : type === "extra_zone" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            EX Zone
+                        </div>
+                    ) : type === "spell_trap" ? (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>S/T</div>
+                    ) : (
+                        <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>
+                            Monster
+                        </div>
+                    )}
+                </div>
+                <div
+                    className={`absolute z-0
+         rounded cursor-pointer transition-transform
+        shadow-md border border-gray-600 overflow-hidden
+                 "bg-transparent"
+      `}
+                >
+                    <img
+                        src={`/card_image/reverse.jpg`}
+                        alt={"dummy"}
+                        className={`w-full h-full object-contain opacity-40`}
+                        style={{
+                            filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                            backgroundColor: "transparent",
+                        }}
                     />
-                ) : type === "deck" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Deck</div>
-                ) : type === "extra_deck" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>EX Deck</div>
-                ) : type === "graveyard" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>GY</div>
-                ) : type === "field" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Field</div>
-                ) : type === "extra_zone" ? (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>EX Zone</div>
-                ) : (
-                    <div className={`flex items-center justify-center ${textColor} text-xs w-full h-full`}>Empty</div>
-                )}
+                </div>
             </div>
         </div>
     );

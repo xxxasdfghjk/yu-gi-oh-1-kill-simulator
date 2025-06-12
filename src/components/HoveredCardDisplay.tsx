@@ -1,16 +1,14 @@
-import React from "react";
 import { useAtom } from "jotai";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
-import { getAttack, getLevel, isMonsterCard } from "@/utils/gameUtils";
-import type { GameStore } from "@/store/gameStore";
-type Props = { state: GameStore };
-export const HoveredCardDisplay = ({ state }: Props) => {
+import { getAttack, getLevel } from "@/utils/gameUtils";
+import { hasLevelMonsterFilter, isLinkMonster, isXyzMonster, monsterFilter } from "@/utils/cardManagement";
+import type { DefensableMonsterCard } from "@/types/card";
+export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
-    const isBattleField = hoveredCard?.location === "field_monster";
-    console.log(hoveredCard);
+    const isBattleField = hoveredCard?.location === "MonsterField";
     return (
-        <div className="flex-[0.9] mx-auto h-[640px] mt-6">
-            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full">
+        <div className={`flex-1 flex flex-row justify-center h-[668px] w-[240px] mt-6 px-8`}>
+            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-4 border-2 border-gray-300 h-full flex-1">
                 {hoveredCard ? (
                     <>
                         {/* カード画像 */}
@@ -18,7 +16,7 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                             <img
                                 src={hoveredCard.card.image ? `/card_image/${hoveredCard.card.image}` : ""}
                                 alt={hoveredCard.card.card_name}
-                                className="w-48 h-auto rounded-lg shadow-md"
+                                className="w-40 h-auto rounded-lg shadow-md"
                                 onError={(e) => {
                                     e.currentTarget.style.display = "none";
                                 }}
@@ -34,7 +32,7 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                             <div className="text-sm text-gray-600 text-center">{hoveredCard.card.card_type}</div>
 
                             {/* モンスターカードの場合 */}
-                            {isMonsterCard(hoveredCard.card) && (
+                            {monsterFilter(hoveredCard.card) && (
                                 <div className="text-sm text-gray-700 text-center">
                                     <div className="flex flex-row justify-center">
                                         <div
@@ -46,32 +44,33 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                                     : ""
                                             }`}
                                         >
-                                            {"level" in hoveredCard.card &&
+                                            {hasLevelMonsterFilter(hoveredCard.card) &&
+                                                hoveredCard.card &&
                                                 hoveredCard.card.level &&
                                                 `レベル: ${getLevel(hoveredCard)} `}
                                         </div>
                                         <div>
-                                            {"rank" in hoveredCard.card &&
+                                            {isXyzMonster(hoveredCard.card) &&
                                                 hoveredCard.card.rank &&
                                                 `ランク: ${hoveredCard.card.rank} `}
                                         </div>
-                                        {"link" in hoveredCard.card &&
+                                        {isLinkMonster(hoveredCard.card) &&
                                             hoveredCard.card.link &&
                                             `リンク: ${hoveredCard.card.link} `}
                                     </div>
-                                    {"attribute" in hoveredCard.card &&
-                                        hoveredCard.card.attribute &&
-                                        `属性: ${hoveredCard.card.attribute} `}
-                                    {"race" in hoveredCard.card &&
+                                    {monsterFilter(hoveredCard.card) &&
+                                        hoveredCard.card.element &&
+                                        `属性: ${hoveredCard.card.element} `}
+                                    {monsterFilter(hoveredCard.card) &&
                                         hoveredCard.card.race &&
                                         `種族: ${hoveredCard.card.race}`}
                                     <div className="flex flex-row justify-center">
                                         <div
                                             className={`px-2 ${
                                                 "attack" in hoveredCard.card && isBattleField
-                                                    ? getAttack(state, hoveredCard) > hoveredCard.card.attack
+                                                    ? getAttack(hoveredCard) > hoveredCard.card.attack
                                                         ? "text-blue-600"
-                                                        : getAttack(state, hoveredCard) > hoveredCard.card.attack
+                                                        : getAttack(hoveredCard) < hoveredCard.card.attack
                                                         ? "text-red-500"
                                                         : ""
                                                     : ""
@@ -80,9 +79,7 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                             {"attack" in hoveredCard.card &&
                                                 hoveredCard.card.attack !== undefined &&
                                                 `ATK: ${
-                                                    isBattleField
-                                                        ? getAttack(state, hoveredCard)
-                                                        : hoveredCard.card.attack
+                                                    isBattleField ? getAttack(hoveredCard) : hoveredCard.card.attack
                                                 } `}
                                         </div>
                                         <div
@@ -97,7 +94,8 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                             {"defense" in hoveredCard.card
                                                 ? `DEF: ${
                                                       (isBattleField &&
-                                                          hoveredCard.card.defense! + hoveredCard.buf.defense) ||
+                                                          (hoveredCard.card as DefensableMonsterCard).defense! +
+                                                              hoveredCard.buf.defense) ||
                                                       hoveredCard.card.defense
                                                   }`
                                                 : ""}
@@ -106,8 +104,36 @@ export const HoveredCardDisplay = ({ state }: Props) => {
                                 </div>
                             )}
 
+                            {/* エクシーズモンスターのエクシーズ素材情報 */}
+                            {isXyzMonster(hoveredCard.card) &&
+                                hoveredCard.materials &&
+                                hoveredCard.materials.length > 0 && (
+                                    <div className="text-sm text-gray-700 border-t pt-2">
+                                        <div className="font-semibold mb-2 text-center">エクシーズ素材:</div>
+                                        <div className="space-y-1">
+                                            {hoveredCard.materials.map((material) => (
+                                                <div
+                                                    key={material.id}
+                                                    className="text-xs bg-gray-100 rounded px-2 py-1"
+                                                >
+                                                    {material.card.card_name}
+                                                    {monsterFilter(material.card) && "attack" in material.card && (
+                                                        <span className="ml-2 text-gray-500">
+                                                            ATK: {material.card.attack}
+                                                            {"defense" in material.card &&
+                                                                ` / DEF: ${material.card.defense}`}
+                                                            {hasLevelMonsterFilter(material.card) &&
+                                                                ` / LV: ${material.card.level}`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                             {/* カードテキスト */}
-                            <div className="text-[14px] text-gray-600 max-h-48 overflow-y-auto border-t pt-2 whitespace-pre-wrap">
+                            <div className="text-[14px] text-gray-600 max-h-60 overflow-y-scroll border-t pt-2 whitespace-pre-wrap">
                                 {hoveredCard.card.text}
                             </div>
                         </div>

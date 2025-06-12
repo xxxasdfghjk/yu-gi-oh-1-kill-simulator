@@ -1,7 +1,10 @@
 import React from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
-import { CARD_SIZE } from "@/const/card";
+import { CARD_SIZE, getLocationVectorWithPosition } from "@/const/card";
+import { useGameStore } from "@/store/gameStore";
+import AnimationWrapper from "./AnimationWrapper";
+import { Card } from "./Card";
 
 interface PlayerFieldProps {
     field: {
@@ -13,11 +16,6 @@ interface PlayerFieldProps {
     deck: CardInstance[];
     extraDeck: CardInstance[];
     graveyard: CardInstance[];
-    turn: number;
-    phase: string;
-    isOpponentTurn: boolean;
-    bonmawashiRestriction: boolean;
-    handleFieldCardClick: (card: CardInstance, event?: React.MouseEvent) => void;
     setShowGraveyard: (show: boolean) => void;
     setShowExtraDeck: (show: boolean) => void;
 }
@@ -27,38 +25,51 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     deck,
     extraDeck,
     graveyard,
-    handleFieldCardClick,
     setShowGraveyard,
     setShowExtraDeck,
 }) => {
+    const { currentFrom, currentTo } = useGameStore();
+
     const cardSizeClass = CARD_SIZE.MEDIUM;
+    const fieldZoneInitial =
+        currentTo.location === "FieldZone" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+
+    const spellInitial =
+        currentTo.location === "SpellField" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const monsterInitial =
+        currentTo.location === "MonsterField" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const graveyardInitial =
+        currentTo.location === "Graveyard" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const extraDeckInitial =
+        currentTo.location === "ExtraDeck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const deckInitial = currentTo.location === "Deck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
 
     return (
         <div>
             {/* プレイヤーモンスターゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
+            <div className="flex space-x-2 mb-2">
                 {/* プレイヤーのフィールド魔法（左側） */}
-                <FieldZone
-                    card={field.fieldZone}
-                    className={cardSizeClass}
-                    onClick={() => {}}
-                    onCardClick={handleFieldCardClick}
-                    type="field"
-                />
+                <FieldZone className={cardSizeClass} type="field" hasCard={!!field.fieldZone}>
+                    <AnimationWrapper key={field.fieldZone?.id ?? "empty-field"} initial={{ ...fieldZoneInitial }}>
+                        <Card card={field.fieldZone} />
+                    </AnimationWrapper>
+                </FieldZone>
 
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
-                    <FieldZone
-                        key={`monster-${index}`}
-                        card={card}
-                        className={cardSizeClass}
-                        onCardClick={handleFieldCardClick}
-                            />
+                    <FieldZone key={`monster-${index}`} className={cardSizeClass} hasCard={!!card}>
+                        <AnimationWrapper card={card} enableTokenFadeOut={true} initial={{ ...monsterInitial }}>
+                            <Card card={card} />
+                        </AnimationWrapper>
+                    </FieldZone>
                 ))}
                 {/* 墓地 */}
-                <div className="text-center">
+                <div className="text-center relative">
+                    {/* スペース確保用の透明な要素 */}
+                    <div className={`${cardSizeClass}`}></div>
+
                     <div
-                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors`}
+                        className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-20 absolute top-0 opacity-80`}
                         onClick={() => setShowGraveyard(true)}
                     >
                         <div>
@@ -66,15 +77,26 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                             <div className="text-lg">{graveyard.length}</div>
                         </div>
                     </div>
+
+                    {graveyard.map((e) => (
+                        <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
+                            <AnimationWrapper initial={{ ...graveyardInitial }}>
+                                <Card key={e.id} card={e} />
+                            </AnimationWrapper>
+                        </div>
+                    ))}
                 </div>
             </div>
 
             {/* 魔法・罠ゾーン（Grid配置） */}
-            <div className="grid grid-cols-7 gap-2 max-w-6xl mb-2">
+            <div className="flex space-x-2">
                 {/* エクストラデッキ */}
-                <div className="text-center">
+                <div className="text-center relative">
+                    {/* スペース確保用の透明な要素 */}
+                    <div className={`${cardSizeClass}`}></div>
+
                     <div
-                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors border-2 border-green-900`}
+                        className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors z-20 absolute top-0 opacity-80 border-2 border-green-900`}
                         onClick={() => setShowExtraDeck(true)}
                     >
                         <div>
@@ -82,28 +104,50 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                             <div className="text-lg">{extraDeck.length}</div>
                         </div>
                     </div>
+
+                    {extraDeck.map((e, index) => (
+                        <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
+                            <AnimationWrapper initial={{ ...extraDeckInitial }}>
+                                <Card
+                                    key={e.id}
+                                    card={index === extraDeck.length - 1 ? { ...e, position: "back" as const } : e}
+                                    disableActivate={true}
+                                />
+                            </AnimationWrapper>
+                        </div>
+                    ))}
                 </div>
 
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
-                    <FieldZone
-                        key={`spell-${index}`}
-                        card={card}
-                        className={cardSizeClass}
-                        onCardClick={handleFieldCardClick}
-                            />
+                    <FieldZone key={`spell-${index}`} className={cardSizeClass} type="spell_trap" hasCard={!!card}>
+                        <AnimationWrapper key={card?.id ?? index} card={card} initial={{ ...spellInitial }}>
+                            <Card card={card}></Card>
+                        </AnimationWrapper>
+                    </FieldZone>
                 ))}
 
                 {/* デッキ */}
-                <div className="text-center">
+                <div className="text-center relative">
+                    {/* スペース確保用の透明な要素 */}
+                    <div className={`${cardSizeClass}`}></div>
+
                     <div
-                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold border-2 border-orange-900`}
+                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-20 absolute top-0 opacity-80 border-2 border-orange-900`}
                     >
                         <div>
                             <div className="text-xs">DECK</div>
                             <div className="text-lg">{deck.length}</div>
                         </div>
                     </div>
+
+                    {deck.map((e) => (
+                        <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
+                            <AnimationWrapper initial={{ ...deckInitial }}>
+                                <Card key={e.id} card={{ ...e, position: "back" as const }} disableActivate={true} />
+                            </AnimationWrapper>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
