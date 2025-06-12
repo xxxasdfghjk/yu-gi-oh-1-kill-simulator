@@ -89,7 +89,7 @@ export const Card: React.FC<CardProps> = ({
                 <div className="absolute inset-0 w-full h-full rounded" style={{ backfaceVisibility: "hidden" }}>
                     {card.card.image ? (
                         <img
-                            src={`/card_image/${card.card.image}`}
+                            src={`/yu-gi-oh-1-kill-exodia/card_image/${card.card.image}`}
                             alt={card.card.card_name}
                             className="w-full h-full object-contain"
                             style={{
@@ -128,7 +128,7 @@ export const Card: React.FC<CardProps> = ({
                     }}
                 >
                     <img
-                        src="/card_image/reverse.jpg"
+                        src="/yu-gi-oh-1-kill-exodia/card_image/reverse.jpg"
                         alt="Card Back"
                         className="w-full h-full object-contain"
                         style={{

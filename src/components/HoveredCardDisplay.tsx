@@ -14,7 +14,11 @@ export const HoveredCardDisplay = () => {
                         {/* カード画像 */}
                         <div className="flex justify-center mb-4">
                             <img
-                                src={hoveredCard.card.image ? `/card_image/${hoveredCard.card.image}` : ""}
+                                src={
+                                    hoveredCard.card.image
+                                        ? `/yu-gi-oh-1-kill-exodia/card_image/${hoveredCard.card.image}`
+                                        : ""
+                                }
                                 alt={hoveredCard.card.card_name}
                                 className="w-40 h-auto rounded-lg shadow-md"
                                 onError={(e) => {

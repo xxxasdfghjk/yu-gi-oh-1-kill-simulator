@@ -88,7 +88,7 @@ export const FieldZone: React.FC<FieldZoneProps> = ({
       `}
                 >
                     <img
-                        src={`/card_image/reverse.jpg`}
+                        src={`/yu-gi-oh-1-kill-exodia/card_image/reverse.jpg`}
                         alt={"dummy"}
                         className={`w-full h-full object-contain opacity-40`}
                         style={{
