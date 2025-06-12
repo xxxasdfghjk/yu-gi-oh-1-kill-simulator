@@ -158,13 +158,13 @@ export const sendCard = (
             // Find empty spell/trap zone
             if (option?.spellFieldIndex !== undefined) {
                 const position = option?.reverse ? "back" : ("attack" satisfies Position);
-                state.currentTo = { location: "SpellField", index: option.spellFieldIndex };
+                state.currentTo = { location: "SpellField", index: option.spellFieldIndex, position };
                 state.field.spellTrapZones[option.spellFieldIndex] = { ...updatedCard, position };
             } else {
                 const emptyZone = getPrioritySetSpellTrapZoneIndex(state);
                 if (emptyZone !== -1) {
                     const position = option?.reverse ? "back" : ("attack" satisfies Position);
-                    state.currentTo = { location: "SpellField", index: emptyZone };
+                    state.currentTo = { location: "SpellField", index: emptyZone, position };
                     state.field.spellTrapZones[emptyZone] = { ...updatedCard, position };
                 }
             }

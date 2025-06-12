@@ -42,8 +42,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
         currentTo.location === "Graveyard" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
     const extraDeckInitial =
         currentTo.location === "ExtraDeck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
-    const deckInitial =
-        currentTo.location === "Deck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
+    const deckInitial = currentTo.location === "Deck" ? getLocationVectorWithPosition(currentTo, currentFrom) : {};
 
     return (
         <div>
@@ -59,12 +58,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 {/* 通常モンスターゾーン */}
                 {field.monsterZones.map((card, index) => (
                     <FieldZone key={`monster-${index}`} className={cardSizeClass} hasCard={!!card}>
-                        <AnimationWrapper 
-                            card={card} 
-                            enableTokenFadeOut={true} 
-                            enableFlipAnimation={true}
-                            initial={{ ...monsterInitial }}
-                        >
+                        <AnimationWrapper card={card} enableTokenFadeOut={true} initial={{ ...monsterInitial }}>
                             <Card card={card} />
                         </AnimationWrapper>
                     </FieldZone>
@@ -73,7 +67,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 <div className="text-center relative">
                     {/* スペース確保用の透明な要素 */}
                     <div className={`${cardSizeClass}`}></div>
-                    
+
                     <div
                         className={`${cardSizeClass} bg-purple-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-purple-600 transition-colors z-20 absolute top-0 opacity-80`}
                         onClick={() => setShowGraveyard(true)}
@@ -100,7 +94,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 <div className="text-center relative">
                     {/* スペース確保用の透明な要素 */}
                     <div className={`${cardSizeClass}`}></div>
-                    
+
                     <div
                         className={`${cardSizeClass} bg-green-700 rounded flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600 transition-colors z-20 absolute top-0 opacity-80 border-2 border-green-900`}
                         onClick={() => setShowExtraDeck(true)}
@@ -114,9 +108,9 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     {extraDeck.map((e, index) => (
                         <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
                             <AnimationWrapper initial={{ ...extraDeckInitial }}>
-                                <Card 
-                                    key={e.id} 
-                                    card={index === extraDeck.length - 1 ? { ...e, position: "back" as const } : e} 
+                                <Card
+                                    key={e.id}
+                                    card={index === extraDeck.length - 1 ? { ...e, position: "back" as const } : e}
                                     disableActivate={true}
                                 />
                             </AnimationWrapper>
@@ -127,12 +121,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 {/* 魔法・罠ゾーン */}
                 {field.spellTrapZones.map((card, index) => (
                     <FieldZone key={`spell-${index}`} className={cardSizeClass} type="spell_trap" hasCard={!!card}>
-                        <AnimationWrapper 
-                            key={card?.id ?? index} 
-                            card={card}
-                            enableFlipAnimation={true}
-                            initial={{ ...spellInitial }}
-                        >
+                        <AnimationWrapper key={card?.id ?? index} card={card} initial={{ ...spellInitial }}>
                             <Card card={card}></Card>
                         </AnimationWrapper>
                     </FieldZone>
@@ -142,7 +131,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                 <div className="text-center relative">
                     {/* スペース確保用の透明な要素 */}
                     <div className={`${cardSizeClass}`}></div>
-                    
+
                     <div
                         className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-20 absolute top-0 opacity-80 border-2 border-orange-900`}
                     >
@@ -155,11 +144,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     {deck.map((e) => (
                         <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
                             <AnimationWrapper initial={{ ...deckInitial }}>
-                                <Card 
-                                    key={e.id} 
-                                    card={{ ...e, position: "back" as const }}
-                                    disableActivate={true}
-                                />
+                                <Card key={e.id} card={{ ...e, position: "back" as const }} disableActivate={true} />
                             </AnimationWrapper>
                         </div>
                     ))}

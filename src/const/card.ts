@@ -66,7 +66,11 @@ export type DisplayField =
     | "OpponentField"
     | "Hand"
     | "TokenRemove";
-export const getFieldCoodrinateAbsolute = (fieldType: DisplayField, index: number = 0, length = 0): { x: number; y: number } => {
+export const getFieldCoodrinateAbsolute = (
+    fieldType: DisplayField,
+    index: number = 0,
+    length = 0
+): { x: number; y: number } => {
     switch (fieldType) {
         case "Deck":
             return { x: DECK_X, y: DECK_Y };
@@ -138,7 +142,14 @@ export const getLocationVectorWithPosition = (
         ["attack", "back", undefined].findIndex((e) => e === fieldA?.position) !== -1
             ? 0
             : 90;
+
+    const flip =
+        (["attack", "defense", undefined].findIndex((e) => e === fieldB?.position) !== -1) ===
+        (["attack", "defense", undefined].findIndex((e) => e === fieldA?.position) !== -1)
+            ? 0
+            : 180;
     return {
+        roteteY: flip,
         rotate,
         ...calcRelativeCoodinate(
             getFieldCoodrinateAbsolute(fieldA.location, fieldA.index, fieldA.length),
