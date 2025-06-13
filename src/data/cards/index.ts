@@ -99,18 +99,15 @@ const DECK_CONFIG = {
         quantity: number;
     }[],
 } as const;
-type CardName =
-    | (typeof MAGIC_CARDS)[number]["card_name"]
-    | (typeof COMMON_MONSTERS)[number]["card_name"]
-    | (typeof TRAP_CARDS)[number]["card_name"]
-    | (typeof EXTRA_MONSTERS)[number]["card_name"]
-    | (typeof TOKEN)[number]["card_name"];
-// Helper function to expand deck list
-const expandDeckList = (deckList: { card_name: CardName; quantity: number }[]): Card[] => {
+
+export const expandDeckList = (
+    deckList: { card_name: string; quantity: number }[],
+    allCardsMap: Record<string, Card>
+): Card[] => {
     const result: Card[] = [];
 
     for (const entry of deckList) {
-        const card = AllCards[entry.card_name];
+        const card = allCardsMap[entry.card_name];
         if (!card) {
             continue;
         }
@@ -124,12 +121,16 @@ const expandDeckList = (deckList: { card_name: CardName; quantity: number }[]): 
     return result;
 };
 
+export type Deck = {
+    deck_name: string;
+    main_deck: Card[];
+};
 // Export the expanded deck - overriding the simple DECK defined above
 export const DECK = {
     deck_name: DECK_CONFIG.deck_name,
-    main_deck: expandDeckList(DECK_CONFIG.main_deck),
-    extra_deck: expandDeckList(DECK_CONFIG.extra_deck),
-    token: expandDeckList(DECK_CONFIG.token),
+    main_deck: expandDeckList(DECK_CONFIG.main_deck, AllCards),
+    extra_deck: expandDeckList(DECK_CONFIG.extra_deck, AllCards),
+    token: expandDeckList(DECK_CONFIG.token, AllCards),
 };
 
 // Export deck configuration for reference

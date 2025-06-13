@@ -1,0 +1,17 @@
+export default {
+    card_name: "カタパルト・タートル",
+    card_type: "モンスター" as const,
+    text: "１ターンに１度、自分フィールド上のモンスター１体をリリースして発動できる。 リリースしたモンスターの攻撃力の半分のダメージを相手ライフに与える。",
+    image: "card100095993_1.jpg",
+    monster_type: "効果モンスター",
+    level: 5,
+    element: "水" as const,
+    race: "水族" as const,
+    attack: 1000,
+    defense: 2000,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};
