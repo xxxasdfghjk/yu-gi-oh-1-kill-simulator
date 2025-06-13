@@ -587,7 +587,7 @@ export const EXTRA_MONSTERS = [
                                 const equipTarget = selected[0];
                                 const target = (state: GameStore) => {
                                     const typedMonster = equipTarget.card as MonsterCard;
-                                    return state.deck.filter(
+                                    return [...state.hand, ...state.deck].filter(
                                         (card) =>
                                             monsterFilter(card.card) &&
                                             (card.card.race === typedMonster.race ||
