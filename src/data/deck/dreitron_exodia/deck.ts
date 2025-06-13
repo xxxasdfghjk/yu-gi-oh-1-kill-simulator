@@ -1,38 +1,23 @@
-// Re-export all card definitions from their new organized locations
-export { COMMON_MONSTERS, CommonMonsterMap } from "./monsters/common";
-export { EXTRA_MONSTERS, ExtraMonsterMap } from "./monsters/extra";
-export { MAGIC_CARDS } from "./spells";
-export { TRAP_CARDS, TrapCardMap } from "./traps";
-export { TOKEN } from "./tokens";
-
-import { COMMON_MONSTERS, CommonMonsterMap } from "./monsters/common";
-import { EXTRA_MONSTERS, ExtraMonsterMap } from "./monsters/extra";
-import { MAGIC_CARDS } from "./spells";
-import { TRAP_CARDS, TrapCardMap } from "./traps";
-import { TOKEN } from "./tokens";
+import { expandDeckList } from "@/data/deckUtils";
 import type { Card } from "@/types/card";
 
+const magicModules = import.meta.glob("./cards/magic/*.ts", { eager: true }) as Record<string, { default: Card }>;
+const monsterModules = import.meta.glob("./cards/monster/*.ts", { eager: true }) as Record<string, { default: Card }>;
+const extraModules = import.meta.glob("./cards/extra/*.ts", { eager: true }) as Record<string, { default: Card }>;
+const trapModules = import.meta.glob("./cards/trap/*.ts", { eager: true }) as Record<string, { default: Card }>;
+const tokenModules = import.meta.glob("./cards/token/*.ts", { eager: true }) as Record<string, { default: Card }>;
+
 // Create maps for easy lookup
-const MagicCardMap = MAGIC_CARDS.reduce((prev, cur) => ({ ...prev, [cur.card_name]: cur }), {}) as Record<
-    (typeof MAGIC_CARDS)[number]["card_name"],
-    (typeof MAGIC_CARDS)[number]
->;
+const magicCardList = Object.values(magicModules).map((e) => e.default);
+const monsterCardList = Object.values(monsterModules).map((e) => e.default);
+const extraCardList = Object.values(extraModules).map((e) => e.default);
+const trapCardList = Object.values(trapModules).map((e) => e.default);
+const tokenCardList = Object.values(tokenModules).map((e) => e.default);
 
-const TokenMap = TOKEN.reduce((prev, cur) => ({ ...prev, [cur.card_name]: cur }), {}) as Record<
-    (typeof TOKEN)[number]["card_name"],
-    (typeof TOKEN)[number]
->;
+const allCardListMap = [monsterCardList, extraCardList, magicCardList, trapCardList, tokenCardList]
+    .flat()
+    .reduce((prev, cur) => ({ ...prev, [cur.card_name]: cur }), {});
 
-// All available cards
-const AllCards = {
-    ...CommonMonsterMap,
-    ...ExtraMonsterMap,
-    ...MagicCardMap,
-    ...TrapCardMap,
-    ...TokenMap,
-};
-
-// Deck configuration based on cards.json
 const DECK_CONFIG = {
     deck_name: "エグゾディアデッキ",
     main_deck: [
@@ -69,13 +54,7 @@ const DECK_CONFIG = {
         { card_name: "儀式の準備", quantity: 3 },
         // Traps
         { card_name: "補充要員", quantity: 3 },
-    ] satisfies {
-        card_name:
-            | (typeof MAGIC_CARDS)[number]["card_name"]
-            | (typeof COMMON_MONSTERS)[number]["card_name"]
-            | (typeof TRAP_CARDS)[number]["card_name"];
-        quantity: number;
-    }[],
+    ],
     extra_deck: [
         { card_name: "虹光の宣告者", quantity: 1 },
         { card_name: "セイクリッド・トレミスM7", quantity: 1 },
@@ -90,51 +69,12 @@ const DECK_CONFIG = {
         { card_name: "FNo.0 未来皇ホープ", quantity: 1 },
         { card_name: "FNo.0 未来龍皇ホープ", quantity: 1 },
         { card_name: "旧神ヌトス", quantity: 1 },
-    ] satisfies {
-        card_name: (typeof EXTRA_MONSTERS)[number]["card_name"];
-        quantity: number;
-    }[],
-    token: [{ card_name: "幻獣機トークン", quantity: 1 }] satisfies {
-        card_name: (typeof TOKEN)[number]["card_name"];
-        quantity: number;
-    }[],
-} as const;
-
-export const expandDeckList = (
-    deckList: { card_name: string; quantity: number }[],
-    allCardsMap: Record<string, Card>
-): Card[] => {
-    const result: Card[] = [];
-
-    for (const entry of deckList) {
-        const card = allCardsMap[entry.card_name];
-        if (!card) {
-            continue;
-        }
-
-        // Add the card multiple times based on quantity
-        for (let i = 0; i < entry.quantity; i++) {
-            result.push(card);
-        }
-    }
-
-    return result;
+    ],
+    token: [{ card_name: "幻獣機トークン", quantity: 1 }],
 };
-
-export type Deck = {
-    deck_name: string;
-    main_deck: Card[];
-};
-// Export the expanded deck - overriding the simple DECK defined above
 export const DECK = {
     deck_name: DECK_CONFIG.deck_name,
-    main_deck: expandDeckList(DECK_CONFIG.main_deck, AllCards),
-    extra_deck: expandDeckList(DECK_CONFIG.extra_deck, AllCards),
-    token: expandDeckList(DECK_CONFIG.token, AllCards),
+    main_deck: expandDeckList(DECK_CONFIG.main_deck, allCardListMap),
+    extra_deck: expandDeckList(DECK_CONFIG.extra_deck, allCardListMap),
+    token: expandDeckList(DECK_CONFIG.token, allCardListMap),
 };
-
-// Export deck configuration for reference
-export const DECK_CONFIGURATION = DECK_CONFIG;
-
-// Export the maps for external use
-export { MagicCardMap, TokenMap, AllCards };

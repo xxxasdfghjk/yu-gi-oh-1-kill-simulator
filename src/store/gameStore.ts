@@ -1,7 +1,7 @@
+import { DECK } from "@/data/deck/dreitron_exodia/deck";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState } from "@/types/game";
-import { DECK, MAGIC_CARDS } from "@/data/cards";
 
 import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
@@ -131,7 +131,6 @@ export interface GameStore extends GameState {
     endGame: () => void;
     judgeWin: () => void;
     draw: () => void;
-    addBonmawashiToHand: () => void;
     resetAnimationState: () => void;
     setGameOver: (winner: "player" | "timeout") => void;
     animationExodiaWin: () => void;
@@ -177,7 +176,6 @@ export const useGameStore = create<GameStore>()(
         effectQueue: [],
         initializeGame: () => {
             const deckData = DECK;
-
             const mainDeckInstances = deckData.main_deck.map((card) => createCardInstance(card, "Deck"));
 
             const extraDeckInstances = deckData.extra_deck.map((card) => createCardInstance(card, "ExtraDeck"));
@@ -318,17 +316,6 @@ export const useGameStore = create<GameStore>()(
                 sendCard(state, state.deck[0], "Hand");
             });
         },
-
-        addBonmawashiToHand: () => {
-            set((state) => {
-                const bonmawashiCard = MAGIC_CARDS.find((card) => card.card_name === "盆回し");
-                if (bonmawashiCard) {
-                    const bonmawashiInstance = createCardInstance(bonmawashiCard, "Hand");
-                    state.hand.push(bonmawashiInstance);
-                }
-            });
-        },
-
         // Game actions implementation
         selectedCard: null,
 

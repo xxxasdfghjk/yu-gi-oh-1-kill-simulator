@@ -1,10 +1,9 @@
 import type { TrapCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
-import { withDelay, withUserSelectCard } from "@/utils/effectUtils";
+import { withUserSelectCard, withDelay } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 
-export const TRAP_CARDS = [
-    {
+const card = {
         card_name: "補充要員",
         card_type: "罠" as const,
         trap_type: "通常罠" as const,
@@ -45,10 +44,6 @@ export const TRAP_CARDS = [
                 },
             },
         },
-    },
-] as const satisfies readonly TrapCard[];
+    } satisfies TrapCard;
 
-export const TrapCardMap = TRAP_CARDS.reduce((prev, cur) => ({ ...prev, [cur.card_name]: cur }), {}) as Record<
-    (typeof TRAP_CARDS)[number]["card_name"],
-    TrapCard
->;
+export default card;

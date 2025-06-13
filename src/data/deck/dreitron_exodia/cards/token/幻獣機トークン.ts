@@ -1,7 +1,6 @@
 import type { CommonMonster } from "@/types/card";
 
-export const TOKEN = [
-    {
+const card = {
         card_name: "幻獣機トークン",
         monster_type: "通常モンスター",
         level: 3,
@@ -18,5 +17,6 @@ export const TOKEN = [
         hasLevel: true,
         hasLink: false,
         hasRank: false,
-    },
-] as const satisfies CommonMonster[];
+    } satisfies CommonMonster;
+
+export default card;

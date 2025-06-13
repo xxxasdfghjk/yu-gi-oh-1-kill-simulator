@@ -1,4 +1,4 @@
-import { expandDeckList } from "@/data/cards";
+import { expandDeckList } from "@/data/deckUtils";
 import type { Card } from "@/types/card";
 
 const magicModules = import.meta.glob("./cards/magic/*.ts", { eager: true }) as Record<string, { default: Card }>;
@@ -12,7 +12,6 @@ const extraCardList = Object.values(extraModules).map((e) => e.default);
 const allCardListMap = [monsterCardList, extraCardList, magicCardList]
     .flat()
     .reduce((prev, cur) => ({ ...prev, [cur.card_name]: cur }), {});
-console.log(magicModules);
 
 const DECK_CONFIG = {
     deck_name: "サイエンカタパ",
