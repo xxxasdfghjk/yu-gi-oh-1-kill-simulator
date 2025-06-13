@@ -8,10 +8,12 @@ import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { searchCombinationLinkSummon, searchCombinationXyzSummon } from "@/utils/gameUtils";
 import type { CardInstance } from "@/types/card";
+import type { Deck } from "@/data/deckUtils";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
+import { DeckSelectionModal } from "./DeckSelectionModal";
 import { isXyzMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
@@ -44,6 +46,12 @@ export const GameBoard: React.FC = () => {
         endGame,
         judgeWin,
         draw,
+        // Deck selection
+        selectedDeck,
+        availableDecks,
+        isDeckSelectionOpen,
+        selectDeck,
+        setDeckSelectionOpen,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -52,13 +60,15 @@ export const GameBoard: React.FC = () => {
     const [isResetting, setIsResetting] = useState(false);
 
     const reset = useCallback(() => {
-        initializeGame();
-        setTimeout(() => draw(), 10);
-        setTimeout(() => draw(), 20);
-        setTimeout(() => draw(), 30);
-        setTimeout(() => draw(), 40);
-        setTimeout(() => draw(), 50);
-    }, [initializeGame, draw]);
+        if (selectedDeck) {
+            initializeGame(selectedDeck);
+            setTimeout(() => draw(), 10);
+            setTimeout(() => draw(), 20);
+            setTimeout(() => draw(), 30);
+            setTimeout(() => draw(), 40);
+            setTimeout(() => draw(), 50);
+        }
+    }, [initializeGame, selectedDeck, draw]);
 
     const handleGameReset = useCallback(() => {
         if (isResetting) return; // 連打防止
@@ -71,9 +81,30 @@ export const GameBoard: React.FC = () => {
         }, 2000);
     }, [reset, isResetting]);
 
+    // Handle deck selection
+    const handleDeckSelect = useCallback(
+        (deck: Deck) => {
+            selectDeck(deck);
+            initializeGame(deck);
+            setTimeout(() => draw(), 10);
+            setTimeout(() => draw(), 20);
+            setTimeout(() => draw(), 30);
+            setTimeout(() => draw(), 40);
+            setTimeout(() => draw(), 50);
+            setHasInitialized(true); // Mark as initialized after deck change
+        },
+        [selectDeck, initializeGame, draw]
+    );
+
+    // Only initialize when a deck is first selected (not when modal is opened/closed)
+    const [hasInitialized, setHasInitialized] = useState(false);
+
     useEffect(() => {
-        reset();
-    }, [reset]);
+        if (selectedDeck && !isDeckSelectionOpen && !hasInitialized) {
+            reset();
+            setHasInitialized(true);
+        }
+    }, [selectedDeck, isDeckSelectionOpen, reset, hasInitialized]);
 
     const startSpecialSummon = (monster: CardInstance, summonType: "link" | "xyz" | "synchro" | "fusion") => {
         if (summonType === "link" && gameState.startLinkSummon) {
@@ -173,6 +204,8 @@ export const GameBoard: React.FC = () => {
                                         nextPhase();
                                     }}
                                     initializeGame={reset}
+                                    selectedDeck={selectedDeck}
+                                    onChangeDeck={() => setDeckSelectionOpen(true)}
                                 />
                                 {/* ライフポイント表示 */}
                                 <div className="space-y-2">
@@ -359,6 +392,14 @@ export const GameBoard: React.FC = () => {
 
                 {/* ターンエンドアニメーション */}
                 <TurnEndAnimation show={showTurnEndAnimation} onComplete={() => setShowTurnEndAnimation(false)} />
+
+                {/* デッキ選択モーダル */}
+                <DeckSelectionModal
+                    isOpen={isDeckSelectionOpen}
+                    availableDecks={availableDecks}
+                    onSelectDeck={handleDeckSelect}
+                    onClose={() => setDeckSelectionOpen(false)}
+                />
             </div>
         </div>
     );

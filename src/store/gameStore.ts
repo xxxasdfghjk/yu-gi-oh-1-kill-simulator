@@ -1,7 +1,8 @@
-import { DECK } from "@/data/deck/dreitron_exodia/deck";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState } from "@/types/game";
+import type { Deck } from "@/data/deckUtils";
+import deckList from "@/data/deck/deckList";
 
 import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
@@ -111,7 +112,15 @@ export type EffectQueueItem =
 
 export interface GameStore extends GameState {
     turnOnceUsedEffectMemo: Record<string, boolean>;
-    initializeGame: () => void;
+
+    // Deck selection
+    selectedDeck: Deck | null;
+    availableDecks: Deck[];
+    isDeckSelectionOpen: boolean;
+    selectDeck: (deck: Deck) => void;
+    setDeckSelectionOpen: (open: boolean) => void;
+
+    initializeGame: (deck?: Deck) => void;
     effectQueue: EffectQueueItem[];
     addEffectToQueue: (effect: EffectQueueItem) => void;
     processQueueTop: (payload: ProcessQueuePayload) => void;
@@ -167,6 +176,7 @@ const initialState: GameState = {
     currentFrom: { location: "Deck" },
     currentTo: { location: "Hand" },
     throne: [null, null, null, null, null],
+    isProcessing: false,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -174,10 +184,30 @@ export const useGameStore = create<GameStore>()(
         ...initialState,
         turnOnceUsedEffectMemo: {},
         effectQueue: [],
-        initializeGame: () => {
-            const deckData = DECK;
-            const mainDeckInstances = deckData.main_deck.map((card) => createCardInstance(card, "Deck"));
 
+        // Deck selection state
+        selectedDeck: null,
+        availableDecks: deckList.map((deck) => deck.default),
+        isDeckSelectionOpen: true,
+
+        selectDeck: (deck: Deck) => {
+            set((state) => {
+                state.selectedDeck = deck;
+                state.isDeckSelectionOpen = false;
+            });
+        },
+
+        setDeckSelectionOpen: (open: boolean) => {
+            set((state) => {
+                state.isDeckSelectionOpen = open;
+            });
+        },
+
+        initializeGame: (deck?: Deck) => {
+            const deckData = deck || deckList[0]?.default; // fallback to first deck if none provided
+            if (!deckData) return;
+
+            const mainDeckInstances = deckData.main_deck.map((card) => createCardInstance(card, "Deck"));
             const extraDeckInstances = deckData.extra_deck.map((card) => createCardInstance(card, "ExtraDeck"));
 
             set((state) => {
@@ -225,12 +255,15 @@ export const useGameStore = create<GameStore>()(
                 // Reset all turn-based flags
                 state.turnOnceUsedEffectMemo = {};
                 state.throne = [null, null, null, null, null];
+                state.isProcessing = false;
             });
         },
 
         activateEffect: (card: CardInstance) => {
             set((state) => {
+                state.isProcessing = true;
                 card.card.effect.onIgnition?.effect(state, card);
+                state.isProcessing = false;
             });
         },
 
@@ -283,10 +316,12 @@ export const useGameStore = create<GameStore>()(
                                 position: payload.position,
                             });
                         }
+                        state.isProcessing = false;
                         break;
                     }
                     case "spellend": {
                         sendCard(state, currentEffect.cardInstance, "Graveyard");
+                        state.isProcessing = false;
                         break;
                     }
                     case "delay": {
@@ -336,6 +371,7 @@ export const useGameStore = create<GameStore>()(
 
         playCard: (card: CardInstance) => {
             set((state) => {
+                state.isProcessing = true;
                 // Pure card type classification - UI has already checked conditions
                 if (card.card.card_type === "魔法") {
                     // Handle spell cards
@@ -370,6 +406,7 @@ export const useGameStore = create<GameStore>()(
                         // Continuous/Equipment spells stay on field
                         card.card.effect.onSpell?.effect(state, card);
                         sendCard(state, card, "SpellField");
+                        state.isProcessing = false;
                     } else if (spellSubtype === "フィールド魔法") {
                         // Field spells go to field zone
                         if (state.field.fieldZone !== null) {
@@ -377,11 +414,13 @@ export const useGameStore = create<GameStore>()(
                             withDelay(state, card, { order: -1 }, (state, card) => {
                                 sendCard(state, card, "FieldZone");
                                 card.card.effect.onSpell?.effect(state, card);
+                                state.isProcessing = false;
                             });
                             return;
                         } else {
                             sendCard(state, card, "FieldZone");
                             card.card.effect.onSpell?.effect(state, card);
+                            state.isProcessing = false;
                         }
                     }
                 } else if (card.card.card_type === "罠") {

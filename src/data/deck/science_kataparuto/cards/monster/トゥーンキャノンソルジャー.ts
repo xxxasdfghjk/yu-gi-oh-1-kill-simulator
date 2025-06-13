@@ -1,0 +1,17 @@
+export default {
+    card_name: "トゥーン・キャノン・ソルジャー",
+    card_type: "モンスター" as const,
+    text: "召喚ターンには攻撃不可。「トゥーン・ワールド」が破壊された時このカードも破壊。自分のフィールド上に「トゥーン・ワールド」があり相手がトゥーンをコントロールしていない場合このカードは相手を直接攻撃できる。自分のフィールド上モンスター１体を生け贄に捧げる度に、相手に５００ライフポイントのダメージを与える。",
+    image: "card100022029_1.jpg",
+    monster_type: "トゥーンモンスター",
+    level: 4,
+    element: "闇" as const,
+    race: "機械族" as const,
+    attack: 1400,
+    defense: 1300,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

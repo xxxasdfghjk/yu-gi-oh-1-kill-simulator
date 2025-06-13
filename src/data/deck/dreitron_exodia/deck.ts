@@ -72,7 +72,7 @@ const DECK_CONFIG = {
     ],
     token: [{ card_name: "幻獣機トークン", quantity: 1 }],
 };
-export const DECK = {
+export default {
     deck_name: DECK_CONFIG.deck_name,
     main_deck: expandDeckList(DECK_CONFIG.main_deck, allCardListMap),
     extra_deck: expandDeckList(DECK_CONFIG.extra_deck, allCardListMap),

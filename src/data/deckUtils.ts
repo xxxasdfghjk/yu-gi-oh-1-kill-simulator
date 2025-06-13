@@ -3,6 +3,8 @@ import type { Card } from "@/types/card";
 export type Deck = {
     deck_name: string;
     main_deck: Card[];
+    extra_deck: Card[];
+    token: Card[];
 };
 
 export const expandDeckList = (

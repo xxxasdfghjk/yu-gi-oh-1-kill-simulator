@@ -1,7 +1,7 @@
 import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
-import { getPrioritySetSpellTrapZoneIndex } from "./gameUtils";
+import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
 import { isExtraDeckMonster } from "./cardManagement";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
@@ -11,13 +11,13 @@ export const triggerEffects = (state: GameStore, card: CardInstance, from: Locat
     const effect = card.card.effect;
 
     // Field to Graveyard effects
-    if ((from === "MonsterField" || from === "FieldZone") && to === "Graveyard" && effect.onFieldToGraveyard) {
-        effect.onFieldToGraveyard(state, card);
+    if ((from === "MonsterField" || from === "FieldZone") && to === "Graveyard" && effect?.onFieldToGraveyard) {
+        effect.onFieldToGraveyard?.(state, card);
     }
 
     // Anywhere to Graveyard effects
-    if (to === "Graveyard" && effect.onAnywhereToGraveyard) {
-        effect.onAnywhereToGraveyard(state, card);
+    if (to === "Graveyard" && effect?.onAnywhereToGraveyard) {
+        effect.onAnywhereToGraveyard?.(state, card);
     }
 };
 export type Buf = { attack: number; defense: number; level: number };
@@ -77,6 +77,14 @@ export const getSpellTrapZoneIndex = (state: GameStore, card: CardInstance) => {
         }
     }
     return -1;
+};
+
+export const sendCardById = (state: GameStore, id: string, to: Location, option?: Parameters<typeof sendCard>[3]) => {
+    const card = getCardInstanceFromId(state, id);
+    if (card === null || card === undefined) {
+        return;
+    }
+    sendCard(state, card, to, option);
 };
 
 export const sendCard = (
@@ -159,6 +167,7 @@ export const sendCard = (
             if (option?.spellFieldIndex !== undefined) {
                 const position = option?.reverse ? "back" : ("attack" satisfies Position);
                 state.currentTo = { location: "SpellField", index: option.spellFieldIndex, position };
+
                 state.field.spellTrapZones[option.spellFieldIndex] = { ...updatedCard, position };
             } else {
                 const emptyZone = getPrioritySetSpellTrapZoneIndex(state);

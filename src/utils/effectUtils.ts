@@ -181,14 +181,18 @@ export const withDelay = (
 };
 
 export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
+    if (gameState.isProcessing) {
+        return [];
+    }
     const actions: string[] = [];
     if (monsterFilter(card.card) && canNormalSummon(gameState, card) && card.location === "Hand") {
         actions.push("summon");
     }
     if (
         (isMagicCard(card.card) &&
-            card.card.effect.onSpell?.condition(gameState, card) &&
+            card.card.effect?.onSpell?.condition(gameState, card) &&
             (hasEmptySpellField(gameState) || (card.location === "SpellField" && card.position === "back")) &&
+            card.position !== "attack" &&
             (card.location === "Hand" || card.location === "SpellField") &&
             !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited) &&
             gameState.phase === "main1") ||
@@ -199,6 +203,7 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     ) {
         actions.push("activate");
     }
+
     if (
         (isTrapCard(card.card) || (isMagicCard(card.card) && card.card.magic_type !== "フィールド魔法")) &&
         hasEmptySpellField(gameState) &&
@@ -207,7 +212,7 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     ) {
         actions.push("set");
     }
-    if (card.card.effect.onIgnition?.condition(gameState, card) && gameState.phase === "main1") {
+    if (card.card.effect?.onIgnition?.condition(gameState, card) && gameState.phase === "main1") {
         actions.push("effect");
     }
 

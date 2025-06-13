@@ -3,6 +3,7 @@ import type { Card, CardInstance, TrapCard } from "@/types/card";
 import type { GameState } from "@/types/game";
 import { getLinkMonsterSummonalble, placementPriority } from "@/components/SummonSelector";
 import { isLinkMonster, isXyzMonster } from "./cardManagement";
+import { CardSelector } from "./CardSelector";
 
 export const getLevel = (cardInstance: CardInstance) => {
     const level = (cardInstance.card as { level?: number })?.level ?? -9999;
@@ -295,4 +296,16 @@ export const isSpellCard = (card: Card): boolean => {
 
 export const isTrapCard = (card: Card): card is TrapCard => {
     return card.card_type === "罠";
+};
+
+export const getCardInstanceFromId = (state: GameStore, id: string) => {
+    return new CardSelector(state)
+        .allFieldSpellTrap()
+        .allMonster()
+        .deck()
+        .extraDeck()
+        .hand()
+        .graveyard()
+        .get()
+        .find((e) => e !== null && e.id === id);
 };

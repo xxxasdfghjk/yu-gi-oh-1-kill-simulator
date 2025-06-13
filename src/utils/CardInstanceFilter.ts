@@ -1,0 +1,50 @@
+import type { CardInstance } from "@/types/card";
+import { isMagicCard, monsterFilter } from "./cardManagement";
+
+export class CardInstanceFilter<T extends (CardInstance | null)[]> {
+    private cardList: T;
+    constructor(cardList: T) {
+        this.cardList = cardList;
+    }
+
+    monster() {
+        const monsterList = this.cardList.filter((e): e is CardInstance => e !== null && monsterFilter(e.card));
+        return new CardInstanceFilter<CardInstance[]>(monsterList);
+    }
+
+    spellOrTrap() {
+        const spellOrTrapList = this.cardList.filter((e): e is CardInstance => e !== null && isMagicCard(e.card));
+        return new CardInstanceFilter<CardInstance[]>(spellOrTrapList);
+    }
+
+    nonNull() {
+        const nonNull = this.cardList.filter((e): e is CardInstance => e !== null);
+        return new CardInstanceFilter<CardInstance[]>(nonNull);
+    }
+    null() {
+        const nullList = this.cardList.filter((e): e is null => e === null);
+        return new CardInstanceFilter<null[]>(nullList);
+    }
+
+    include(str: string) {
+        const list = this.cardList.filter((e): e is CardInstance => e !== null && e.card.card_name.includes(str));
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    excludeId(id: string) {
+        const list = this.cardList.filter((e): e is CardInstance => e !== null && e.id !== id);
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    len() {
+        return this.cardList.length;
+    }
+
+    get() {
+        return this.cardList;
+    }
+
+    clone() {
+        return [...this.cardList];
+    }
+}
