@@ -21,6 +21,7 @@ import { GameStatusDisplay } from "./GameStatusDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBanner } from "./NotificationBanner";
 import { LifePointsDisplay } from "./LifePointsDisplay";
+import { getChainableCards } from "@/utils/effectUtils";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -171,10 +172,17 @@ export const GameBoard: React.FC = () => {
                     processQueueTop({ type: "delay" });
                 }, 100);
             } else if (currentEffect?.type === "life_change") {
-                // Auto-process life change after a short delay for animation
                 setTimeout(() => {
                     processQueueTop({ type: "delay" });
-                }, 800);
+                }, 200);
+            } else if (currentEffect?.type === "chain_check") {
+                // Check if there are chainable cards
+                const chainableCards = getChainableCards(gameState, currentEffect.chain ?? []);
+                if (chainableCards.length === 0) {
+                    // No chainable cards, auto-proceed without chain
+                    processQueueTop({ type: "chain_select" });
+                }
+                // If there are chainable cards, the modal will handle it
             } else if (currentEffect?.type === "spell_end") {
                 processQueueTop({ type: "spellend" });
             }

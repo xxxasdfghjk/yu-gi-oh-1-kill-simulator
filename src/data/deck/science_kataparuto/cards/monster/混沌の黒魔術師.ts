@@ -51,7 +51,7 @@ export default {
 
         // ③：フィールドから離れた場合に除外
         onLeaveFieldInstead: (state, card) => {
-            sendCard(state, card, "Exclusion");
+            sendCard(state, card, "Exclusion", { ignoreLeavingInstead: true });
         },
     },
 } satisfies CommonMonster;

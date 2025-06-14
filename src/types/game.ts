@@ -42,4 +42,5 @@ export interface GameState {
     throne: [CardInstance | null, CardInstance | null, CardInstance | null, CardInstance | null, CardInstance | null];
     isProcessing: boolean;
     originDeck: Deck | null;
+    cardChain: CardInstance[];
 }

@@ -16,26 +16,26 @@ export const LifePointsDisplay: React.FC<LifePointsDisplayProps> = ({ lifePoints
     const [isAnimating, setIsAnimating] = useState(false);
     const [changeAmount, setChangeAmount] = useState<number | null>(null);
     const effectQueue = useGameStore((state) => state.effectQueue);
-    
+
     // Check for life change effects in the queue
     useEffect(() => {
         const currentEffect = effectQueue?.[0];
         if (currentEffect?.type === "life_change") {
-            const isTargetMatch = 
+            const isTargetMatch =
                 (currentEffect.target === "player" && color === "blue") ||
                 (currentEffect.target === "opponent" && color === "red");
-                
+
             if (isTargetMatch) {
                 const amount = currentEffect.operation === "decrease" ? -currentEffect.amount : currentEffect.amount;
                 setChangeAmount(amount);
                 setIsAnimating(true);
-                
+
                 // Animate the number change
-                const duration = 800; // Match the delay in GameBoard
+                const duration = 200; // Match the delay in GameBoard
                 const steps = 20;
                 const stepDuration = duration / steps;
                 const stepAmount = (lifePoints - displayValue) / steps;
-                
+
                 let currentStep = 0;
                 const interval = setInterval(() => {
                     currentStep++;
@@ -47,15 +47,15 @@ export const LifePointsDisplay: React.FC<LifePointsDisplayProps> = ({ lifePoints
                             setChangeAmount(null);
                         }, 200);
                     } else {
-                        setDisplayValue(prev => Math.round(prev + stepAmount));
+                        setDisplayValue((prev) => Math.round(prev + stepAmount));
                     }
                 }, stepDuration);
-                
+
                 return () => clearInterval(interval);
             }
         }
     }, [effectQueue, lifePoints, color, displayValue]);
-    
+
     // Update display value when lifePoints changes (non-animated)
     useEffect(() => {
         if (!isAnimating) {
@@ -68,19 +68,21 @@ export const LifePointsDisplay: React.FC<LifePointsDisplayProps> = ({ lifePoints
             <div className="text-center">
                 <div className="text-sm text-gray-600 mb-1">{label}</div>
                 <Tooltip content={`${tooltipText}: ${displayValue}`} position="top">
-                    <span className={`text-5xl font-bold ${colorClass} cursor-help transition-all duration-200 ${
-                        isAnimating ? 'scale-110' : ''
-                    }`}>
+                    <span
+                        className={`text-5xl font-bold ${colorClass} cursor-help transition-all duration-200 ${
+                            isAnimating ? "scale-110" : ""
+                        }`}
+                    >
                         {displayValue}
                     </span>
                 </Tooltip>
-                
+
                 {/* Damage/Heal animation */}
                 <AnimatePresence>
                     {isAnimating && changeAmount !== null && (
                         <motion.div
                             className={`absolute -top-4 left-1/2 transform -translate-x-1/2 text-4xl font-bold ${
-                                changeAmount < 0 ? 'text-red-500' : 'text-green-500'
+                                changeAmount < 0 ? "text-red-500" : "text-green-500"
                             }`}
                             initial={{ opacity: 0, y: 0 }}
                             animate={{ opacity: 1, y: -30 }}

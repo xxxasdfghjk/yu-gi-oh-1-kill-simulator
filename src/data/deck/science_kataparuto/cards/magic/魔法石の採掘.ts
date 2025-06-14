@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay, withDelayRecursive, withUserSelectCard } from "@/utils/effectUtils";
+import { withDelayRecursive, withUserSelectCard } from "@/utils/effectUtils";
 
 export default {
     card_name: "魔法石の採掘",
@@ -18,8 +18,7 @@ export default {
                 const magicInGraveyard = new CardSelector(state).graveyard().filter().magic().len();
                 return handCardsCount >= 2 && magicInGraveyard > 0;
             },
-            effect: (state, card) => {
-                // First, select 2 cards from hand to discard as cost
+            payCost: (state, card, after) => {
                 withUserSelectCard(
                     state,
                     card,
@@ -27,7 +26,7 @@ export default {
                     {
                         select: "multi",
                         condition: (list) => list.length === 2,
-                        message: "手札から墓地に送る魔法カードを2枚選んでください",
+                        message: "手札から墓地に送るカードを2枚選んでください",
                     },
                     (state, card, discardCards) => {
                         // Discard the selected cards using withDelayRecursive
@@ -40,21 +39,24 @@ export default {
                                 sendCard(state, discardCards[depth - 1], "Graveyard");
                             },
                             (state, card) => {
-                                // Then, select a magic card from graveyard to add to hand
-                                withUserSelectCard(
-                                    state,
-                                    card,
-                                    (state) => new CardSelector(state).graveyard().filter().magic().get(),
-                                    {
-                                        select: "single",
-                                        message: "墓地から手札に加える魔法カードを1枚選んでください",
-                                    },
-                                    (state, _card, selected) => {
-                                        sendCard(state, selected[0], "Hand");
-                                    }
-                                );
+                                after(state, card);
                             }
                         );
+                    }
+                );
+            },
+            effect: (state, card) => {
+                // First, select 2 cards from hand to discard as cost
+                withUserSelectCard(
+                    state,
+                    card,
+                    (state) => new CardSelector(state).graveyard().filter().magic().get(),
+                    {
+                        select: "single",
+                        message: "墓地から手札に加える魔法カードを1枚選んでください",
+                    },
+                    (state, _card, selected) => {
+                        sendCard(state, selected[0], "Hand");
                     }
                 );
             },

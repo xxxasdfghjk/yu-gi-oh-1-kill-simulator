@@ -1,11 +1,13 @@
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance } from "@/types/card";
+import type { CardInstance, MagicCard } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
-import { sendCard, summon } from "./cardMovement";
+import { getSpellTrapZoneIndex, sendCard, summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
 import { canNormalSummon } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
+import { placementPriority } from "@/components/SummonSelector";
+import { getLevel } from "./gameUtils";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
@@ -315,6 +317,61 @@ export const withDelay = (
     });
 };
 
+export const withCheckChain = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        delay?: number;
+        order?: number;
+        message?: string;
+    } = {},
+    callback: (state: GameStore, cardInstance: CardInstance, selected?: CardInstance | null) => void
+) => {
+    pushQueue(state, {
+        id: uuidv4(),
+        order: options.order ?? 1,
+        type: "chain_check",
+        cardInstance: card,
+        effectType: "chain",
+        delay: options.delay,
+        callback: (state: GameStore, cardInstance: CardInstance, selected?: CardInstance) => {
+            // Execute the callback after the delay
+            callback(state, cardInstance, selected);
+        },
+    });
+};
+
+// Check if a card can chain to the current effect
+const canChainToEffect = (state: GameStore, card: CardInstance, chain: CardInstance[]): boolean => {
+    // Speed Spell (速攻魔法) can chain
+    if (isMagicCard(card.card) && card.card.magic_type === "速攻魔法" && card.card.effect?.onChain?.condition) {
+        return card.card.effect?.onChain?.condition?.(state, card, chain) ?? false;
+    }
+    return false;
+};
+
+// Get all cards that can chain to the current effect
+export const getChainableCards = (state: GameStore, chain: CardInstance[]): CardInstance[] => {
+    const chainableCards: CardInstance[] = [];
+    // Check hand for speed spells
+    const handCards = new CardSelector(state).hand().get();
+    for (const card of handCards) {
+        if (card && canChainToEffect(state, card, chain)) {
+            chainableCards.push(card);
+        }
+    }
+
+    // Check spell/trap zone for face-down traps and activated cards
+    const spellTrapCards = new CardSelector(state).spellTrap().filter().nonNull().get();
+    for (const card of spellTrapCards) {
+        if (canChainToEffect(state, card, chain)) {
+            chainableCards.push(card);
+        }
+    }
+
+    return chainableCards;
+};
+
 export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
     if (gameState.isProcessing) {
         return [];
@@ -352,4 +409,112 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     }
 
     return actions;
+};
+
+export const playCardInternal = (state: GameStore, card: CardInstance) => {
+    state.isProcessing = true;
+    // Pure card type classification - UI has already checked conditions
+    if (card.card.card_type === "魔法") {
+        // Handle spell cards
+        const magicCard = card.card as MagicCard;
+        const spellSubtype = magicCard.magic_type;
+
+        if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
+            const handler = (state: GameStore, card: CardInstance) => {
+                const index = getSpellTrapZoneIndex(state, card);
+                if (index !== -1 && card.position === "back") {
+                    state.field.spellTrapZones[index]!.position = "attack";
+                } else {
+                    const availableSpace = state.field.spellTrapZones
+                        .map((e, i) => ({ i, e: e }))
+                        .filter(({ e }) => e === null)
+                        .map((e) => e.i);
+                    const index = placementPriority(availableSpace);
+                    sendCard(state, card, "SpellField", { spellFieldIndex: index });
+                }
+
+                withDelay(state, card, { delay: 500 }, (state, card) => {
+                    state.cardChain.unshift(card);
+                    withCheckChain(state, card, {}, (state, card, selected) => {
+                        if (selected) {
+                            playCardInternal(state, selected);
+                            card.card.effect.onSpell?.effect(state, card);
+                        } else {
+                            card.card.effect.onSpell?.effect(state, card);
+                        }
+                    });
+
+                    pushQueue(state, {
+                        order: 100 - state.cardChain.length,
+                        id: card.id + "_spell_end",
+                        type: "spell_end",
+                        cardInstance: card,
+                        effectType: "send_to_graveyard",
+                        callback: (state, card) => {
+                            state.cardChain = state.cardChain.filter((e) => e.id !== card.id);
+                        },
+                    });
+                });
+            };
+            if (card.card.effect.onSpell?.payCost) {
+                card.card.effect.onSpell.payCost(state, card, (state, card) => {
+                    handler(state, card);
+                });
+            } else {
+                handler(state, card);
+            }
+        } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
+            // Continuous/Equipment spells stay on field
+            card.card.effect.onSpell?.effect(state, card);
+            sendCard(state, card, "SpellField");
+            state.isProcessing = false;
+        } else if (spellSubtype === "フィールド魔法") {
+            // Field spells go to field zone
+            if (state.field.fieldZone !== null) {
+                sendCard(state, state.field.fieldZone, "Graveyard");
+                withDelay(state, card, { order: -1 }, (state, card) => {
+                    sendCard(state, card, "FieldZone");
+                    card.card.effect.onSpell?.effect(state, card);
+                    state.isProcessing = false;
+                });
+                return;
+            } else {
+                sendCard(state, card, "FieldZone");
+                card.card.effect.onSpell?.effect(state, card);
+                state.isProcessing = false;
+            }
+        }
+    } else if (card.card.card_type === "罠") {
+        const index = getSpellTrapZoneIndex(state, card);
+        if (index !== -1 && card.position === "back") {
+            state.field.spellTrapZones[index]!.position = undefined;
+        } else {
+            sendCard(state, card, "SpellField", {});
+        }
+        card.card.effect.onSpell?.effect(state, card);
+        pushQueue(state, {
+            order: 100,
+            id: card.id + "_spell_end",
+            type: "spell_end",
+            cardInstance: card,
+            effectType: "send_to_graveyard",
+        });
+    } else if (card.card.card_type === "モンスター") {
+        // Handle monster cards - add to effect queue for user to choose position and zone
+        const level = getLevel(card);
+        const needRelease = level <= 4 ? 0 : level <= 6 ? 1 : 2;
+        withUserSummon(
+            state,
+            card,
+            card,
+            {
+                canSelectPosition: true,
+                optionPosition: ["attack", "back_defense"],
+                needRelease: needRelease,
+            },
+            (state) => {
+                state.hasNormalSummoned = true;
+            }
+        );
+    }
 };

@@ -91,7 +91,7 @@ export const sendCard = (
     state: GameStore,
     card: CardInstance,
     to: Location,
-    option?: { reverse?: boolean; spellFieldIndex?: number }
+    option?: { reverse?: boolean; spellFieldIndex?: number; ignoreLeavingInstead?: boolean }
 ) => {
     const originalLocation = card.location;
     // If the card is leaving the field and has equipment, send equipment to graveyard
@@ -115,7 +115,7 @@ export const sendCard = (
             sendCard(state, { ...card, equipment: [], materials: [] }, "ExtraDeck");
             return;
         }
-        if (card.card?.effect?.onLeaveFieldInstead) {
+        if (card.card?.effect?.onLeaveFieldInstead && option?.ignoreLeavingInstead !== true) {
             card.card.effect?.onLeaveFieldInstead(state, card);
             return;
         }

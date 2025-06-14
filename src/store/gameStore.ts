@@ -6,12 +6,10 @@ import deckList from "@/data/deck/deckList";
 
 import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
-import type { CardInstance, MagicCard } from "@/types/card";
-import { withDelay, withUserSummon, type Position } from "@/utils/effectUtils";
+import type { CardInstance } from "@/types/card";
+import { withDelay, withUserSummon, type Position, playCardInternal } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
-import { getSpellTrapZoneIndex } from "../utils/cardMovement";
 import { placementPriority } from "@/components/SummonSelector";
-import { getLevel } from "@/utils/gameUtils";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
@@ -19,7 +17,8 @@ export type ProcessQueuePayload =
     | { type: "summon"; zone: number; position: "back_defense" | "attack" | "back" | "defense" }
     | { type: "confirm"; confirmed: boolean }
     | { type: "spellend" }
-    | { type: "delay" };
+    | { type: "delay" }
+    | { type: "chain_select"; selectedCard?: CardInstance };
 
 // Callback result types for documentation
 // These are the specific types passed to callbacks:
@@ -128,6 +127,15 @@ export type EffectQueueItem =
                 getAvailableCards: (state: GameStore) => CardInstance[];
                 callback: (state: GameStore, cardInstance: CardInstance, selectedMaterials: CardInstance[]) => void;
             }
+          | {
+                id: string;
+                type: "chain_check";
+                cardInstance: CardInstance;
+                chain?: CardInstance[];
+                effectType: string;
+                delay?: number;
+                callback?: (state: GameStore, cardInstance: CardInstance, selected?: CardInstance) => void;
+            }
       ) & { order: number };
 
 export interface GameStore extends GameState {
@@ -199,6 +207,7 @@ const initialState: GameState = {
     throne: [null, null, null, null, null],
     isProcessing: false,
     originDeck: null,
+    cardChain: [],
 };
 
 export const useGameStore = create<GameStore>()(
@@ -279,6 +288,7 @@ export const useGameStore = create<GameStore>()(
                 state.throne = [null, null, null, null, null];
                 state.isProcessing = false;
                 state.originDeck = deckData;
+                state.cardChain = [];
             });
         },
 
@@ -352,6 +362,16 @@ export const useGameStore = create<GameStore>()(
                             currentEffect?.callback?.(state, currentEffect.cardInstance);
                         break;
                     }
+                    case "chain_select": {
+                        if (currentEffect.type === "chain_check") {
+                            if (payload.selectedCard) {
+                                currentEffect?.callback?.(state, currentEffect.cardInstance, payload.selectedCard);
+                            } else {
+                                currentEffect.callback?.(state, currentEffect.cardInstance);
+                            }
+                        }
+                        break;
+                    }
 
                     default:
                         break;
@@ -367,6 +387,7 @@ export const useGameStore = create<GameStore>()(
         popQueue: () => {
             set((state) => {
                 state.effectQueue.shift();
+                state.isProcessing = false;
             });
         },
         draw: () => {
@@ -394,93 +415,7 @@ export const useGameStore = create<GameStore>()(
 
         playCard: (card: CardInstance) => {
             set((state) => {
-                state.isProcessing = true;
-                // Pure card type classification - UI has already checked conditions
-                if (card.card.card_type === "魔法") {
-                    // Handle spell cards
-                    const magicCard = card.card as MagicCard;
-                    const spellSubtype = magicCard.magic_type;
-
-                    if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
-                        // Spells that go to graveyard after use
-                        // 1. Queue spell_end job at the end
-
-                        // 2. Queue activation at the front (processed first)
-                        const index = getSpellTrapZoneIndex(state, card);
-                        if (index !== -1 && card.position === "back") {
-                            state.field.spellTrapZones[index]!.position = undefined;
-                        } else {
-                            const availableSpace = state.field.spellTrapZones
-                                .map((e, i) => ({ i, e: e }))
-                                .filter(({ e }) => e === null)
-                                .map((e) => e.i);
-                            const index = placementPriority(availableSpace);
-                            sendCard(state, card, "SpellField", { spellFieldIndex: index });
-                        }
-                        withDelay(state, card, { delay: 500 }, (state, card) => {
-                            card.card.effect.onSpell?.effect(state, card);
-                            pushQueue(state, {
-                                order: 100,
-                                id: card.id + "_spell_end",
-                                type: "spell_end",
-                                cardInstance: card,
-                                effectType: "send_to_graveyard",
-                            });
-                        });
-                    } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
-                        // Continuous/Equipment spells stay on field
-                        card.card.effect.onSpell?.effect(state, card);
-                        sendCard(state, card, "SpellField");
-                        state.isProcessing = false;
-                    } else if (spellSubtype === "フィールド魔法") {
-                        // Field spells go to field zone
-                        if (state.field.fieldZone !== null) {
-                            sendCard(state, state.field.fieldZone, "Graveyard");
-                            withDelay(state, card, { order: -1 }, (state, card) => {
-                                sendCard(state, card, "FieldZone");
-                                card.card.effect.onSpell?.effect(state, card);
-                                state.isProcessing = false;
-                            });
-                            return;
-                        } else {
-                            sendCard(state, card, "FieldZone");
-                            card.card.effect.onSpell?.effect(state, card);
-                            state.isProcessing = false;
-                        }
-                    }
-                } else if (card.card.card_type === "罠") {
-                    const index = getSpellTrapZoneIndex(state, card);
-                    if (index !== -1 && card.position === "back") {
-                        state.field.spellTrapZones[index]!.position = undefined;
-                    } else {
-                        sendCard(state, card, "SpellField", {});
-                    }
-                    card.card.effect.onSpell?.effect(state, card);
-                    pushQueue(state, {
-                        order: 100,
-                        id: card.id + "_spell_end",
-                        type: "spell_end",
-                        cardInstance: card,
-                        effectType: "send_to_graveyard",
-                    });
-                } else if (card.card.card_type === "モンスター") {
-                    // Handle monster cards - add to effect queue for user to choose position and zone
-                    const level = getLevel(card);
-                    const needRelease = level <= 4 ? 0 : level <= 6 ? 1 : 2;
-                    withUserSummon(
-                        state,
-                        card,
-                        card,
-                        {
-                            canSelectPosition: true,
-                            optionPosition: ["attack", "back_defense"],
-                            needRelease: needRelease,
-                        },
-                        (state) => {
-                            state.hasNormalSummoned = true;
-                        }
-                    );
-                }
+                playCardInternal(state, card);
             });
         },
 

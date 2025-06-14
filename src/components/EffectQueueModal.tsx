@@ -6,6 +6,7 @@ import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/ga
 import ModalWrapper from "./ModalWrapper";
 import { type LinkMonsterCard } from "../types/card";
 import { canLinkSummonAfterRelease, canXyzSummonAfterRelease } from "@/utils/gameUtils";
+import { getChainableCards } from "@/utils/effectUtils";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
@@ -31,7 +32,8 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                 effect.type === "multiselect" ||
                 effect.type === "summon" ||
                 effect.type === "confirm" ||
-                effect.type === "material_select"
+                effect.type === "material_select" ||
+                effect.type === "chain_check"
             ) {
                 setCurrentEffect(effect);
             } else {
@@ -170,6 +172,47 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     isOpen={!isClosing}
                 />
             );
+
+        case "chain_check": {
+            const chainableCards = getChainableCards(gameState, currentEffect.chain ?? []);
+            
+            return (
+                <ModalWrapper isOpen={!isClosing}>
+                    <h3 className="text-lg font-bold mb-4">チェーン確認</h3>
+                    <p className="mb-4">チェーンするカードを選択してください</p>
+
+                    <div className="grid grid-cols-2 gap-3 mb-6 max-h-64 overflow-y-auto">
+                        {chainableCards.map((card) => (
+                            <button
+                                key={card.id}
+                                className="p-3 border rounded hover:bg-blue-50 text-left"
+                                onClick={() =>
+                                    handleClose(() => {
+                                        processQueueTop({ type: "chain_select", selectedCard: card });
+                                    })
+                                }
+                            >
+                                <div className="font-medium">{card.card.card_name}</div>
+                                <div className="text-sm text-gray-600">{card.card.card_type}</div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex justify-end">
+                        <button
+                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                            onClick={() =>
+                                handleClose(() => {
+                                    processQueueTop({ type: "chain_select" });
+                                })
+                            }
+                        >
+                            チェーンしない
+                        </button>
+                    </div>
+                </ModalWrapper>
+            );
+        }
 
         default:
             return null;

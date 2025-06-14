@@ -1,5 +1,6 @@
 import type { CardInstance } from "@/types/card";
-import { isMagicCard, monsterFilter } from "./cardManagement";
+import { isFusionMonster, isMagicCard, monsterFilter } from "./cardManagement";
+import { getLevel } from "./gameUtils";
 
 export class CardInstanceFilter<T extends (CardInstance | null)[]> {
     private cardList: T;
@@ -9,6 +10,34 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
 
     monster() {
         const monsterList = this.cardList.filter((e): e is CardInstance => e !== null && monsterFilter(e.card));
+        return new CardInstanceFilter<CardInstance[]>(monsterList);
+    }
+
+    level(level: number) {
+        const leveledMonterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) === level
+        );
+        return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
+    }
+
+    upperLevel(level: number) {
+        const leveledMonterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) >= level
+        );
+        return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
+    }
+
+    underLevel(level: number) {
+        const leveledMonterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) <= level
+        );
+        return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
+    }
+
+    fusionMonster() {
+        const monsterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && isFusionMonster(e.card)
+        );
         return new CardInstanceFilter<CardInstance[]>(monsterList);
     }
 

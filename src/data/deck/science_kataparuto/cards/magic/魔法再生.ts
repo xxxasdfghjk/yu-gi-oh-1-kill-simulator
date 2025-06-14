@@ -22,45 +22,45 @@ export default {
 
                 return handMagicCards >= 2 && graveyardMagicCards > 0;
             },
+            payCost: (state, card, after) => {
+                withUserSelectCard(
+                    state,
+                    card,
+                    (state) => new CardSelector(state).hand().filter().magic().get(),
+                    {
+                        select: "multi",
+                        condition: (list) => list.length === 2,
+                        message: "手札から墓地に送る魔法カードを2枚選んでください",
+                        canCancel: true,
+                    },
+                    (state, card, discardCards) => {
+                        withDelayRecursive(
+                            state,
+                            card,
+                            { delay: 100, order: -1 },
+                            discardCards.length,
+                            (state, _card, depth) => {
+                                sendCard(state, discardCards[depth - 1], "Graveyard");
+                            },
+                            (state, card) => {
+                                after(state, card);
+                            }
+                        );
+                    }
+                );
+            },
             effect: (state: GameStore, card: CardInstance) => {
                 // 手札から魔法カード2枚を選択
                 withUserSelectCard(
                     state,
                     card,
-                    (state: GameStore) => new CardSelector(state).hand().filter().magic().get(),
+                    (state: GameStore) => new CardSelector(state).graveyard().filter().magic().get(),
                     {
-                        select: "multi",
-                        condition: (selected: CardInstance[]) => selected.length === 2,
-                        message: "手札から墓地に送る魔法カードを2枚選んでください",
+                        select: "single",
+                        message: "墓地から手札に加える魔法カードを1枚選んでください",
                     },
-                    (state: GameStore, card: CardInstance, selected: CardInstance[]) => {
-                        // 選択した魔法カードを墓地に送る
-                        const selectedIds = selected.map((c) => c.id);
-                        withDelayRecursive(
-                            state,
-                            card,
-                            { delay: 100 },
-                            2,
-                            (state, _card, depth) => {
-                                const targetCard = state.hand.find((c) => c.id === selectedIds[depth - 1])!;
-                                sendCard(state, targetCard, "Graveyard");
-                            },
-                            (state, card) => {
-                                // 墓地から魔法カードを1枚選択
-                                withUserSelectCard(
-                                    state,
-                                    card,
-                                    (state: GameStore) => new CardSelector(state).graveyard().filter().magic().get(),
-                                    {
-                                        select: "single",
-                                        message: "墓地から手札に加える魔法カードを1枚選んでください",
-                                    },
-                                    (state: GameStore, _card: CardInstance, selected: CardInstance[]) => {
-                                        sendCard(state, selected[0], "Hand");
-                                    }
-                                );
-                            }
-                        );
+                    (state: GameStore, _card: CardInstance, selected: CardInstance[]) => {
+                        sendCard(state, selected[0], "Hand");
                     }
                 );
             },
