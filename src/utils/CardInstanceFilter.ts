@@ -17,8 +17,20 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(spellOrTrapList);
     }
 
+    magic() {
+        const magicList = this.cardList.filter((e): e is CardInstance => e !== null && isMagicCard(e.card));
+        return new CardInstanceFilter<CardInstance[]>(magicList);
+    }
+
     nonNull() {
         const nonNull = this.cardList.filter((e): e is CardInstance => e !== null);
+        return new CardInstanceFilter<CardInstance[]>(nonNull);
+    }
+
+    canNormalSummon() {
+        const nonNull = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.canNormalSummon
+        );
         return new CardInstanceFilter<CardInstance[]>(nonNull);
     }
     null() {

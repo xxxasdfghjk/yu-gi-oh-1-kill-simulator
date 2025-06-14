@@ -28,6 +28,8 @@ export type EffectType = {
         condition: ConditionCallback;
         effect: EffectCallback;
     };
+    onLeaveField?: EffectCallback;
+    onLeaveFieldInstead?: EffectCallback;
 };
 
 type CardTypeName = "モンスター" | "魔法" | "罠";

@@ -15,13 +15,11 @@ export default {
                 return new CardSelector(state).deck().len() >= 2;
             },
             effect: (state, card) => {
-                withDelay(state, card, { delay: 500 }, (state, card) => {
-                    for (let i = 0; i < 2; i++) {
-                        withDelay(state, card, { delay: 20 * i }, (state) => {
-                            sendCard(state, state.deck[0], "Hand");
-                        });
-                    }
-                });
+                for (let i = 0; i < 2; i++) {
+                    withDelay(state, card, { delay: 20 * i }, (state) => {
+                        sendCard(state, state.deck[0], "Hand");
+                    });
+                }
             },
         },
     },

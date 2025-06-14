@@ -1,10 +1,11 @@
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
-import { summon } from "./cardMovement";
+import { sendCard, summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
 import { canNormalSummon } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
+import { CardSelector } from "./CardSelector";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
@@ -87,6 +88,7 @@ export const withUserSelectCard = (
         condition?: (cards: CardInstance[], state: GameStore) => boolean;
         order?: number;
         message?: string;
+        canCancel: boolean;
     },
     callback: (state: GameStore, cardInstance: CardInstance, selected: CardInstance[]) => void
 ) => {
@@ -101,7 +103,7 @@ export const withUserSelectCard = (
             ? option.condition
             : (cards: CardInstance[]) => (option.select === "single" ? cards.length === 1 : cards.length >= 1),
         effectType: "with_user_select_card_callback",
-        canCancel: false,
+        canCancel: option?.canCancel ?? false,
         callback: (state: GameStore, cardInstance: CardInstance, selectedCards: CardInstance[]) => {
             callback(state, cardInstance, selectedCards);
         },
@@ -136,22 +138,96 @@ export const withUserSummon = (
         canSelectPosition,
         optionPosition,
         order,
-    }: { order?: number; canSelectPosition?: boolean; optionPosition?: Exclude<Position, undefined>[] },
+        needRelease,
+    }: {
+        order?: number;
+        canSelectPosition?: boolean;
+        optionPosition?: Exclude<Position, undefined>[];
+        needRelease?: number;
+    },
     callback: (state: GameStore, card: CardInstance, monster: CardInstance) => void
 ) => {
-    // Add summon selection to effect queue
-    pushQueue(state, {
-        id: uuidv4(),
-        order: order ?? 1,
-        type: "summon",
-        cardInstance: monster,
-        effectType: "with_user_summon_callback",
-        canSelectPosition: canSelectPosition ?? true,
-        optionPosition: optionPosition ?? ["attack", "defense"],
-        callback: (state: GameStore, cardInstance: CardInstance, result: { zone: number; position: Position }) => {
-            const summonResult = summon(state, cardInstance, result.zone, result.position);
-            callback(state, cardInstance, summonResult);
-        },
+    if ((needRelease ?? 0) > 0) {
+        // Add summon selection to effect queue
+        withUserSelectCard(
+            state,
+            _card,
+            (state) => new CardSelector(state).allMonster().getNonNull(),
+            {
+                select: "multi",
+                condition: (list) => list.length === needRelease,
+                canCancel: true,
+                message: "リリース対象を選んでください",
+            },
+            (state, _card, selected) => {
+                withDelayRecursive(
+                    state,
+                    _card,
+                    { delay: 100 },
+                    selected.length,
+                    (state, _card, depth) => {
+                        sendCard(state, selected[depth - 1], "Graveyard");
+                    },
+                    (state) => {
+                        pushQueue(state, {
+                            id: uuidv4(),
+                            order: order ?? 1,
+                            type: "summon",
+                            cardInstance: monster,
+                            effectType: "with_user_summon_callback",
+                            canSelectPosition: canSelectPosition ?? true,
+                            optionPosition: optionPosition ?? ["attack", "defense"],
+                            callback: (
+                                state: GameStore,
+                                cardInstance: CardInstance,
+                                result: { zone: number; position: Position }
+                            ) => {
+                                const summonResult = summon(state, cardInstance, result.zone, result.position);
+                                callback(state, cardInstance, summonResult);
+                            },
+                        });
+                    }
+                );
+            }
+        );
+    } else {
+        pushQueue(state, {
+            id: uuidv4(),
+            order: order ?? 1,
+            type: "summon",
+            cardInstance: monster,
+            effectType: "with_user_summon_callback",
+            canSelectPosition: canSelectPosition ?? true,
+            optionPosition: optionPosition ?? ["attack", "defense"],
+            callback: (state: GameStore, cardInstance: CardInstance, result: { zone: number; position: Position }) => {
+                const summonResult = summon(state, cardInstance, result.zone, result.position);
+                callback(state, cardInstance, summonResult);
+            },
+        });
+    }
+};
+
+export const withDelayRecursive = (
+    state: GameStore,
+    card: CardInstance,
+    options: Parameters<typeof withDelay>[2],
+    depth: number,
+    callback: (state: GameStore, cardInstance: CardInstance, currentDepth: number) => void,
+    finalCallback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    if (depth <= 0) {
+        // 最後のコールバックを実行
+        if (finalCallback) {
+            finalCallback(state, card);
+        }
+        return;
+    }
+
+    withDelay(state, card, options, (state, card) => {
+        // 現在の深さでコールバックを実行
+        callback(state, card, depth);
+        // 次の深さへ再帰
+        withDelayRecursive(state, card, options, depth - 1, callback, finalCallback);
     });
 };
 

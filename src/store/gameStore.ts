@@ -11,6 +11,7 @@ import { withDelay, withUserSummon, type Position } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { getSpellTrapZoneIndex } from "../utils/cardMovement";
 import { placementPriority } from "@/components/SummonSelector";
+import { getLevel } from "@/utils/gameUtils";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
@@ -394,13 +395,15 @@ export const useGameStore = create<GameStore>()(
                             const index = placementPriority(availableSpace);
                             sendCard(state, card, "SpellField", { spellFieldIndex: index });
                         }
-                        card.card.effect.onSpell?.effect(state, card);
-                        pushQueue(state, {
-                            order: 100,
-                            id: card.id + "_spell_end",
-                            type: "spell_end",
-                            cardInstance: card,
-                            effectType: "send_to_graveyard",
+                        withDelay(state, card, { delay: 500 }, (state, card) => {
+                            card.card.effect.onSpell?.effect(state, card);
+                            pushQueue(state, {
+                                order: 100,
+                                id: card.id + "_spell_end",
+                                type: "spell_end",
+                                cardInstance: card,
+                                effectType: "send_to_graveyard",
+                            });
                         });
                     } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
                         // Continuous/Equipment spells stay on field
@@ -440,27 +443,21 @@ export const useGameStore = create<GameStore>()(
                     });
                 } else if (card.card.card_type === "モンスター") {
                     // Handle monster cards - add to effect queue for user to choose position and zone
-                    pushQueue(state, {
-                        order: 0,
-                        id: card.id + "_normal_summon",
-                        type: "summon",
-                        cardInstance: card,
-                        effectType: "normal_summon",
-                        canSelectPosition: true,
-                        optionPosition: ["attack", "back_defense"],
-                        callback: (
-                            state: GameStore,
-                            cardInstance: CardInstance,
-                            result: {
-                                zone: number;
-                                position: "back_defense" | "attack" | "back" | "defense" | undefined;
-                            }
-                        ) => {
-                            summon(state, cardInstance, result.zone, result.position);
-                            // Mark that normal summon was used
-                            state.hasNormalSummoned = true;
+                    const level = getLevel(card);
+                    const needRelease = level <= 4 ? 0 : level <= 6 ? 1 : 2;
+                    withUserSummon(
+                        state,
+                        card,
+                        card,
+                        {
+                            canSelectPosition: true,
+                            optionPosition: ["attack", "back_defense"],
+                            needRelease: needRelease,
                         },
-                    });
+                        (state) => {
+                            state.hasNormalSummoned = true;
+                        }
+                    );
                 }
             });
         },

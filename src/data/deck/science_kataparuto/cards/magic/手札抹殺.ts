@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay } from "@/utils/effectUtils";
+import { withDelay, withDelayRecursive } from "@/utils/effectUtils";
 
 export default {
     card_name: "手札抹殺",
@@ -17,17 +17,20 @@ export default {
             effect: (state, card) => {
                 withDelay(state, card, { delay: 500 }, (state, card) => {
                     const handCard = new CardSelector(state).hand().filter().excludeId(card.id).nonNull().get();
-
-                    handCard.forEach((card) => {
-                        sendCard(state, card, "Graveyard");
-                    });
-
-                    // ドロー処理は遅延実行
-                    for (let i = 0; i < handCard.length; i++) {
-                        withDelay(state, card, { delay: 50 + i * 20, order: -1 }, (state) => {
-                            sendCard(state, state.deck[0], "Hand");
-                        });
-                    }
+                    withDelayRecursive(
+                        state,
+                        card,
+                        { delay: 100 },
+                        handCard.length,
+                        (state, _card, depth) => {
+                            sendCard(state, handCard[depth - 1], "Graveyard");
+                        },
+                        (state, card) => {
+                            withDelayRecursive(state, card, { delay: 100 }, handCard.length, (state, _card, depth) => {
+                                sendCard(state, state.deck[depth - 1], "Hand");
+                            });
+                        }
+                    );
                 });
             },
         },

@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay } from "@/utils/effectUtils";
+import { withDelay, withDelayRecursive } from "@/utils/effectUtils";
 import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
@@ -16,35 +16,35 @@ export default {
                 return new CardSelector(state).hand().filter().excludeId(card.id).len() > 0;
             },
             effect: (state, card) => {
-                withDelay(state, card, { delay: 500 }, (state, card) => {
-                    // 遅延実行前に手札のIDを取得（プロキシオブジェクトではなくIDを保存）
-                    const handCardIds = new CardSelector(state)
-                        .hand()
-                        .filter()
-                        .excludeId(card.id)
-                        .nonNull()
-                        .get()
-                        .map((c) => c.id);
-                    const handCount = handCardIds.length;
-
-                    // 手札をデッキに戻す処理を即座に実行
-                    handCardIds.forEach((cardId) => {
-                        const targetCard = state.hand.find((c) => c.id === cardId);
+                // 遅延実行前に手札のIDを取得（プロキシオブジェクトではなくIDを保存）
+                const handCardIds = new CardSelector(state)
+                    .hand()
+                    .filter()
+                    .excludeId(card.id)
+                    .nonNull()
+                    .get()
+                    .map((c) => c.id);
+                const handCount = handCardIds.length;
+                withDelayRecursive(
+                    state,
+                    card,
+                    { delay: 100 },
+                    handCount,
+                    (state, _card, depth) => {
+                        const targetCard = state.hand.find((c) => c.id === handCardIds[depth - 1]);
                         if (targetCard) {
                             sendCard(state, targetCard, "Deck");
                         }
-                    });
-
-                    // シャッフル
-                    shuffleDeck(state);
-
-                    // ドロー処理は遅延実行
-                    for (let i = 0; i < handCount; i++) {
-                        withDelay(state, card, { delay: 50 + i * 20, order: -1 }, (state) => {
-                            sendCard(state, state.deck[0], "Hand");
+                    },
+                    (state, card) => {
+                        // シャッフル
+                        shuffleDeck(state);
+                        // ドロー処理は遅延実行
+                        withDelayRecursive(state, card, { delay: 100 }, handCount, (state, _card, depth) => {
+                            sendCard(state, state.deck[depth - 1], "Hand");
                         });
                     }
-                });
+                );
             },
         },
     },

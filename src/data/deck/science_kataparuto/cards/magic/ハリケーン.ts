@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay } from "@/utils/effectUtils";
+import { withDelay, withDelayRecursive } from "@/utils/effectUtils";
 import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
@@ -23,14 +23,17 @@ export default {
                     .excludeId(card.id)
                     .get()
                     .map((e) => e.id);
-                withDelay(state, card, { delay: 600, order: -1 }, (state, card) => {
-                    for (let i = 0; i < targetListId.length; i++) {
-                        withDelay(state, card, { delay: i * 40 }, (state) => {
-                            const cardInstance = getCardInstanceFromId(state, targetListId[i])!;
-                            sendCard(state, cardInstance, "Hand");
-                        });
-                    }
-                });
+                withDelayRecursive(
+                    state,
+                    card,
+                    { delay: 100 },
+                    targetListId.length,
+                    (state, _card, depth) => {
+                        const cardInstance = getCardInstanceFromId(state, targetListId[depth - 1])!;
+                        sendCard(state, cardInstance, "Hand");
+                    },
+                    () => {}
+                );
             },
         },
     },

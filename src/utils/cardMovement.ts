@@ -115,6 +115,10 @@ export const sendCard = (
             sendCard(state, { ...card, equipment: [], materials: [] }, "ExtraDeck");
             return;
         }
+        if (card.card?.effect?.onLeaveFieldInstead) {
+            card.card.effect?.onLeaveFieldInstead(state, card);
+            return;
+        }
     }
 
     // Remove from current location
@@ -420,6 +424,6 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
         state.field.extraMonsterZones[zone - 5] = summonedMonster;
     }
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense")
-        monster.card.effect.onSummon?.(state, monster);
+        monster.card.effect?.onSummon?.(state, monster);
     return summonedMonster;
 };
