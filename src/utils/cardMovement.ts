@@ -3,6 +3,7 @@ import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
 import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
 import { isExtraDeckMonster, monsterFilter } from "./cardManagement";
+import { withDelay } from "./effectUtils";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -427,7 +428,10 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
         state.currentTo = { location: "MonsterField", index: zone, position: monster.position };
         state.field.extraMonsterZones[zone - 5] = summonedMonster;
     }
-    if (summonedMonster.position === "attack" || summonedMonster.position === "defense")
-        monster.card.effect?.onSummon?.(state, monster);
+    if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {
+        withDelay(state, monster, { order: 2000 }, (state, monster) => {
+            monster.card.effect?.onSummon?.(state, monster);
+        });
+    }
     return summonedMonster;
 };

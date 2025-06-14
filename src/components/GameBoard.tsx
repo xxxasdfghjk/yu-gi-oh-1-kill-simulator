@@ -42,6 +42,7 @@ export const GameBoard: React.FC = () => {
         popQueue,
         gameOver,
         winner,
+        winReason,
         isOpponentTurn,
         opponentField,
         sendSpellToGraveyard,
@@ -49,14 +50,12 @@ export const GameBoard: React.FC = () => {
         checkExodiaWin,
         endGame,
         judgeWin,
-        draw,
         // Deck selection
         selectedDeck,
         availableDecks,
         isDeckSelectionOpen,
         selectDeck,
         setDeckSelectionOpen,
-        originDeck,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -69,23 +68,11 @@ export const GameBoard: React.FC = () => {
     } | null>(null);
     const [showDebugModal, setShowDebugModal] = useState(false);
 
-    const drawInitial = useCallback(() => {
-        setTimeout(() => draw(), 10);
-        setTimeout(() => draw(), 20);
-        setTimeout(() => draw(), 30);
-        setTimeout(() => draw(), 40);
-        setTimeout(() => draw(), 50);
-        if (originDeck?.rules.includes("start_six_hand")) {
-            setTimeout(() => draw(), 60);
-        }
-    }, [draw, originDeck]);
-
     const reset = useCallback(() => {
         if (selectedDeck) {
             initializeGame(selectedDeck);
-            drawInitial();
         }
-    }, [initializeGame, selectedDeck, drawInitial]);
+    }, [initializeGame, selectedDeck]);
 
     const handleGameReset = useCallback(() => {
         if (isResetting) return; // 連打防止
@@ -103,10 +90,9 @@ export const GameBoard: React.FC = () => {
         (deck: Deck) => {
             selectDeck(deck);
             initializeGame(deck);
-            drawInitial();
             setHasInitialized(true); // Mark as initialized after deck change
         },
-        [selectDeck, initializeGame, drawInitial]
+        [selectDeck, initializeGame]
     );
 
     // Only initialize when a deck is first selected (not when modal is opened/closed)
@@ -118,6 +104,13 @@ export const GameBoard: React.FC = () => {
             setHasInitialized(true);
         }
     }, [selectedDeck, isDeckSelectionOpen, reset, hasInitialized]);
+
+    // Monitor life points for victory conditions
+    useEffect(() => {
+        if (hasInitialized && !gameOver) {
+            judgeWin();
+        }
+    }, [lifePoints, opponentLifePoints, hasInitialized, gameOver, judgeWin]);
 
     const startSpecialSummon = (monster: CardInstance, summonType: "link" | "xyz" | "synchro" | "fusion") => {
         if (summonType === "link" && gameState.startLinkSummon) {
@@ -297,19 +290,22 @@ export const GameBoard: React.FC = () => {
                 />
 
                 {/* YOU WIN オーバーレイ */}
-                <AnimatePresence>
-                    {gameOver && winner === "player" && (
+                <AnimatePresence mode="wait">
+                    {gameOver && winner === "player" && !isResetting && (
                         <motion.div
+                            key={`victory-${turn}-${phase}`}
                             className="fixed inset-0 z-50"
                             initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
                             animate={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}
                             exit={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
                             transition={{ duration: 1.2, ease: "easeInOut" }}
                         >
-                            {/* エクゾディアアニメーション（背景） */}
-                            <div className="absolute inset-0 z-10">
-                                <ExodiaVictoryRotationAnime isVisible={true} />
-                            </div>
+                            {/* エクゾディアアニメーション（背景） - エグゾディア勝利時のみ */}
+                            {winReason === "exodia" && (
+                                <div className="absolute inset-0 z-10">
+                                    <ExodiaVictoryRotationAnime isVisible={true} />
+                                </div>
+                            )}
 
                             {/* テキストとボタン（前景） */}
                             <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -318,7 +314,7 @@ export const GameBoard: React.FC = () => {
                                     initial={{ opacity: 0, scale: 0.5, y: 50 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     transition={{
-                                        delay: 4,
+                                        delay: winReason === "exodia" ? 4 : 0.5,
                                         duration: 0.8,
                                         ease: "easeOut",
                                         type: "spring",
@@ -346,9 +342,15 @@ export const GameBoard: React.FC = () => {
                                         className="text-2xl text-white mb-8"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ delay: 4.6, duration: 0.6 }}
+                                        transition={{ 
+                                            delay: winReason === "exodia" ? 4.6 : 1.1, 
+                                            duration: 0.6 
+                                        }}
                                     >
-                                        エクゾディアの5つのパーツが揃いました！
+                                        {winReason === "exodia" 
+                                            ? "エクゾディアの5つのパーツが揃いました！"
+                                            : "相手のライフポイントを0にしました！"
+                                        }
                                     </motion.p>
                                     <motion.button
                                         className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${
@@ -358,7 +360,10 @@ export const GameBoard: React.FC = () => {
                                         }`}
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 5.2, duration: 0.6 }}
+                                        transition={{ 
+                                            delay: winReason === "exodia" ? 5.2 : 1.7, 
+                                            duration: 0.6 
+                                        }}
                                         whileHover={!isResetting ? { scale: 1.05 } : {}}
                                         whileTap={!isResetting ? { scale: 0.95 } : {}}
                                         onClick={handleGameReset}
@@ -372,9 +377,10 @@ export const GameBoard: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                <AnimatePresence>
-                    {gameOver && winner === "timeout" && (
+                <AnimatePresence mode="wait">
+                    {gameOver && winner === "timeout" && !isResetting && (
                         <motion.div
+                            key={`defeat-${turn}-${phase}`}
                             className="fixed inset-0 flex items-center justify-center z-50"
                             initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
                             animate={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}

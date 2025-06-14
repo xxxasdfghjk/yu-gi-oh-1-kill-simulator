@@ -7,7 +7,7 @@ import deckList from "@/data/deck/deckList";
 import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
-import { withDelay, withUserSummon, type Position, playCardInternal } from "@/utils/effectUtils";
+import { withDelay, withUserSummon, type Position, playCardInternal, withDelayRecursive } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { placementPriority } from "@/components/SummonSelector";
 import type { DeckEffect } from "@/components/DeckEffectSelectorModal";
@@ -203,6 +203,7 @@ const initialState: GameState = {
     isOpponentTurn: false,
     gameOver: false,
     winner: null,
+    winReason: null,
     hasDrawnByEffect: false,
     currentFrom: { location: "Deck" },
     currentTo: { location: "Hand" },
@@ -266,8 +267,10 @@ export const useGameStore = create<GameStore>()(
                 state.turn = 1;
                 state.phase = "main1";
                 state.lifePoints = 8000;
+                state.opponentLifePoints = 8000;
                 state.gameOver = false;
                 state.winner = null;
+                state.winReason = null;
 
                 // Reset game flags
                 state.hasNormalSummoned = false;
@@ -295,6 +298,15 @@ export const useGameStore = create<GameStore>()(
                 state.cardChain = [];
                 state.deckEffects = [];
                 state.monstersToGraveyardThisTurn = [];
+                withDelayRecursive(
+                    state,
+                    { card: { card_name: "" } } as CardInstance,
+                    {},
+                    deck?.rules.includes("start_six_hand") ? 6 : 5,
+                    (state) => {
+                        sendCard(state, state.deck[0], "Hand");
+                    }
+                );
             });
         },
 
@@ -550,6 +562,7 @@ export const useGameStore = create<GameStore>()(
                     } else {
                         state.gameOver = true;
                         state.winner = "player";
+                        state.winReason = "exodia";
                     }
                 }
             });
@@ -590,6 +603,10 @@ export const useGameStore = create<GameStore>()(
                 if (state.lifePoints <= 0) {
                     state.gameOver = true;
                     state.winner = "timeout";
+                } else if (state.opponentLifePoints <= 0) {
+                    state.gameOver = true;
+                    state.winner = "player";
+                    state.winReason = "life_points";
                 }
             });
         },
