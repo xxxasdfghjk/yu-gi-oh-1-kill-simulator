@@ -70,7 +70,8 @@ export type DisplayField =
     | "OpponentField"
     | "Hand"
     | "TokenRemove"
-    | "Throne";
+    | "Throne"
+    | "Exclusion";
 export const getFieldCoodrinateAbsolute = (
     fieldType: DisplayField,
     index: number = 0,
@@ -125,6 +126,12 @@ export const getFieldCoodrinateAbsolute = (
             return {
                 x: EXODIA_CENTER_X + EXODIA_RADIUS * Math.cos(Math.PI / 2 - (index * Math.PI) / 5),
                 y: EXODIA_CENTER_Y + EXODIA_RADIUS * Math.sin(Math.PI / 2 - (index * Math.PI) / 5),
+            };
+        case "Exclusion":
+            // エクストラゾーンの左端、自分のフィールドの上
+            return {
+                x: FIELD_CENTER_X - 3 * (CARD_WIDTH + CARD_MARGIN),
+                y: FIELD_CENTER_Y - 2 * (CARD_HEIGHT + CARD_MARGIN),
             };
     }
 };

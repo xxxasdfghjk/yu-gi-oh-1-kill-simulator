@@ -23,6 +23,7 @@ import { NotificationBanner } from "./NotificationBanner";
 import { LifePointsDisplay } from "./LifePointsDisplay";
 import { getChainableCards } from "@/utils/effectUtils";
 import { DebugStateModal } from "./DebugStateModal";
+import { BanishedModal } from "./BanishedModal";
 
 export const GameBoard: React.FC = () => {
     const {
@@ -30,6 +31,7 @@ export const GameBoard: React.FC = () => {
         field,
         deck,
         graveyard,
+        banished,
         extraDeck,
         lifePoints,
         opponentLifePoints,
@@ -59,6 +61,7 @@ export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
+    const [showBanished, setShowBanished] = useState(false);
     const [showTurnEndAnimation, setShowTurnEndAnimation] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
     const [currentNotification, setCurrentNotification] = useState<{
@@ -204,11 +207,12 @@ export const GameBoard: React.FC = () => {
                     <div>
                         <div className=" flex justify-end">
                             <HoveredCardDisplay />
-                            <div>
+                            <div className="relative">
                                 {/* エクストラモンスターゾーン（相手と自分の間） */}
                                 <ExtraMonsterZones
                                     extraMonsterZones={field.extraMonsterZones}
                                     opponentField={opponentField}
+                                    onShowBanished={() => setShowBanished(true)}
                                 />
 
                                 {/* プレイヤーエリア */}
@@ -287,6 +291,8 @@ export const GameBoard: React.FC = () => {
                     startLinkSummon={(monster) => startSpecialSummon(monster, "link")}
                     startXyzSummon={(monster) => startSpecialSummon(monster, "xyz")}
                 />
+
+                <BanishedModal isOpen={showBanished} onClose={() => setShowBanished(false)} banished={banished} />
 
                 {/* YOU WIN オーバーレイ */}
                 <AnimatePresence mode="wait">

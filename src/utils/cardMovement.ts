@@ -386,16 +386,14 @@ export const banish = (state: GameStore, card: CardInstance) => {
     state.banished.push(banishedCard);
 };
 
-export const banishFromRandomExtractDeck = (state: GameStore, excludeNum: number) => {
+export const randomExtractDeck = (state: GameStore, excludeNum: number) => {
     const target = Array.from({ length: state.extraDeck.length })
         .map((_, i) => ({ i, rand: Math.random() }))
         .sort((a, b) => a.rand - b.rand)
         .slice(0, excludeNum)
         .map((e) => e.i);
     const targetCardList = state.extraDeck.filter((_, i) => target.includes(i));
-    for (const card of targetCardList) {
-        banish(state, card);
-    }
+    return targetCardList;
 };
 
 export const getHandIndex = (state: GameStore, card: CardInstance) => {

@@ -1,6 +1,13 @@
 import type { MagicCard } from "@/types/card";
-import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect, withOption } from "@/utils/effectUtils";
-import { sendCard, banishFromRandomExtractDeck } from "@/utils/cardMovement";
+import {
+    withUserSelectCard,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withOption,
+    withDelayRecursive,
+} from "@/utils/effectUtils";
+import { sendCard, randomExtractDeck } from "@/utils/cardMovement";
+import { sendCardById } from "../../../../../utils/cardMovement";
 
 const card = {
     card_name: "金満で謙虚な壺",
@@ -29,14 +36,26 @@ const card = {
                         ],
                         (state, card, option) => {
                             const excludeNum = option === "３枚除外" ? 3 : 6;
-                            banishFromRandomExtractDeck(state, excludeNum);
-                            withUserSelectCard(
+                            const idList = randomExtractDeck(state, excludeNum).map((e) => e.id);
+
+                            withDelayRecursive(
                                 state,
                                 card,
-                                (state) => state.deck.slice(0, excludeNum),
-                                { select: "single" as const, message: "手札に加えるカードを選択してください" },
-                                (state, _cardInstance, selected) => {
-                                    sendCard(state, selected[0], "Hand" as const);
+                                { delay: 50 },
+                                6,
+                                (state, _card, depth) => {
+                                    sendCardById(state, idList[depth - 1], "Exclusion");
+                                },
+                                (state, card) => {
+                                    withUserSelectCard(
+                                        state,
+                                        card,
+                                        (state) => state.deck.slice(0, excludeNum),
+                                        { select: "single" as const, message: "手札に加えるカードを選択してください" },
+                                        (state, _cardInstance, selected) => {
+                                            sendCard(state, selected[0], "Hand" as const);
+                                        }
+                                    );
                                 }
                             );
                         }

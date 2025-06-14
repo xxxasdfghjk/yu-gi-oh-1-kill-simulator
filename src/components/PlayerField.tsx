@@ -165,7 +165,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                     {deck.map((e) => (
                         <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
-                            <AnimationWrapper initial={{ ...deckInitial }}>
+                            <AnimationWrapper initial={{ ...deckInitial }} key={e.id}>
                                 <Card key={e.id} card={{ ...e, position: "back" as const }} disableActivate={true} />
                             </AnimationWrapper>
                         </div>
