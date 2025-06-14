@@ -1,10 +1,12 @@
 import type { Card } from "@/types/card";
 
+export type Rule = "start_six_hand";
 export type Deck = {
     deck_name: string;
     main_deck: Card[];
     extra_deck: Card[];
     token: Card[];
+    rules: Rule[];
 };
 
 export const expandDeckList = (

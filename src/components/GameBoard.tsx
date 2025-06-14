@@ -20,6 +20,7 @@ import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
 import { Tooltip } from "./Tooltip";
 import { motion, AnimatePresence } from "framer-motion";
+import { NotificationBanner } from "./NotificationBanner";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -52,23 +53,35 @@ export const GameBoard: React.FC = () => {
         isDeckSelectionOpen,
         selectDeck,
         setDeckSelectionOpen,
+        originDeck,
     } = gameState;
 
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
     const [showTurnEndAnimation, setShowTurnEndAnimation] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
+    const [currentNotification, setCurrentNotification] = useState<{
+        message: string;
+        duration: number;
+    } | null>(null);
+
+    const drawInitial = useCallback(() => {
+        setTimeout(() => draw(), 10);
+        setTimeout(() => draw(), 20);
+        setTimeout(() => draw(), 30);
+        setTimeout(() => draw(), 40);
+        setTimeout(() => draw(), 50);
+        if (originDeck?.rules.includes("start_six_hand")) {
+            setTimeout(() => draw(), 60);
+        }
+    }, [draw, originDeck]);
 
     const reset = useCallback(() => {
         if (selectedDeck) {
             initializeGame(selectedDeck);
-            setTimeout(() => draw(), 10);
-            setTimeout(() => draw(), 20);
-            setTimeout(() => draw(), 30);
-            setTimeout(() => draw(), 40);
-            setTimeout(() => draw(), 50);
+            drawInitial();
         }
-    }, [initializeGame, selectedDeck, draw]);
+    }, [initializeGame, selectedDeck, drawInitial]);
 
     const handleGameReset = useCallback(() => {
         if (isResetting) return; // 連打防止
@@ -86,14 +99,10 @@ export const GameBoard: React.FC = () => {
         (deck: Deck) => {
             selectDeck(deck);
             initializeGame(deck);
-            setTimeout(() => draw(), 10);
-            setTimeout(() => draw(), 20);
-            setTimeout(() => draw(), 30);
-            setTimeout(() => draw(), 40);
-            setTimeout(() => draw(), 50);
+            drawInitial();
             setHasInitialized(true); // Mark as initialized after deck change
         },
-        [selectDeck, initializeGame, draw]
+        [selectDeck, initializeGame, drawInitial]
     );
 
     // Only initialize when a deck is first selected (not when modal is opened/closed)
@@ -149,6 +158,17 @@ export const GameBoard: React.FC = () => {
                     await new Promise((resolve) => setTimeout(resolve, currentEffect.delay ?? 50));
                     processQueueTop({ type: "delay" });
                 }
+            } else if (currentEffect?.type === "notification") {
+                // Show notification banner
+                setCurrentNotification({
+                    message: currentEffect.message,
+                    duration: currentEffect.duration ?? 2000,
+                });
+
+                // Auto-process notification after showing
+                setTimeout(() => {
+                    processQueueTop({ type: "delay" });
+                }, 100);
             } else if (currentEffect?.type === "spell_end") {
                 processQueueTop({ type: "spellend" });
             }
@@ -400,6 +420,16 @@ export const GameBoard: React.FC = () => {
                     onSelectDeck={handleDeckSelect}
                     onClose={() => setDeckSelectionOpen(false)}
                 />
+
+                {/* 通知バナー */}
+                {currentNotification && (
+                    <NotificationBanner
+                        message={currentNotification.message}
+                        duration={currentNotification.duration}
+                        isVisible={!!currentNotification}
+                        onComplete={() => setCurrentNotification(null)}
+                    />
+                )}
             </div>
         </div>
     );

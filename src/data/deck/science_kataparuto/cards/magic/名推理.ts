@@ -37,7 +37,7 @@ export default {
                 } else if (hasLevel1Monster) {
                     declaredLevel = 5;
                 } else {
-                    declaredLevel = Math.floor(Math.random() * 8) + 1;
+                    declaredLevel = 5;
                 }
 
                 withNotification(
@@ -47,30 +47,55 @@ export default {
                         message: `相手はレベル${declaredLevel}を宣言しました`,
                     },
                     (state, card) => {
-                        const index = new CardSelector(state)
-                            .deck()
-                            .get()
-                            .findIndex((e) => e !== null && monsterFilter(e.card) && e.card.canNormalSummon === true);
-                        const foundMonster: CardInstance = new CardSelector(state).deck().get()[index]!;
-                        const isSummon = getLevel(foundMonster) === declaredLevel;
+                        // デッキから通常召喚可能なモンスターを探すまでのインデックスを取得
+                        const deckCards = new CardSelector(state).deck().get();
+                        const foundIndex = deckCards.findIndex(
+                            (card) => card !== null && monsterFilter(card.card) && card.card.canNormalSummon === true
+                        );
 
+                        if (foundIndex === -1) {
+                            // 通常召喚可能なモンスターが見つからない場合
+                            return;
+                        }
+
+                        const foundMonster = deckCards[foundIndex]!;
+                        const foundLevel = getLevel(foundMonster);
+                        const isCorrectGuess = foundLevel === declaredLevel;
+                        state.deck[0].position = "attack";
+
+                        // めくったカードの処理（見つかったモンスターまで）
                         withDelayRecursive(
                             state,
                             card,
                             { delay: 200 },
-                            index,
+                            foundIndex + 1, // 見つかったモンスターを含む枚数
                             (state, card, depth) => {
-                                if (depth === 0) {
-                                    if (isSummon) {
-                                        withUserSummon(state, card, state.deck[0], {}, () => {});
+                                const currentIndex = foundIndex + 1 - depth; // 0から始まるインデックス
+                                const currentCard = state.deck[0]; // デッキの一番上のカード
+                                if (currentIndex === foundIndex) {
+                                    // 見つかったモンスターの処理
+                                    if (isCorrectGuess) {
+                                        // 宣言が的中した場合、墓地へ
+                                        withNotification(state, card, { message: "宣言が的中しました。" }, (state) => {
+                                            sendCard(state, state.deck[0], "Graveyard");
+                                        });
                                     } else {
-                                        sendCard(state, state.deck[0], "Graveyard");
+                                        withNotification(
+                                            state,
+                                            card,
+                                            { message: "宣言が外れました。" },
+                                            (state, card) => {
+                                                // 宣言が外れた場合、特殊召喚
+                                                withUserSummon(state, card, state.deck[0], {}, () => {});
+                                            }
+                                        );
                                     }
                                 } else {
-                                    sendCard(state, state.deck[0], "Graveyard");
+                                    // 途中でめくったカードは墓地へ
+                                    sendCard(state, currentCard, "Graveyard");
+                                    state.deck[0].position = "attack";
                                 }
-                            },
-                            () => {}
+                            }
                         );
                     }
                 );

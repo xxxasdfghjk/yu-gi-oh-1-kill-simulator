@@ -15,23 +15,21 @@ export default {
                 return new CardSelector(state).hand().filter().excludeId(card.id).len() > 0;
             },
             effect: (state, card) => {
-                withDelay(state, card, { delay: 500 }, (state, card) => {
-                    const handCard = new CardSelector(state).hand().filter().excludeId(card.id).nonNull().get();
-                    withDelayRecursive(
-                        state,
-                        card,
-                        { delay: 100 },
-                        handCard.length,
-                        (state, _card, depth) => {
-                            sendCard(state, handCard[depth - 1], "Graveyard");
-                        },
-                        (state, card) => {
-                            withDelayRecursive(state, card, { delay: 100 }, handCard.length, (state, _card, depth) => {
-                                sendCard(state, state.deck[depth - 1], "Hand");
-                            });
-                        }
-                    );
-                });
+                const handCard = new CardSelector(state).hand().filter().excludeId(card.id).nonNull().get();
+                withDelayRecursive(
+                    state,
+                    card,
+                    { delay: 100 },
+                    handCard.length,
+                    (state) => {
+                        sendCard(state, state.hand[0], "Graveyard");
+                    },
+                    (state, card) => {
+                        withDelayRecursive(state, card, { delay: 100 }, handCard.length, (state, _card, depth) => {
+                            sendCard(state, state.deck[depth - 1], "Hand");
+                        });
+                    }
+                );
             },
         },
     },

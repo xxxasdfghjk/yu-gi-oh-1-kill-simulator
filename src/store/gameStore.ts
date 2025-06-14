@@ -5,7 +5,7 @@ import type { Deck } from "@/data/deckUtils";
 import deckList from "@/data/deck/deckList";
 
 import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
-import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
+import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { withDelay, withUserSummon, type Position } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
@@ -101,6 +101,15 @@ export type EffectQueueItem =
             }
           | {
                 id: string;
+                type: "notification";
+                cardInstance: CardInstance;
+                effectType: string;
+                message: string;
+                duration?: number;
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
                 type: "material_select";
                 cardInstance: CardInstance;
                 effectType: string;
@@ -178,6 +187,7 @@ const initialState: GameState = {
     currentTo: { location: "Hand" },
     throne: [null, null, null, null, null],
     isProcessing: false,
+    originDeck: null,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -257,6 +267,7 @@ export const useGameStore = create<GameStore>()(
                 state.turnOnceUsedEffectMemo = {};
                 state.throne = [null, null, null, null, null];
                 state.isProcessing = false;
+                state.originDeck = deckData;
             });
         },
 
@@ -326,7 +337,7 @@ export const useGameStore = create<GameStore>()(
                         break;
                     }
                     case "delay": {
-                        if (currentEffect.type === "notify")
+                        if (currentEffect.type === "notify" || currentEffect.type === "notification")
                             currentEffect?.callback?.(state, currentEffect.cardInstance);
                         break;
                     }

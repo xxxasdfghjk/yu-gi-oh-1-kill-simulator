@@ -20,7 +20,7 @@ export default {
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
-    canNormalSummon: false as const,
+    canNormalSummon: true as const,
     effect: {
         // ①：召喚・特殊召喚時効果
         onSummon: (state: GameStore, card: CardInstance) => {

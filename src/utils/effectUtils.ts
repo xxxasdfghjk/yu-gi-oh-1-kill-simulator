@@ -207,6 +207,28 @@ export const withUserSummon = (
     }
 };
 
+export const withNotification = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        message: string;
+        duration?: number;
+        order?: number;
+    },
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    pushQueue(state, {
+        id: uuidv4(),
+        order: options.order ?? 1,
+        type: "notification",
+        cardInstance: card,
+        effectType: "notification",
+        message: options.message,
+        duration: options.duration ?? 2000,
+        callback,
+    });
+};
+
 export const withDelayRecursive = (
     state: GameStore,
     card: CardInstance,

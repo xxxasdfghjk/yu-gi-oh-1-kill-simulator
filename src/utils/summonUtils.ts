@@ -1,17 +1,24 @@
 import type { Card, CardInstance } from "@/types/card";
 import type { GameState } from "@/types/game";
 import { isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
+import { getLevel } from "./gameUtils";
+import { CardSelector } from "./CardSelector";
+import type { GameStore } from "@/store/gameStore";
 
-export const canNormalSummon = (gameState: GameState, card: CardInstance): boolean => {
+export const canNormalSummon = (gameState: GameStore, card: CardInstance): boolean => {
     if (!monsterFilter(card.card)) return false;
     if (gameState.hasNormalSummoned) return false;
 
     if (gameState.phase !== "main1" && gameState.phase !== "main2") return false;
     // 特殊召喚モンスターは通常召喚できない
     if (!card.card.canNormalSummon) return false;
-
-    const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
-    return hasEmpty;
+    const needRelease = getLevel(card) <= 4 ? 0 : getLevel(card) <= 6 ? 1 : 2;
+    if (needRelease) {
+        return new CardSelector(gameState).allMonster().getNonNull().length >= needRelease;
+    } else {
+        const hasEmpty = gameState.field.monsterZones.filter((e) => e === null).length > 0;
+        return hasEmpty;
+    }
 };
 
 export const findEmptyMonsterZone = (gameState: GameState): number => {

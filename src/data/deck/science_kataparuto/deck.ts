@@ -1,4 +1,4 @@
-import { expandDeckList } from "@/data/deckUtils";
+import { expandDeckList, type Deck } from "@/data/deckUtils";
 import type { Card } from "@/types/card";
 
 const magicModules = import.meta.glob("./cards/magic/*.ts", { eager: true }) as Record<string, { default: Card }>;
@@ -57,4 +57,5 @@ export default {
     main_deck: expandDeckList(DECK_CONFIG.main_deck, allCardListMap),
     extra_deck: expandDeckList(DECK_CONFIG.extra_deck, allCardListMap),
     token: expandDeckList(DECK_CONFIG.token, allCardListMap),
-};
+    rules: ["start_six_hand"],
+} satisfies Deck;

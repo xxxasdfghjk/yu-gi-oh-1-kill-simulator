@@ -13,5 +13,5 @@ export default {
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
-    canNormalSummon: false as const,
+    canNormalSummon: true as const,
 };
