@@ -1,6 +1,7 @@
 import type { LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import { withLifeChange, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "魔導サイエンティスト",
@@ -26,12 +27,12 @@ export default {
                 if (card.position !== "attack" && card.position !== "defense") return false;
 
                 // Check if player has at least 1000 life points
-                if (state.lifePoints < 1000) return false;
+                if (state.lifePoints <= 1000) return false;
 
                 // Check if there are level 6 or lower fusion monsters in extra deck
                 const fusionMonsters = new CardSelector(state).extraDeck().filter().fusionMonster().underLevel(6).get();
 
-                return fusionMonsters.length > 0;
+                return fusionMonsters.length > 0 && hasEmptyMonsterZone(state);
             },
             effect: (state, card) => {
                 // Select a level 6 or lower fusion monster from extra deck

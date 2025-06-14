@@ -254,8 +254,7 @@ export const withLifeChange = (
         state.opponentLifePoints = newLP;
     }
 
-    // Check for game over conditions after life point change
-    state.judgeWin();
+    // Victory conditions will be checked by GameBoard useEffect
 
     // Add the animation to the queue
     pushQueue(state, {

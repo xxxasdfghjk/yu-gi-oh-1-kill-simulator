@@ -25,7 +25,6 @@ import { getChainableCards } from "@/utils/effectUtils";
 import { DebugStateModal } from "./DebugStateModal";
 
 export const GameBoard: React.FC = () => {
-    const gameState = useGameStore();
     const {
         hand,
         field,
@@ -56,8 +55,8 @@ export const GameBoard: React.FC = () => {
         isDeckSelectionOpen,
         selectDeck,
         setDeckSelectionOpen,
-    } = gameState;
-
+    } = useGameStore();
+    const gameState = useGameStore();
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
     const [showTurnEndAnimation, setShowTurnEndAnimation] = useState(false);
@@ -107,10 +106,10 @@ export const GameBoard: React.FC = () => {
 
     // Monitor life points for victory conditions
     useEffect(() => {
-        if (hasInitialized && !gameOver) {
+        if (hasInitialized && !gameOver && !isResetting) {
             judgeWin();
         }
-    }, [lifePoints, opponentLifePoints, hasInitialized, gameOver, judgeWin]);
+    }, [lifePoints, opponentLifePoints, hasInitialized, gameOver, isResetting, judgeWin]);
 
     const startSpecialSummon = (monster: CardInstance, summonType: "link" | "xyz" | "synchro" | "fusion") => {
         if (summonType === "link" && gameState.startLinkSummon) {
@@ -342,15 +341,14 @@ export const GameBoard: React.FC = () => {
                                         className="text-2xl text-white mb-8"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ 
-                                            delay: winReason === "exodia" ? 4.6 : 1.1, 
-                                            duration: 0.6 
+                                        transition={{
+                                            delay: winReason === "exodia" ? 4.6 : 1.1,
+                                            duration: 0.6,
                                         }}
                                     >
-                                        {winReason === "exodia" 
+                                        {winReason === "exodia"
                                             ? "エクゾディアの5つのパーツが揃いました！"
-                                            : "相手のライフポイントを0にしました！"
-                                        }
+                                            : "相手のライフポイントを0にしました！"}
                                     </motion.p>
                                     <motion.button
                                         className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${
@@ -360,9 +358,9 @@ export const GameBoard: React.FC = () => {
                                         }`}
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ 
-                                            delay: winReason === "exodia" ? 5.2 : 1.7, 
-                                            duration: 0.6 
+                                        transition={{
+                                            delay: winReason === "exodia" ? 5.2 : 1.7,
+                                            duration: 0.6,
                                         }}
                                         whileHover={!isResetting ? { scale: 1.05 } : {}}
                                         whileTap={!isResetting ? { scale: 0.95 } : {}}
