@@ -24,8 +24,10 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
     const [currentEffect, setCurrentEffect] = useState<EffectQueueItem | null>(null);
     const [isClosing, setIsClosing] = useState(false);
     useEffect(() => {
+        console.log("EffectQueueModal useEffect:", { effectQueueLength: effectQueue.length, isClosing });
         if (effectQueue.length > 0 && !isClosing) {
             const effect = effectQueue[0];
+            console.log("Processing effect:", effect);
             if (
                 effect.type === "option" ||
                 effect.type === "select" ||
@@ -35,10 +37,15 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                 effect.type === "material_select" ||
                 effect.type === "chain_check"
             ) {
+                console.log("Setting currentEffect:", effect);
                 setCurrentEffect(effect);
             } else {
+                console.log("Effect type not handled by modal:", effect.type);
                 setCurrentEffect(null);
             }
+        } else {
+            console.log("No effects to process or modal is closing");
+            setCurrentEffect(null);
         }
     }, [effectQueue, isClosing]);
 
@@ -50,7 +57,11 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setIsClosing(false);
         }, 300); // Match animation duration
     };
-    if (!currentEffect) return null;
+    console.log("EffectQueueModal render, currentEffect:", currentEffect);
+    if (!currentEffect) {
+        console.log("No currentEffect, returning null");
+        return null;
+    }
     switch (currentEffect.type) {
         case "option":
             return (
@@ -65,6 +76,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             );
 
         case "select":
+            console.log("Rendering MultiCardConditionSelector for select type");
             return (
                 <MultiCardConditionSelector
                     condition={currentEffect.condition}
