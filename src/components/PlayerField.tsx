@@ -31,6 +31,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 }) => {
     const { currentFrom, currentTo, deckEffects } = useGameStore();
     const [showDeckEffectModal, setShowDeckEffectModal] = useState(false);
+    const gameState = useGameStore();
 
     const cardSizeClass = CARD_SIZE.MEDIUM;
     const fieldZoneInitial =
@@ -136,14 +137,16 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
                     <div
                         className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-20 absolute top-0 opacity-80 border-2 border-orange-900 ${
-                            deckEffects.filter(e => e.canActivate()).length > 0 ? 'cursor-pointer hover:opacity-100' : ''
+                            deckEffects.filter((e) => e.canActivate(gameState)).length > 0
+                                ? "cursor-pointer hover:opacity-100"
+                                : ""
                         }`}
                         onClick={() => {
-                            const activableEffects = deckEffects.filter(e => e.canActivate());
+                            const activableEffects = deckEffects.filter((e) => e.canActivate(gameState));
                             if (activableEffects.length > 0) {
                                 // If only one effect, activate it directly
                                 if (activableEffects.length === 1) {
-                                    activableEffects[0].activate();
+                                    activableEffects[0].activate(gameState);
                                 } else {
                                     // Multiple effects - show selection modal
                                     setShowDeckEffectModal(true);
@@ -154,7 +157,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                         <div>
                             <div className="text-xs">DECK</div>
                             <div className="text-lg">{deck.length}</div>
-                            {deckEffects.filter(e => e.canActivate()).length > 0 && (
+                            {deckEffects.filter((e) => e.canActivate(gameState)).length > 0 && (
                                 <div className="text-xs text-yellow-300">★</div>
                             )}
                         </div>
@@ -169,12 +172,12 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     ))}
                 </div>
             </div>
-            
+
             {showDeckEffectModal && (
                 <DeckEffectSelectorModal
                     effects={deckEffects}
                     onSelect={(effect) => {
-                        effect.activate();
+                        effect.activate(gameState);
                         setShowDeckEffectModal(false);
                     }}
                     onCancel={() => setShowDeckEffectModal(false)}
