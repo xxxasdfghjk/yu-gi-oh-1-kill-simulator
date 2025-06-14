@@ -1,5 +1,5 @@
 import type { GameStore } from "@/store/gameStore";
-import type { MagicCard } from "@/types/card";
+import type { CardInstance, MagicCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
 import { v4 as uuidv4 } from "uuid";
@@ -24,26 +24,19 @@ export default {
                     canActivate: (state: GameStore) => {
                         // Check if monsters were sent to graveyard this turn
                         const monstersThisTurn = state.monstersToGraveyardThisTurn.length;
-                        const availableTargets = new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).len();
-                        console.log("Last Will canActivate check:", {
-                            monstersThisTurn,
-                            availableTargets,
-                            result: monstersThisTurn > 0 && availableTargets > 0
-                        });
-                        return (
-                            monstersThisTurn > 0 && availableTargets > 0
-                        );
+                        const availableTargets = new CardSelector(state)
+                            .deck()
+                            .filter()
+                            .monster()
+                            .hasAttackBelow(1500)
+                            .len();
+                        return monstersThisTurn > 0 && availableTargets > 0;
                     },
-                    activate: (state: GameStore) => {
-                        console.log("Last Will activate called");
-                        const availableMonsters = new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).get();
-                        console.log("Available monsters for Last Will:", availableMonsters);
-                        
+                    activate: (state: GameStore, card: CardInstance) => {
                         withUserSelectCard(
                             state,
                             card,
                             (state) => {
-                                console.log("withUserSelectCard callback called");
                                 return new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).get();
                             },
                             {
@@ -52,7 +45,6 @@ export default {
                                 message: "特殊召喚するモンスターを選択（攻撃力1500以下）",
                             },
                             (state, card, selected) => {
-                                console.log("Monster selected for Last Will:", selected);
                                 withUserSummon(
                                     state,
                                     card,
@@ -61,8 +53,7 @@ export default {
                                         canSelectPosition: true,
                                         optionPosition: ["attack", "defense"],
                                     },
-                                    () => {
-                                        console.log("Last Will effect completed, removing from deck effects");
+                                    (state) => {
                                         state.deckEffects = state.deckEffects.filter((e) => e.id !== effectId);
                                     }
                                 );
@@ -72,9 +63,7 @@ export default {
                 };
 
                 // Add to deck effects
-                console.log("Adding Last Will deck effect:", deckEffect);
                 state.deckEffects.push(deckEffect);
-                console.log("Current deck effects:", state.deckEffects);
             },
         },
     },

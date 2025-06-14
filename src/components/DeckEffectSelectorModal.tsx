@@ -7,7 +7,7 @@ export interface DeckEffect {
     name: string;
     card: CardInstance;
     canActivate: (state: GameStore) => boolean;
-    activate: (state: GameStore) => void;
+    activate: (state: GameStore, card: CardInstance) => void;
 }
 
 interface DeckEffectSelectorModalProps {

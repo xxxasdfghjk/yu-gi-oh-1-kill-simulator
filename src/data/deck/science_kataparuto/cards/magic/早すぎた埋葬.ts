@@ -63,7 +63,7 @@ export default {
             },
         },
         // When this card leaves the field, destroy the equipped monster
-        onLeaveFieldInstead: (state, card) => {
+        onLeaveField: (state, card) => {
             // Check if this card is being destroyed because the equipped monster was destroyed
             // to prevent infinite loops
             const isEquipmentDestruction = card.location !== "SpellField";

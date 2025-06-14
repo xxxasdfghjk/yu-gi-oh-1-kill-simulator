@@ -19,10 +19,11 @@ export default {
                 return handCardsCount >= 2 && magicInGraveyard > 0;
             },
             payCost: (state, card, after) => {
+                const id = card.id;
                 withUserSelectCard(
                     state,
                     card,
-                    (state) => new CardSelector(state).hand().getNonNull(),
+                    (state) => new CardSelector(state).hand().filter().excludeId(id).get(),
                     {
                         select: "multi",
                         condition: (list) => list.length === 2,

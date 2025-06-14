@@ -10,6 +10,7 @@ import type { CardInstance } from "@/types/card";
 import { withDelay, withUserSummon, type Position, playCardInternal } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { placementPriority } from "@/components/SummonSelector";
+import type { DeckEffect } from "@/components/DeckEffectSelectorModal";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
@@ -171,6 +172,7 @@ export interface GameStore extends GameState {
     resetAnimationState: () => void;
     setGameOver: (winner: "player" | "timeout") => void;
     animationExodiaWin: () => void;
+    activateDeckEffect: (callback: DeckEffect) => void;
 }
 
 const initialState: GameState = {
@@ -307,7 +309,8 @@ export const useGameStore = create<GameStore>()(
         // Effect Queue System
         addEffectToQueue: (effect: EffectQueueItem) => {
             set((state) => {
-                state.effectQueue.push(effect);
+                const queue = [effect, ...state.effectQueue].sort((a, b) => a.order - b.order);
+                state.effectQueue = queue;
             });
         },
 
@@ -590,7 +593,11 @@ export const useGameStore = create<GameStore>()(
                 }
             });
         },
-
+        activateDeckEffect: (deckEffect: DeckEffect) => {
+            set((state) => {
+                deckEffect.activate(state, deckEffect.card);
+            });
+        },
         resetAnimationState: () => {
             set((state) => {
                 state.currentFrom = { location: "Deck" };
