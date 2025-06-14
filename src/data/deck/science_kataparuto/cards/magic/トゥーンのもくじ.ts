@@ -2,7 +2,7 @@ import type { GameStore } from "@/store/gameStore";
 import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard } from "@/utils/effectUtils";
+import { withNotification, withUserSelectCard } from "@/utils/effectUtils";
 
 export default {
     card_name: "トゥーンのもくじ",
@@ -17,6 +17,10 @@ export default {
             },
             effect: (state, card) => {
                 const list = (state: GameStore) => new CardSelector(state).deck().filter().include("トゥーン").get();
+                if (list.length === 0) {
+                    withNotification(state, card, { message: "対象が見つかりません" }, () => {});
+                    return;
+                }
                 withUserSelectCard(state, card, list, { select: "single" }, (state, card, selected) => {
                     sendCard(state, selected[0], "Hand");
                 });

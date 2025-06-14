@@ -208,6 +208,8 @@ const initialState: GameState = {
     isProcessing: false,
     originDeck: null,
     cardChain: [],
+    deckEffects: [],
+    monstersToGraveyardThisTurn: [],
 };
 
 export const useGameStore = create<GameStore>()(
@@ -289,6 +291,8 @@ export const useGameStore = create<GameStore>()(
                 state.isProcessing = false;
                 state.originDeck = deckData;
                 state.cardChain = [];
+                state.deckEffects = [];
+                state.monstersToGraveyardThisTurn = [];
             });
         },
 
@@ -411,6 +415,8 @@ export const useGameStore = create<GameStore>()(
                         state.phase = "draw";
                         state.isOpponentTurn = true;
                         state.turn = state.turn + 1;
+                        // Reset turn-based tracking
+                        state.monstersToGraveyardThisTurn = [];
                         break;
                     case "draw":
                         state.phase = "main1";

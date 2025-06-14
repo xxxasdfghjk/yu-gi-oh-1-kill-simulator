@@ -2,7 +2,7 @@ import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location } from "@/types/card";
 import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
-import { isExtraDeckMonster } from "./cardManagement";
+import { isExtraDeckMonster, monsterFilter } from "./cardManagement";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -154,6 +154,10 @@ export const sendCard = (
         case "Graveyard":
             state.currentTo = { location: "Graveyard" };
             state.graveyard.push(updatedCard);
+            // Track monsters sent to graveyard this turn
+            if (monsterFilter(updatedCard.card)) {
+                state.monstersToGraveyardThisTurn.push(updatedCard);
+            }
             break;
         case "Exclusion":
             state.currentTo = { location: "Graveyard" };

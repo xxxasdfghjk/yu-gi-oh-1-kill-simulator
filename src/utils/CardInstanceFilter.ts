@@ -77,6 +77,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(list);
     }
 
+    hasAttackBelow(attack: number) {
+        const list = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.attack <= attack
+        );
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
     len() {
         return this.cardList.length;
     }

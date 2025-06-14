@@ -30,7 +30,6 @@ export default {
                 if (chainCardList.length === 0) {
                     return false;
                 }
-                const chainCard = chainCardList[0];
 
                 const handLength = new CardSelector(state).hand().len();
                 withDelayRecursive(
@@ -42,7 +41,8 @@ export default {
                         sendCard(state, state.hand[0], "Graveyard");
                     },
                     (state, card) => {
-                        chainCard?.card?.effect?.onSpell?.effect?.(state, card);
+                        const chainCardList = state.cardChain.filter((e) => e.id !== card.id).at(0);
+                        chainCardList?.card?.effect?.onSpell?.effect?.(state, card);
                     }
                 );
             },

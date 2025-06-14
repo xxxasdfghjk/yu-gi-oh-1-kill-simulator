@@ -43,4 +43,6 @@ export interface GameState {
     isProcessing: boolean;
     originDeck: Deck | null;
     cardChain: CardInstance[];
+    deckEffects: { id: string; name: string; canActivate: () => boolean; activate: () => void }[];
+    monstersToGraveyardThisTurn: CardInstance[];
 }

@@ -437,8 +437,8 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                     state.cardChain.unshift(card);
                     withCheckChain(state, card, {}, (state, card, selected) => {
                         if (selected) {
-                            playCardInternal(state, selected);
                             card.card.effect.onSpell?.effect(state, card);
+                            playCardInternal(state, selected);
                         } else {
                             card.card.effect.onSpell?.effect(state, card);
                         }
