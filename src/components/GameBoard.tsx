@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBanner } from "./NotificationBanner";
 import { LifePointsDisplay } from "./LifePointsDisplay";
 import { getChainableCards } from "@/utils/effectUtils";
+import { DebugStateModal } from "./DebugStateModal";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -66,6 +67,7 @@ export const GameBoard: React.FC = () => {
         message: string;
         duration: number;
     } | null>(null);
+    const [showDebugModal, setShowDebugModal] = useState(false);
 
     const drawInitial = useCallback(() => {
         setTimeout(() => draw(), 10);
@@ -184,7 +186,11 @@ export const GameBoard: React.FC = () => {
                 }
                 // If there are chainable cards, the modal will handle it
             } else if (currentEffect?.type === "spell_end") {
-                processQueueTop({ type: "spellend" });
+                processQueueTop({
+                    type: "spellend",
+                    callback: currentEffect.callback,
+                    cardInstance: currentEffect.cardInstance,
+                });
             }
         };
         func();
@@ -225,7 +231,12 @@ export const GameBoard: React.FC = () => {
                             </div>
                             <div className="w-72 flex flex-col itmes-center justify-between">
                                 {/* 新しいゲーム状態表示 */}
-                                <GameStatusDisplay turn={turn} phase={phase} isOpponentTurn={isOpponentTurn} />
+                                <GameStatusDisplay
+                                    turn={turn}
+                                    phase={phase}
+                                    isOpponentTurn={isOpponentTurn}
+                                    onDebugClick={() => setShowDebugModal(true)}
+                                />
 
                                 {/* 相手のライフポイント表示 */}
                                 <LifePointsDisplay
@@ -448,6 +459,13 @@ export const GameBoard: React.FC = () => {
                         onComplete={() => setCurrentNotification(null)}
                     />
                 )}
+
+                {/* デバッグモーダル */}
+                <DebugStateModal
+                    isOpen={showDebugModal}
+                    onClose={() => setShowDebugModal(false)}
+                    gameState={gameState}
+                />
             </div>
         </div>
     );

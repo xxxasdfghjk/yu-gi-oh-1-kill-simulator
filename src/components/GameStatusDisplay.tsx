@@ -5,6 +5,7 @@ interface GameStatusDisplayProps {
     turn: number;
     phase: string;
     isOpponentTurn: boolean;
+    onDebugClick?: () => void;
 }
 
 const phaseDisplayNames: Record<string, string> = {
@@ -25,7 +26,7 @@ const phaseColors: Record<string, string> = {
     end: "from-gray-500 to-gray-600",
 };
 
-export const GameStatusDisplay: React.FC<GameStatusDisplayProps> = ({ turn, phase, isOpponentTurn }) => {
+export const GameStatusDisplay: React.FC<GameStatusDisplayProps> = ({ turn, phase, isOpponentTurn, onDebugClick }) => {
     const phaseColor = phaseColors[phase] || "from-gray-500 to-gray-600";
     const phaseName = phaseDisplayNames[phase] || phase;
 
@@ -36,7 +37,20 @@ export const GameStatusDisplay: React.FC<GameStatusDisplayProps> = ({ turn, phas
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
         >
-            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4 min-w-[250px]">
+            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4 min-w-[250px] relative">
+                {/* デバッグボタン */}
+                {onDebugClick && (
+                    <button
+                        onClick={onDebugClick}
+                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Debug State"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                    </button>
+                )}
+                
                 {/* ターン表示 */}
                 <div className="mb-3">
                     <div className="text-sm text-gray-600 mb-1">TURN</div>

@@ -1,6 +1,8 @@
 import type { MagicCard } from "@/types/card";
 import { hasEmptySpellField, isMagicCard } from "../../../../../utils/cardManagement";
 import { CardSelector } from "@/utils/CardSelector";
+import { withDelayRecursive } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
 
 export default {
     card_name: "連続魔法",
@@ -24,8 +26,25 @@ export default {
                 );
             },
             effect: (state, card) => {
-                const chainCard = state.cardChain.filter((e) => e.id !== card.id).at(0);
-                chainCard?.card?.effect?.onSpell?.effect?.(state, card);
+                const chainCardList = state.cardChain.filter((e) => e.id !== card.id);
+                if (chainCardList.length === 0) {
+                    return false;
+                }
+                const chainCard = chainCardList[0];
+
+                const handLength = new CardSelector(state).hand().len();
+                withDelayRecursive(
+                    state,
+                    card,
+                    {},
+                    handLength,
+                    (state) => {
+                        sendCard(state, state.hand[0], "Graveyard");
+                    },
+                    (state, card) => {
+                        chainCard?.card?.effect?.onSpell?.effect?.(state, card);
+                    }
+                );
             },
         },
         onChain: {

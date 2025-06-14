@@ -16,7 +16,7 @@ export type ProcessQueuePayload =
     | { type: "option"; option: { name: string; value: string }[] }
     | { type: "summon"; zone: number; position: "back_defense" | "attack" | "back" | "defense" }
     | { type: "confirm"; confirmed: boolean }
-    | { type: "spellend" }
+    | { type: "spellend"; cardInstance: CardInstance; callback?: (state: GameStore, card: CardInstance) => void }
     | { type: "delay" }
     | { type: "chain_select"; selectedCard?: CardInstance };
 
@@ -354,11 +354,16 @@ export const useGameStore = create<GameStore>()(
                     }
                     case "spellend": {
                         sendCard(state, currentEffect.cardInstance, "Graveyard");
+                        payload?.callback?.(state, payload.cardInstance);
                         state.isProcessing = false;
                         break;
                     }
                     case "delay": {
-                        if (currentEffect.type === "notify" || currentEffect.type === "notification")
+                        if (
+                            currentEffect.type === "notify" ||
+                            currentEffect.type === "notification" ||
+                            currentEffect.type === "life_change"
+                        )
                             currentEffect?.callback?.(state, currentEffect.cardInstance);
                         break;
                     }
