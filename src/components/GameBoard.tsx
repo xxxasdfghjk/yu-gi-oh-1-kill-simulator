@@ -23,7 +23,7 @@ import { NotificationBanner } from "./NotificationBanner";
 import { LifePointsDisplay } from "./LifePointsDisplay";
 import { getChainableCards } from "@/utils/effectUtils";
 import { DebugStateModal } from "./DebugStateModal";
-import { BanishedModal } from "./BanishedModal";
+import { CardListModal } from "./CardListModal";
 
 export const GameBoard: React.FC = () => {
     const {
@@ -292,7 +292,14 @@ export const GameBoard: React.FC = () => {
                     startXyzSummon={(monster) => startSpecialSummon(monster, "xyz")}
                 />
 
-                <BanishedModal isOpen={showBanished} onClose={() => setShowBanished(false)} banished={banished} />
+                <CardListModal
+                    isOpen={showBanished}
+                    onClose={() => setShowBanished(false)}
+                    cards={banished}
+                    title="除外ゾーン"
+                    emptyMessage="除外されたカードはありません"
+                    accentColor="indigo"
+                />
 
                 {/* YOU WIN オーバーレイ */}
                 <AnimatePresence mode="wait">
