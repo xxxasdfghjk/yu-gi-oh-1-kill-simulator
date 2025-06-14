@@ -142,15 +142,21 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                                 : ""
                         }`}
                         onClick={() => {
+                            console.log("Deck clicked, deckEffects:", deckEffects);
                             const activableEffects = deckEffects.filter((e) => e.canActivate(gameState));
+                            console.log("Activable effects:", activableEffects);
                             if (activableEffects.length > 0) {
                                 // If only one effect, activate it directly
                                 if (activableEffects.length === 1) {
+                                    console.log("Activating single effect:", activableEffects[0]);
                                     activableEffects[0].activate(gameState);
                                 } else {
                                     // Multiple effects - show selection modal
+                                    console.log("Showing modal for multiple effects");
                                     setShowDeckEffectModal(true);
                                 }
+                            } else {
+                                console.log("No activable effects found");
                             }
                         }}
                     >

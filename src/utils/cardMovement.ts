@@ -156,7 +156,9 @@ export const sendCard = (
             state.graveyard.push(updatedCard);
             // Track monsters sent to graveyard this turn
             if (monsterFilter(updatedCard.card)) {
+                console.log("Monster sent to graveyard this turn:", updatedCard.card.card_name);
                 state.monstersToGraveyardThisTurn.push(updatedCard);
+                console.log("Total monsters to graveyard this turn:", state.monstersToGraveyardThisTurn.length);
             }
             break;
         case "Exclusion":

@@ -12,8 +12,7 @@ export default {
     effect: {
         onSpell: {
             condition: (state) => {
-                return state.lifePoints >= 800 && 
-                       new CardSelector(state).graveyard().filter().monster().len() > 0;
+                return state.lifePoints >= 800 && new CardSelector(state).graveyard().filter().monster().len() > 0;
             },
             effect: (state, card) => {
                 // Pay 800 life points first
@@ -38,7 +37,7 @@ export default {
                             },
                             (state, card, selected) => {
                                 const selectedMonster = selected[0];
-                                
+
                                 // Special summon in attack position
                                 withUserSummon(
                                     state,
@@ -48,35 +47,13 @@ export default {
                                         canSelectPosition: false,
                                         optionPosition: ["attack"],
                                     },
-                                    (state, card) => {
+                                    (state, card, monster) => {
                                         // Find the summoned monster by searching for the selected monster
-                                        let summonedMonster = null;
-                                        
+
                                         // Search in monster zones
-                                        for (let i = 0; i < state.field.monsterZones.length; i++) {
-                                            if (state.field.monsterZones[i]?.id === selectedMonster.id) {
-                                                summonedMonster = state.field.monsterZones[i];
-                                                break;
-                                            }
-                                        }
-                                        
-                                        // Search in extra monster zones if not found
-                                        if (!summonedMonster) {
-                                            for (let i = 0; i < state.field.extraMonsterZones.length; i++) {
-                                                if (state.field.extraMonsterZones[i]?.id === selectedMonster.id) {
-                                                    summonedMonster = state.field.extraMonsterZones[i];
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (summonedMonster) {
-                                            // Equip this card to the summoned monster
-                                            equipCard(state, summonedMonster, card);
-                                            
-                                            // Store reference for mutual destruction
-                                            (card as any).prematureBurialTarget = summonedMonster.id;
-                                        }
+                                        equipCard(state, monster, card);
+
+                                        // Store reference for mutual destruction
                                     }
                                 );
                             }
@@ -90,12 +67,12 @@ export default {
             // Check if this card is being destroyed because the equipped monster was destroyed
             // to prevent infinite loops
             const isEquipmentDestruction = card.location !== "SpellField";
-            
+
             if ((card as any).prematureBurialTarget && !isEquipmentDestruction) {
                 // Find the equipped monster
                 const targetId = (card as any).prematureBurialTarget;
                 let targetMonster = null;
-                
+
                 // Search in monster zones
                 for (let i = 0; i < state.field.monsterZones.length; i++) {
                     if (state.field.monsterZones[i]?.id === targetId) {
@@ -103,7 +80,7 @@ export default {
                         break;
                     }
                 }
-                
+
                 // Search in extra monster zones
                 if (!targetMonster) {
                     for (let i = 0; i < state.field.extraMonsterZones.length; i++) {
@@ -113,7 +90,7 @@ export default {
                         }
                     }
                 }
-                
+
                 // Destroy the target monster if found
                 if (targetMonster) {
                     import("@/utils/cardMovement").then(({ sendCard }) => {
@@ -121,8 +98,8 @@ export default {
                     });
                 }
             }
-            
-            // Remove the card normally 
+
+            // Remove the card normally
             import("@/utils/cardMovement").then(({ sendCard }) => {
                 sendCard(state, card, "Graveyard", { ignoreLeavingInstead: true });
             });

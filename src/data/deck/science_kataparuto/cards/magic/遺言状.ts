@@ -23,9 +23,15 @@ export default {
                     card: card,
                     canActivate: (state: GameStore) => {
                         // Check if monsters were sent to graveyard this turn
+                        const monstersThisTurn = state.monstersToGraveyardThisTurn.length;
+                        const availableTargets = new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).len();
+                        console.log("Last Will canActivate check:", {
+                            monstersThisTurn,
+                            availableTargets,
+                            result: monstersThisTurn > 0 && availableTargets > 0
+                        });
                         return (
-                            state.monstersToGraveyardThisTurn.length > 0 &&
-                            new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).len() > 0
+                            monstersThisTurn > 0 && availableTargets > 0
                         );
                     },
                     activate: (state: GameStore) => {
@@ -57,7 +63,9 @@ export default {
                 };
 
                 // Add to deck effects
+                console.log("Adding Last Will deck effect:", deckEffect);
                 state.deckEffects.push(deckEffect);
+                console.log("Current deck effects:", state.deckEffects);
             },
         },
     },
