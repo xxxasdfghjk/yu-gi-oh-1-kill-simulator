@@ -151,8 +151,6 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                                     // Multiple effects - show selection modal
                                     setShowDeckEffectModal(true);
                                 }
-                            } else {
-                                console.log("No activable effects found");
                             }
                         }}
                     >

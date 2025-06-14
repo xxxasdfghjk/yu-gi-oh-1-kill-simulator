@@ -26,10 +26,8 @@ const checkTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
 };
 
 export const pushQueue = (state: GameStore, item: EffectQueueItem) => {
-    console.log("pushQueue called with item:", item);
     const queue = [item, ...state.effectQueue].sort((a, b) => a.order - b.order);
     state.effectQueue = queue;
-    console.log("Effect queue after push:", state.effectQueue);
 };
 
 export const withTurnAtOneceCondition = (
@@ -255,6 +253,9 @@ export const withLifeChange = (
     } else {
         state.opponentLifePoints = newLP;
     }
+
+    // Check for game over conditions after life point change
+    state.judgeWin();
 
     // Add the animation to the queue
     pushQueue(state, {

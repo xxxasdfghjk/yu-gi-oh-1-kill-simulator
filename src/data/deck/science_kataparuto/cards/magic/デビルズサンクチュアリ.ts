@@ -16,7 +16,6 @@ export default {
         onSpell: {
             condition: (state: GameStore) => {
                 // CardSelectorを使用してモンスターゾーンの空きをチェック
-                console.log(new CardSelector(state).monster().filter().null().len());
                 return new CardSelector(state).monster().filter().null().len() > 0;
             },
             effect: (state: GameStore) => {
