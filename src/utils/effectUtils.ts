@@ -88,7 +88,7 @@ export const withUserSelectCard = (
         condition?: (cards: CardInstance[], state: GameStore) => boolean;
         order?: number;
         message?: string;
-        canCancel: boolean;
+        canCancel?: boolean;
     },
     callback: (state: GameStore, cardInstance: CardInstance, selected: CardInstance[]) => void
 ) => {
@@ -225,6 +225,43 @@ export const withNotification = (
         effectType: "notification",
         message: options.message,
         duration: options.duration ?? 2000,
+        callback,
+    });
+};
+
+export const withLifeChange = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        target: "player" | "opponent";
+        amount: number;
+        operation: "decrease" | "increase";
+        order?: number;
+    },
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    // Calculate the new life points
+    const currentLP = options.target === "player" ? state.lifePoints : state.opponentLifePoints;
+    const change = options.operation === "decrease" ? -options.amount : options.amount;
+    const newLP = Math.max(0, currentLP + change);
+
+    // Update the life points immediately
+    if (options.target === "player") {
+        state.lifePoints = newLP;
+    } else {
+        state.opponentLifePoints = newLP;
+    }
+
+    // Add the animation to the queue
+    pushQueue(state, {
+        id: uuidv4(),
+        order: options.order ?? 1,
+        type: "life_change",
+        cardInstance: card,
+        effectType: "life_change",
+        target: options.target,
+        amount: options.amount,
+        operation: options.operation,
         callback,
     });
 };

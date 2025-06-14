@@ -9,6 +9,7 @@ export interface GameState {
     turn: number;
     phase: GamePhase;
     lifePoints: number;
+    opponentLifePoints: number;
     deck: CardInstance[];
     hand: CardInstance[];
     field: {

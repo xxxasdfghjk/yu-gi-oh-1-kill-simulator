@@ -110,6 +110,16 @@ export type EffectQueueItem =
             }
           | {
                 id: string;
+                type: "life_change";
+                cardInstance: CardInstance;
+                effectType: string;
+                target: "player" | "opponent";
+                amount: number;
+                operation: "decrease" | "increase";
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
                 type: "material_select";
                 cardInstance: CardInstance;
                 effectType: string;
@@ -159,6 +169,7 @@ const initialState: GameState = {
     turn: 1,
     phase: "main1",
     lifePoints: 8000,
+    opponentLifePoints: 8000,
     deck: [],
     hand: [],
     field: {

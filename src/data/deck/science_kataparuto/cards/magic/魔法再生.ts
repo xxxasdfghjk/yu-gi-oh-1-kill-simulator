@@ -42,10 +42,8 @@ export default {
                             { delay: 100 },
                             2,
                             (state, _card, depth) => {
-                                const targetCard = state.hand.find((c) => c.id === selectedIds[depth - 1]);
-                                if (targetCard) {
-                                    sendCard(state, targetCard, "Graveyard");
-                                }
+                                const targetCard = state.hand.find((c) => c.id === selectedIds[depth - 1])!;
+                                sendCard(state, targetCard, "Graveyard");
                             },
                             (state, card) => {
                                 // 墓地から魔法カードを1枚選択

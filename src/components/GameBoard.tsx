@@ -18,9 +18,9 @@ import { isXyzMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
-import { Tooltip } from "./Tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBanner } from "./NotificationBanner";
+import { LifePointsDisplay } from "./LifePointsDisplay";
 
 export const GameBoard: React.FC = () => {
     const gameState = useGameStore();
@@ -31,6 +31,7 @@ export const GameBoard: React.FC = () => {
         graveyard,
         extraDeck,
         lifePoints,
+        opponentLifePoints,
         phase,
         turn,
         initializeGame,
@@ -169,6 +170,11 @@ export const GameBoard: React.FC = () => {
                 setTimeout(() => {
                     processQueueTop({ type: "delay" });
                 }, 100);
+            } else if (currentEffect?.type === "life_change") {
+                // Auto-process life change after a short delay for animation
+                setTimeout(() => {
+                    processQueueTop({ type: "delay" });
+                }, 800);
             } else if (currentEffect?.type === "spell_end") {
                 processQueueTop({ type: "spellend" });
             }
@@ -213,6 +219,14 @@ export const GameBoard: React.FC = () => {
                                 {/* 新しいゲーム状態表示 */}
                                 <GameStatusDisplay turn={turn} phase={phase} isOpponentTurn={isOpponentTurn} />
 
+                                {/* 相手のライフポイント表示 */}
+                                <LifePointsDisplay
+                                    lifePoints={opponentLifePoints}
+                                    label="OPPONENT LP"
+                                    tooltipText="相手のライフポイント"
+                                    color="red"
+                                />
+
                                 {/* コントロールボタン */}
                                 <ControlButtons
                                     isOpponentTurn={isOpponentTurn}
@@ -228,16 +242,12 @@ export const GameBoard: React.FC = () => {
                                     onChangeDeck={() => setDeckSelectionOpen(true)}
                                 />
                                 {/* ライフポイント表示 */}
-                                <div className="space-y-2">
-                                    <div className="text-center ml-8">
-                                        <div className="text-sm text-gray-600 mb-1">LIFE POINTS</div>
-                                        <Tooltip content={`現在のライフポイント: ${lifePoints}`} position="top">
-                                            <span className="text-5xl font-bold text-blue-600 cursor-help">
-                                                {lifePoints}
-                                            </span>
-                                        </Tooltip>
-                                    </div>
-                                </div>
+                                <LifePointsDisplay
+                                    lifePoints={lifePoints}
+                                    label="YOUR LP"
+                                    tooltipText="あなたのライフポイント"
+                                    color="blue"
+                                />
                             </div>
                         </div>
 
