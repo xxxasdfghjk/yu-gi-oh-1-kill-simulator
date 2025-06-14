@@ -161,7 +161,7 @@ export const sendCard = (
             }
             break;
         case "Exclusion":
-            state.currentTo = { location: "Graveyard" };
+            state.currentTo = { location: "Exclusion" };
             state.banished.push(updatedCard);
             break;
         case "ExtraDeck":
@@ -257,8 +257,7 @@ export const excludeFromAnywhere = (
     const banishedIndex = state.banished.findIndex((c) => c.id === card.id);
     if (banishedIndex !== -1) {
         state.banished.splice(banishedIndex, 1);
-        //TODO:除外ゾーン
-        result = { location: "Graveyard" };
+        result = { location: "Exclusion" };
     }
 
     // Remove from extra deck
@@ -381,8 +380,10 @@ export const destroyByEffect = (state: GameStore, card: CardInstance, to: Locati
 };
 
 export const banish = (state: GameStore, card: CardInstance) => {
-    excludeFromAnywhere(state, card);
+    const from = excludeFromAnywhere(state, card);
+    state.currentFrom = { ...from, position: card.position };
     const banishedCard = { ...card, location: "Exclusion" as const };
+    state.currentTo = { location: "Exclusion" };
     state.banished.push(banishedCard);
 };
 

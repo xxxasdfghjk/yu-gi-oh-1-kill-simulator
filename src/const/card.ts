@@ -131,7 +131,7 @@ export const getFieldCoodrinateAbsolute = (
             // エクストラゾーンの左端、自分のフィールドの上
             return {
                 x: FIELD_CENTER_X - 3 * (CARD_WIDTH + CARD_MARGIN),
-                y: FIELD_CENTER_Y - 2 * (CARD_HEIGHT + CARD_MARGIN),
+                y: FIELD_CENTER_Y - (CARD_HEIGHT + CARD_MARGIN),
             };
     }
 };
