@@ -35,16 +35,24 @@ export default {
                         );
                     },
                     activate: (state: GameStore) => {
+                        console.log("Last Will activate called");
+                        const availableMonsters = new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).get();
+                        console.log("Available monsters for Last Will:", availableMonsters);
+                        
                         withUserSelectCard(
                             state,
                             card,
-                            (state) => new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).get(),
+                            (state) => {
+                                console.log("withUserSelectCard callback called");
+                                return new CardSelector(state).deck().filter().monster().hasAttackBelow(1500).get();
+                            },
                             {
                                 select: "single",
                                 canCancel: true,
                                 message: "特殊召喚するモンスターを選択（攻撃力1500以下）",
                             },
                             (state, card, selected) => {
+                                console.log("Monster selected for Last Will:", selected);
                                 withUserSummon(
                                     state,
                                     card,
@@ -54,6 +62,7 @@ export default {
                                         optionPosition: ["attack", "defense"],
                                     },
                                     () => {
+                                        console.log("Last Will effect completed, removing from deck effects");
                                         state.deckEffects = state.deckEffects.filter((e) => e.id !== effectId);
                                     }
                                 );
