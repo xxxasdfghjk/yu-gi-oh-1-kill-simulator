@@ -13,12 +13,16 @@ export const triggerEffects = (state: GameStore, card: CardInstance, from: Locat
 
     // Field to Graveyard effects
     if ((from === "MonsterField" || from === "FieldZone") && to === "Graveyard" && effect?.onFieldToGraveyard) {
-        effect.onFieldToGraveyard?.(state, card);
+        withDelay(state, card, { order: 3000 }, (state, card) => {
+            card.card?.effect?.onFieldToGraveyard?.(state, card);
+        });
     }
 
     // Anywhere to Graveyard effects
     if (to === "Graveyard" && effect?.onAnywhereToGraveyard) {
-        effect.onAnywhereToGraveyard?.(state, card);
+        withDelay(state, card, { order: 3000 }, (state, card) => {
+            card.card?.effect?.onAnywhereToGraveyard?.(state, card);
+        });
     }
 };
 export type Buf = { attack: number; defense: number; level: number };
@@ -428,7 +432,7 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
         state.field.extraMonsterZones[zone - 5] = summonedMonster;
     }
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {
-        withDelay(state, monster, { order: 2000 }, (state, monster) => {
+        withDelay(state, monster, { order: 2000, delay: 100 }, (state, monster) => {
             monster.card.effect?.onSummon?.(state, monster);
         });
     }

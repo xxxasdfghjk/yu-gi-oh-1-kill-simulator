@@ -171,7 +171,7 @@ export const GameBoard: React.FC = () => {
             } else if (currentEffect?.type === "life_change") {
                 setTimeout(() => {
                     processQueueTop({ type: "delay" });
-                }, 200);
+                }, 100);
             } else if (currentEffect?.type === "chain_check") {
                 // Check if there are chainable cards
                 const chainableCards = getChainableCards(gameState, currentEffect.chain ?? []);

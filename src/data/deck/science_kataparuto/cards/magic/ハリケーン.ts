@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay, withDelayRecursive } from "@/utils/effectUtils";
+import { withDelayRecursive } from "@/utils/effectUtils";
 import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {

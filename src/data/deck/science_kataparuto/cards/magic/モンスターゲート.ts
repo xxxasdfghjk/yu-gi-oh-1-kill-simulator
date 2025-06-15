@@ -1,7 +1,13 @@
 import type { MagicCard } from "@/types/card";
 import { releaseCard, sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withDelayRecursive, withNotification, withUserSummon } from "@/utils/effectUtils";
+import {
+    withUserSelectCard,
+    withDelayRecursive,
+    withNotification,
+    withUserSummon,
+    withDelay,
+} from "@/utils/effectUtils";
 import { monsterFilter } from "@/utils/cardManagement";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance } from "@/types/card";
@@ -32,7 +38,9 @@ export default {
                     (state: GameStore, card: CardInstance, selected: CardInstance[]) => {
                         // 選択したモンスターをリリース
                         releaseCard(state, selected[0]);
-                        after(state, card);
+                        withDelay(state, card, { delay: 500 }, (state, card) => {
+                            after(state, card);
+                        });
                     }
                 );
             },
