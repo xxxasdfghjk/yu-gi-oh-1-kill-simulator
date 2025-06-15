@@ -142,7 +142,6 @@ export type EffectQueueItem =
 export interface GameStore extends GameState {
     turnOnceUsedEffectMemo: Record<string, boolean>;
 
-    // Deck selection
     selectedDeck: Deck | null;
     availableDecks: Deck[];
     isDeckSelectionOpen: boolean;
@@ -175,46 +174,64 @@ export interface GameStore extends GameState {
     activateDeckEffect: (callback: DeckEffect) => void;
 }
 
-const initialState: GameState = {
-    turn: 1,
-    phase: "main1",
-    lifePoints: 8000,
-    opponentLifePoints: 8000,
-    deck: [],
-    hand: [],
-    field: {
-        monsterZones: Array(5).fill(null),
-        spellTrapZones: Array(5).fill(null),
-        fieldZone: null,
-        extraMonsterZones: [null, null],
-    },
-    opponentField: {
-        monsterZones: Array(5).fill(null),
-        spellTrapZones: Array(5).fill(null),
-        fieldZone: null,
-    },
-    graveyard: [],
-    banished: [],
-    extraDeck: [],
-    hasNormalSummoned: false,
-    hasSpecialSummoned: false,
-    isLinkSummonProhibited: false,
-    isFieldSpellActivationProhibited: false,
-    isOpponentTurn: false,
-    gameOver: false,
-    winner: null,
-    winReason: null,
-    hasDrawnByEffect: false,
-    currentFrom: { location: "Deck" },
-    currentTo: { location: "Hand" },
-    throne: [null, null, null, null, null],
-    isProcessing: false,
-    originDeck: null,
-    cardChain: [],
-    deckEffects: [],
-    monstersToGraveyardThisTurn: [],
-    isFieldSpellActivationAllowed: null,
+const createInitialGameState = (deckData?: Deck): GameState => {
+    const baseState: GameState = {
+        turn: 1,
+        phase: "main1",
+        lifePoints: 8000,
+        opponentLifePoints: 8000,
+        deck: [],
+        hand: [],
+        field: {
+            monsterZones: Array(5).fill(null),
+            spellTrapZones: Array(5).fill(null),
+            fieldZone: null,
+            extraMonsterZones: [null, null],
+        },
+        opponentField: {
+            monsterZones: Array(5).fill(null),
+            spellTrapZones: Array(5).fill(null),
+            fieldZone: null,
+        },
+        graveyard: [],
+        banished: [],
+        extraDeck: [],
+        hasNormalSummoned: false,
+        hasSpecialSummoned: false,
+        isLinkSummonProhibited: false,
+        isFieldSpellActivationProhibited: false,
+        isOpponentTurn: false,
+        gameOver: false,
+        winner: null,
+        winReason: null,
+        hasDrawnByEffect: false,
+        currentFrom: { location: "Deck" },
+        currentTo: { location: "Hand" },
+        throne: [null, null, null, null, null],
+        isProcessing: false,
+        originDeck: null,
+        cardChain: [],
+        deckEffects: [],
+        monstersToGraveyardThisTurn: [],
+        isFieldSpellActivationAllowed: null,
+    };
+
+    if (deckData) {
+        const mainDeckInstances = deckData.main_deck.map((card) => createCardInstance(card, "Deck"));
+        const extraDeckInstances = deckData.extra_deck.map((card) => createCardInstance(card, "ExtraDeck"));
+
+        return {
+            ...baseState,
+            deck: mainDeckInstances.sort(() => Math.random() - 0.5),
+            extraDeck: extraDeckInstances,
+            originDeck: deckData,
+        };
+    }
+
+    return baseState;
 };
+
+const initialState: GameState = createInitialGameState();
 
 export const useGameStore = create<GameStore>()(
     immer((set) => ({
@@ -224,8 +241,9 @@ export const useGameStore = create<GameStore>()(
 
         // Deck selection state
         selectedDeck: null,
-        availableDecks: deckList.map((deck) => deck.default),
         isDeckSelectionOpen: true,
+
+        availableDecks: deckList.map((deck) => deck.default),
 
         selectDeck: (deck: Deck) => {
             set((state) => {
@@ -244,62 +262,16 @@ export const useGameStore = create<GameStore>()(
             const deckData = deck || deckList[0]?.default; // fallback to first deck if none provided
             if (!deckData) return;
 
-            const mainDeckInstances = deckData.main_deck.map((card) => createCardInstance(card, "Deck"));
-            const extraDeckInstances = deckData.extra_deck.map((card) => createCardInstance(card, "ExtraDeck"));
-
             set((state) => {
-                // Initialize deck and shuffle
-                state.deck = mainDeckInstances.sort(() => Math.random() - 0.5);
-                state.extraDeck = extraDeckInstances;
-                state.hand = [];
-                state.graveyard = [];
-                state.banished = [];
-                state.field = {
-                    monsterZones: Array(5).fill(null),
-                    spellTrapZones: Array(5).fill(null),
-                    fieldZone: null,
-                    extraMonsterZones: [null, null],
-                };
-                state.opponentField = {
-                    monsterZones: Array(5).fill(null),
-                    spellTrapZones: Array(5).fill(null),
-                    fieldZone: null,
-                };
-                state.turn = 1;
-                state.phase = "main1";
-                state.lifePoints = 8000;
-                state.opponentLifePoints = 8000;
-                state.gameOver = false;
-                state.winner = null;
-                state.winReason = null;
-
-                // Reset game flags
-                state.hasNormalSummoned = false;
-                state.hasSpecialSummoned = false;
-                state.isLinkSummonProhibited = false;
-                state.isFieldSpellActivationProhibited = false;
-                state.isOpponentTurn = false;
-                state.hasDrawnByEffect = false;
-
-                // Reset animation state
-                state.currentFrom = { location: "Deck" };
-                state.currentTo = { location: "Hand" };
-
-                // Reset special states
-                state.selectedCard = null;
-
-                // Clear effect queue
-                state.effectQueue = [];
-
-                // Reset all turn-based flags
-                state.turnOnceUsedEffectMemo = {};
-                state.throne = [null, null, null, null, null];
-                state.isProcessing = false;
-                state.originDeck = deckData;
-                state.cardChain = [];
-                state.deckEffects = [];
-                state.monstersToGraveyardThisTurn = [];
-                state.isFieldSpellActivationAllowed = null;
+                // Reset to initial state with deck data
+                const newState = createInitialGameState(deckData);
+                Object.assign(state, {
+                    ...newState,
+                    // Preserve Zustand-specific properties
+                    turnOnceUsedEffectMemo: {},
+                    effectQueue: [],
+                    selectedCard: null,
+                });
 
                 withDelayRecursive(
                     state,
