@@ -43,7 +43,6 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setCurrentEffect(null);
         }
     }, [effectQueue, isClosing]);
-
     const handleClose = (callback?: () => void) => {
         setIsClosing(true);
         setTimeout(() => {
@@ -52,6 +51,24 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setIsClosing(false);
         }, 300); // Match animation duration
     };
+    // Handle Enter key press for confirm modal
+    useEffect(() => {
+        if (currentEffect?.type === "confirm" && !isClosing) {
+            const handleKeyPress = (event: KeyboardEvent) => {
+                if (event.key === "Enter") {
+                    handleClose(() => {
+                        processQueueTop({ type: "confirm", confirmed: true });
+                    });
+                }
+            };
+
+            window.addEventListener("keydown", handleKeyPress);
+            return () => {
+                window.removeEventListener("keydown", handleKeyPress);
+            };
+        }
+    }, [currentEffect, isClosing, processQueueTop]);
+
     if (!currentEffect) {
         return null;
     }

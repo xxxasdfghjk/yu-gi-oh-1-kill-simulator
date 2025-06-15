@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import type { GameStore } from "@/store/gameStore";
@@ -55,12 +55,26 @@ export const MultiCardConditionSelector: React.FC<MultiCardConditionSelectorProp
     };
 
     const canConfirm = condition(selectedCards, state);
-    const handleConfirm = () => {
+    const handleConfirm = useCallback(() => {
         if (canConfirm) {
             onSelect(selectedCards);
             setSelectedCards([]);
         }
-    };
+    }, [canConfirm, onSelect, selectedCards]);
+
+    // Handle Enter key press
+    useEffect(() => {
+        const handleKeyPress = (event: KeyboardEvent) => {
+            if (event.key === "Enter" && canConfirm && isOpen) {
+                handleConfirm();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyPress);
+        return () => {
+            window.removeEventListener("keydown", handleKeyPress);
+        };
+    }, [canConfirm, isOpen, handleConfirm]);
 
     return (
         <>

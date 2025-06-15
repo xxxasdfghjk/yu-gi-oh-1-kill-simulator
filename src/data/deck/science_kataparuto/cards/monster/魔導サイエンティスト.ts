@@ -35,6 +35,9 @@ export default {
                 return fusionMonsters.length > 0 && hasEmptyMonsterZone(state);
             },
             effect: (state, card) => {
+                if (!hasEmptyMonsterZone(state)) {
+                    return;
+                }
                 // Select a level 6 or lower fusion monster from extra deck
                 withUserSelectCard(
                     state,

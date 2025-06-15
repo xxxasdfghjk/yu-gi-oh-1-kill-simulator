@@ -116,6 +116,20 @@ const SummonSelector = ({
         setZone(placementPriority(summonable));
         setPosition(optionPosition[0]);
     }, []);
+
+    // Handle Enter key press
+    useEffect(() => {
+        const handleKeyPress = (event: KeyboardEvent) => {
+            if (event.key === "Enter" && zone >= 0 && isOpen) {
+                onSelect(zone, position);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyPress);
+        return () => {
+            window.removeEventListener("keydown", handleKeyPress);
+        };
+    }, [zone, position, isOpen, onSelect]);
     return (
         <ModalWrapper isOpen={isOpen}>
             {isLink && <h3 className="text-lg font-bold mb-4 text-center">リンク召喚</h3>}
