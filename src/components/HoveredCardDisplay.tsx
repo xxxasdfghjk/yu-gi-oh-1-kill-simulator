@@ -16,7 +16,7 @@ export const HoveredCardDisplay = () => {
                             <img
                                 src={
                                     hoveredCard.card.image
-                                        ? `/yu-gi-oh-1-kill-exodia/card_image/${hoveredCard.card.image}`
+                                        ? `/yu-gi-oh-1-kill-simulator/card_image/${hoveredCard.card.image}`
                                         : ""
                                 }
                                 alt={hoveredCard.card.card_name}

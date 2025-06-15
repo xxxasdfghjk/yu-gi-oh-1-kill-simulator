@@ -4,7 +4,7 @@ import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
-    base: "/yu-gi-oh-1-kill-exodia/",
+    base: "/yu-gi-oh-1-kill-simulator/",
     plugins: [react()],
     resolve: {
         alias: {
