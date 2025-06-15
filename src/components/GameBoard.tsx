@@ -8,26 +8,33 @@ import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
 import { searchCombinationLinkSummon, searchCombinationXyzSummon } from "@/utils/gameUtils";
 import type { CardInstance } from "@/types/card";
+import type { Deck } from "@/data/deckUtils";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
 import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
+import { DeckSelectionModal } from "./DeckSelectionModal";
 import { isXyzMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
-import { Tooltip } from "./Tooltip";
 import { motion, AnimatePresence } from "framer-motion";
+import { NotificationBanner } from "./NotificationBanner";
+import { LifePointsDisplay } from "./LifePointsDisplay";
+import { getChainableCards } from "@/utils/effectUtils";
+import { DebugStateModal } from "./DebugStateModal";
+import { CardListModal } from "./CardListModal";
 
 export const GameBoard: React.FC = () => {
-    const gameState = useGameStore();
     const {
         hand,
         field,
         deck,
         graveyard,
+        banished,
         extraDeck,
         lifePoints,
+        opponentLifePoints,
         phase,
         turn,
         initializeGame,
@@ -36,6 +43,7 @@ export const GameBoard: React.FC = () => {
         popQueue,
         gameOver,
         winner,
+        winReason,
         isOpponentTurn,
         opponentField,
         sendSpellToGraveyard,
@@ -43,22 +51,30 @@ export const GameBoard: React.FC = () => {
         checkExodiaWin,
         endGame,
         judgeWin,
-        draw,
-    } = gameState;
-
+        // Deck selection
+        selectedDeck,
+        availableDecks,
+        isDeckSelectionOpen,
+        selectDeck,
+        setDeckSelectionOpen,
+    } = useGameStore();
+    const gameState = useGameStore();
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
     const [showExtraDeck, setShowExtraDeck] = useState(false);
+    const [showBanished, setShowBanished] = useState(false);
     const [showTurnEndAnimation, setShowTurnEndAnimation] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
+    const [currentNotification, setCurrentNotification] = useState<{
+        message: string;
+        duration: number;
+    } | null>(null);
+    const [showDebugModal, setShowDebugModal] = useState(false);
 
     const reset = useCallback(() => {
-        initializeGame();
-        setTimeout(() => draw(), 10);
-        setTimeout(() => draw(), 20);
-        setTimeout(() => draw(), 30);
-        setTimeout(() => draw(), 40);
-        setTimeout(() => draw(), 50);
-    }, [initializeGame, draw]);
+        if (selectedDeck) {
+            initializeGame(selectedDeck);
+        }
+    }, [initializeGame, selectedDeck]);
 
     const handleGameReset = useCallback(() => {
         if (isResetting) return; // 連打防止
@@ -71,9 +87,32 @@ export const GameBoard: React.FC = () => {
         }, 2000);
     }, [reset, isResetting]);
 
+    // Handle deck selection
+    const handleDeckSelect = useCallback(
+        (deck: Deck) => {
+            selectDeck(deck);
+            initializeGame(deck);
+            setHasInitialized(true); // Mark as initialized after deck change
+        },
+        [selectDeck, initializeGame]
+    );
+
+    // Only initialize when a deck is first selected (not when modal is opened/closed)
+    const [hasInitialized, setHasInitialized] = useState(false);
+
     useEffect(() => {
-        reset();
-    }, [reset]);
+        if (selectedDeck && !isDeckSelectionOpen && !hasInitialized) {
+            reset();
+            setHasInitialized(true);
+        }
+    }, [selectedDeck, isDeckSelectionOpen, reset, hasInitialized]);
+
+    // Monitor life points for victory conditions
+    useEffect(() => {
+        if (hasInitialized && !gameOver && !isResetting) {
+            judgeWin();
+        }
+    }, [lifePoints, opponentLifePoints, hasInitialized, gameOver, isResetting, judgeWin]);
 
     const startSpecialSummon = (monster: CardInstance, summonType: "link" | "xyz" | "synchro" | "fusion") => {
         if (summonType === "link" && gameState.startLinkSummon) {
@@ -118,8 +157,35 @@ export const GameBoard: React.FC = () => {
                     await new Promise((resolve) => setTimeout(resolve, currentEffect.delay ?? 50));
                     processQueueTop({ type: "delay" });
                 }
+            } else if (currentEffect?.type === "notification") {
+                // Show notification banner
+                setCurrentNotification({
+                    message: currentEffect.message,
+                    duration: currentEffect.duration ?? 2000,
+                });
+
+                // Auto-process notification after showing
+                setTimeout(() => {
+                    processQueueTop({ type: "delay" });
+                }, 100);
+            } else if (currentEffect?.type === "life_change") {
+                setTimeout(() => {
+                    processQueueTop({ type: "delay" });
+                }, 100);
+            } else if (currentEffect?.type === "chain_check") {
+                // Check if there are chainable cards
+                const chainableCards = getChainableCards(gameState, currentEffect.chain ?? []);
+                if (chainableCards.length === 0) {
+                    // No chainable cards, auto-proceed without chain
+                    processQueueTop({ type: "chain_select" });
+                }
+                // If there are chainable cards, the modal will handle it
             } else if (currentEffect?.type === "spell_end") {
-                processQueueTop({ type: "spellend" });
+                processQueueTop({
+                    type: "spellend",
+                    callback: currentEffect.callback,
+                    cardInstance: currentEffect.cardInstance,
+                });
             }
         };
         func();
@@ -141,11 +207,12 @@ export const GameBoard: React.FC = () => {
                     <div>
                         <div className=" flex justify-end">
                             <HoveredCardDisplay />
-                            <div>
+                            <div className="relative">
                                 {/* エクストラモンスターゾーン（相手と自分の間） */}
                                 <ExtraMonsterZones
                                     extraMonsterZones={field.extraMonsterZones}
                                     opponentField={opponentField}
+                                    onShowBanished={() => setShowBanished(true)}
                                 />
 
                                 {/* プレイヤーエリア */}
@@ -160,7 +227,20 @@ export const GameBoard: React.FC = () => {
                             </div>
                             <div className="w-72 flex flex-col itmes-center justify-between">
                                 {/* 新しいゲーム状態表示 */}
-                                <GameStatusDisplay turn={turn} phase={phase} isOpponentTurn={isOpponentTurn} />
+                                <GameStatusDisplay
+                                    turn={turn}
+                                    phase={phase}
+                                    isOpponentTurn={isOpponentTurn}
+                                    onDebugClick={() => setShowDebugModal(true)}
+                                />
+
+                                {/* 相手のライフポイント表示 */}
+                                <LifePointsDisplay
+                                    lifePoints={opponentLifePoints}
+                                    label="OPPONENT LP"
+                                    tooltipText="相手のライフポイント"
+                                    color="red"
+                                />
 
                                 {/* コントロールボタン */}
                                 <ControlButtons
@@ -173,18 +253,16 @@ export const GameBoard: React.FC = () => {
                                         nextPhase();
                                     }}
                                     initializeGame={reset}
+                                    selectedDeck={selectedDeck}
+                                    onChangeDeck={() => setDeckSelectionOpen(true)}
                                 />
                                 {/* ライフポイント表示 */}
-                                <div className="space-y-2">
-                                    <div className="text-center ml-8">
-                                        <div className="text-sm text-gray-600 mb-1">LIFE POINTS</div>
-                                        <Tooltip content={`現在のライフポイント: ${lifePoints}`} position="top">
-                                            <span className="text-5xl font-bold text-blue-600 cursor-help">
-                                                {lifePoints}
-                                            </span>
-                                        </Tooltip>
-                                    </div>
-                                </div>
+                                <LifePointsDisplay
+                                    lifePoints={lifePoints}
+                                    label="YOUR LP"
+                                    tooltipText="あなたのライフポイント"
+                                    color="blue"
+                                />
                             </div>
                         </div>
 
@@ -214,20 +292,32 @@ export const GameBoard: React.FC = () => {
                     startXyzSummon={(monster) => startSpecialSummon(monster, "xyz")}
                 />
 
+                <CardListModal
+                    isOpen={showBanished}
+                    onClose={() => setShowBanished(false)}
+                    cards={banished}
+                    title="除外ゾーン"
+                    emptyMessage="除外されたカードはありません"
+                    accentColor="indigo"
+                />
+
                 {/* YOU WIN オーバーレイ */}
-                <AnimatePresence>
-                    {gameOver && winner === "player" && (
+                <AnimatePresence mode="wait">
+                    {gameOver && winner === "player" && !isResetting && (
                         <motion.div
+                            key={`victory-${turn}-${phase}`}
                             className="fixed inset-0 z-50"
                             initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
                             animate={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}
                             exit={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
                             transition={{ duration: 1.2, ease: "easeInOut" }}
                         >
-                            {/* エクゾディアアニメーション（背景） */}
-                            <div className="absolute inset-0 z-10">
-                                <ExodiaVictoryRotationAnime isVisible={true} />
-                            </div>
+                            {/* エクゾディアアニメーション（背景） - エグゾディア勝利時のみ */}
+                            {winReason === "exodia" && (
+                                <div className="absolute inset-0 z-10">
+                                    <ExodiaVictoryRotationAnime isVisible={true} />
+                                </div>
+                            )}
 
                             {/* テキストとボタン（前景） */}
                             <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -236,7 +326,7 @@ export const GameBoard: React.FC = () => {
                                     initial={{ opacity: 0, scale: 0.5, y: 50 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     transition={{
-                                        delay: 4,
+                                        delay: winReason === "exodia" ? 4 : 0.5,
                                         duration: 0.8,
                                         ease: "easeOut",
                                         type: "spring",
@@ -264,9 +354,14 @@ export const GameBoard: React.FC = () => {
                                         className="text-2xl text-white mb-8"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ delay: 4.6, duration: 0.6 }}
+                                        transition={{
+                                            delay: winReason === "exodia" ? 4.6 : 1.1,
+                                            duration: 0.6,
+                                        }}
                                     >
-                                        エクゾディアの5つのパーツが揃いました！
+                                        {winReason === "exodia"
+                                            ? "エクゾディアの5つのパーツが揃いました！"
+                                            : "相手のライフポイントを0にしました！"}
                                     </motion.p>
                                     <motion.button
                                         className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${
@@ -276,7 +371,10 @@ export const GameBoard: React.FC = () => {
                                         }`}
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 5.2, duration: 0.6 }}
+                                        transition={{
+                                            delay: winReason === "exodia" ? 5.2 : 1.7,
+                                            duration: 0.6,
+                                        }}
                                         whileHover={!isResetting ? { scale: 1.05 } : {}}
                                         whileTap={!isResetting ? { scale: 0.95 } : {}}
                                         onClick={handleGameReset}
@@ -290,9 +388,10 @@ export const GameBoard: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                <AnimatePresence>
-                    {gameOver && winner === "timeout" && (
+                <AnimatePresence mode="wait">
+                    {gameOver && winner === "timeout" && !isResetting && (
                         <motion.div
+                            key={`defeat-${turn}-${phase}`}
                             className="fixed inset-0 flex items-center justify-center z-50"
                             initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
                             animate={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}
@@ -359,6 +458,31 @@ export const GameBoard: React.FC = () => {
 
                 {/* ターンエンドアニメーション */}
                 <TurnEndAnimation show={showTurnEndAnimation} onComplete={() => setShowTurnEndAnimation(false)} />
+
+                {/* デッキ選択モーダル */}
+                <DeckSelectionModal
+                    isOpen={isDeckSelectionOpen}
+                    availableDecks={availableDecks}
+                    onSelectDeck={handleDeckSelect}
+                    onClose={() => setDeckSelectionOpen(false)}
+                />
+
+                {/* 通知バナー */}
+                {currentNotification && (
+                    <NotificationBanner
+                        message={currentNotification.message}
+                        duration={currentNotification.duration}
+                        isVisible={!!currentNotification}
+                        onComplete={() => setCurrentNotification(null)}
+                    />
+                )}
+
+                {/* デバッグモーダル */}
+                <DebugStateModal
+                    isOpen={showDebugModal}
+                    onClose={() => setShowDebugModal(false)}
+                    gameState={gameState}
+                />
             </div>
         </div>
     );

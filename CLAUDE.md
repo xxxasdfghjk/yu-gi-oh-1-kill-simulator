@@ -25,11 +25,13 @@
 
 ### カードデータ構造
 
--   `src/data/cards/`：カード定義
-    -   `monsters/`：モンスターカード（common.ts, extra.ts）
-    -   `spells/`：魔法カード（index.ts）
-    -   `traps/`：罠カード（index.ts）
-    -   `tokens/`：トークン（index.ts）
+-   `src/data/deck/`：デッキごとのカード定義
+    -   各デッキフォルダ内に `deck.ts`（デッキ構成）と `cards/` ディレクトリ
+    -   `cards/monster/`：モンスターカード
+    -   `cards/magic/`：魔法カード  
+    -   `cards/trap/`：罠カード
+    -   `cards/extra/`：エクストラデッキモンスター
+    -   `cards/token/`：トークン
 
 ### コンポーネント設計
 
@@ -41,6 +43,7 @@
     -   `PlayerField.tsx`：プレイヤーフィールド
     -   `ExtraMonsterZones.tsx`：エクストラモンスターゾーン
     -   `HandArea.tsx`：手札エリア
+    -   `DeckSelectionModal.tsx`：デッキ選択モーダル
 
 ## カード効果システム
 
@@ -94,6 +97,7 @@ type EffectQueueItem = {
 -   `withOption()`：選択肢表示 UI
 -   `withUserSummon()`：召喚位置選択 UI
 -   `withDelay()`：遅延実行（アニメーション用）
+-   `withDelayRecursive()`：再帰的遅延実行（連続アニメーション用）
 -   `withTurnAtOneceCondition()`/`withTurnAtOneceEffect()`：1 ターン 1 度制限
 
 ### カード移動システム（`src/utils/cardMovement.ts`）
@@ -135,7 +139,76 @@ type Location =
 
 ### アニメーション制御
 
--   `withDelay()`：複数カードの順次アニメーション
+-   `withDelay()`：単一の遅延実行
+-   `withDelayRecursive()`：再帰的な遅延実行（詳細は後述）
+
+## ユーティリティクラス
+
+### CardSelector（`src/utils/CardSelector.ts`）
+
+ゲーム状態からカードを簡潔に検索・フィルタリングするためのクラス：
+
+```typescript
+// 使用例
+const monsters = new CardSelector(state)
+    .allMonster()      // モンスターゾーンのカードを取得
+    .filter()          // フィルターチェーンを開始
+    .nonNull()         // nullを除外
+    .get();            // 結果を取得
+
+// 利用可能なメソッド
+.monster()          // 通常モンスターゾーン
+.exMonster()        // エクストラモンスターゾーン
+.allMonster()       // 全モンスターゾーン
+.spellTrap()        // 魔法・罠ゾーン
+.deck()             // デッキ
+.hand()             // 手札
+.graveyard()        // 墓地
+.field()            // フィールドゾーン
+```
+
+### CardInstanceFilter（`src/utils/CardInstanceFilter.ts`）
+
+CardSelectorから取得したカードリストをフィルタリングするクラス：
+
+```typescript
+// 使用例
+const attackMonsters = new CardSelector(state)
+    .allMonster()
+    .filter()
+    .nonNull()
+    .hasPosition("attack")  // 攻撃表示のモンスターのみ
+    .get();
+
+// 利用可能なフィルター
+.nonNull()              // nullを除外
+.hasPosition(position)  // 特定の表示形式
+.excludeId(id)          // 特定のIDを除外
+.monster()              // モンスターカードのみ
+.magic()                // 魔法カードのみ
+.trap()                 // 罠カードのみ
+```
+
+## デッキ管理システム
+
+### デッキ構造
+
+各デッキは以下の構造で管理されます：
+
+```
+src/data/deck/{deck_name}/
+├── deck.ts              # デッキ構成ファイル
+└── cards/
+    ├── monster/         # 通常モンスター
+    ├── extra/           # エクストラデッキ
+    ├── magic/           # 魔法カード
+    ├── trap/            # 罠カード
+    └── token/           # トークン
+```
+
+### デッキ登録
+
+新しいデッキは `src/data/deck/` に配置すると自動的に `deckList.ts` で認識され、ゲーム開始時の選択肢に追加されます。
 
 ## 型定義
 
@@ -195,3 +268,61 @@ MonsterCard
 -   Immer 使用時：非同期処理（setTimeout 等）は避け、effectQueue を活用
 -   型エラー発生時：必ず戻り値の型注釈を明示
 -   アニメーション不具合時：`currentFrom`/`currentTo`とキー値の確認必須
+-   **プロキシエラー対策**：`withDelay`内では新しい`CardSelector`を作らず、事前にIDを取得してから使用
+
+### Immerプロキシエラーの回避方法
+
+```typescript
+// ❌ 悪い例：withDelay内でCardSelectorを使用
+withDelay(state, card, { delay: 500 }, (state) => {
+    const cards = new CardSelector(state).hand().get(); // プロキシエラー
+});
+
+// ✅ 良い例：事前にIDを取得
+const cardIds = new CardSelector(state).hand().get().map(c => c.id);
+withDelay(state, card, { delay: 500 }, (state) => {
+    const cards = cardIds.map(id => state.hand.find(c => c.id === id));
+});
+```
+
+### withDelayRecursiveの使い方
+
+再帰的に遅延実行を行い、連続的なアニメーションを実現する関数：
+
+```typescript
+withDelayRecursive(
+    state: GameStore,
+    card: CardInstance,
+    options: { delay?: number; order?: number },
+    depth: number,
+    callback: (state: GameStore, card: CardInstance, currentDepth: number) => void,
+    finalCallback?: (state: GameStore, card: CardInstance) => void
+)
+```
+
+**使用例：**
+
+```typescript
+// 手札を1枚ずつ墓地に送る
+const handCards = new CardSelector(state).hand().get();
+withDelayRecursive(
+    state,
+    card,
+    { delay: 100 },  // 各実行間の遅延
+    handCards.length,  // 実行回数
+    (state, card, depth) => {
+        // depth は現在の深さ（handCards.length から 1 まで降順）
+        const targetCard = handCards[depth - 1];
+        sendCard(state, targetCard, "Graveyard");
+    },
+    (state, card) => {
+        // すべての処理完了後の処理
+        console.log("すべてのカードを墓地に送りました");
+    }
+);
+```
+
+**実装の注意点：**
+- `depth`は指定した数から1まで降順でコールバックに渡される
+- 各段階で100ms（optionsで指定）の遅延が発生
+- `finalCallback`はオプショナルで、すべての再帰処理完了後に実行される

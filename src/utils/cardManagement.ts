@@ -8,6 +8,7 @@ import type {
     LinkMonsterCard,
     MagicCard,
     TrapCard,
+    FusionMonsterCard,
 } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
 
@@ -30,6 +31,10 @@ export const hasLinkMonsterFilter = (card: Card): card is LinkMonsterCard => {
 
 export const isMagicCard = (card: Card): card is MagicCard => {
     return card.card_type === "魔法";
+};
+
+export const isFusionMonster = (card: Card): card is FusionMonsterCard => {
+    return monsterFilter(card) && card.monster_type === "融合モンスター";
 };
 
 export const hasEmptySpellField = (state: GameStore) => {

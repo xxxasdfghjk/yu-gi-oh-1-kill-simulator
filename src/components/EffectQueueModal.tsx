@@ -6,6 +6,7 @@ import type { EffectQueueItem, GameStore, ProcessQueuePayload } from "@/store/ga
 import ModalWrapper from "./ModalWrapper";
 import { type LinkMonsterCard } from "../types/card";
 import { canLinkSummonAfterRelease, canXyzSummonAfterRelease } from "@/utils/gameUtils";
+import { getChainableCards } from "@/utils/effectUtils";
 
 interface EffectQueueModalProps {
     effectQueue: EffectQueueItem[];
@@ -31,12 +32,15 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                 effect.type === "multiselect" ||
                 effect.type === "summon" ||
                 effect.type === "confirm" ||
-                effect.type === "material_select"
+                effect.type === "material_select" ||
+                effect.type === "chain_check"
             ) {
                 setCurrentEffect(effect);
             } else {
                 setCurrentEffect(null);
             }
+        } else {
+            setCurrentEffect(null);
         }
     }, [effectQueue, isClosing]);
 
@@ -48,7 +52,9 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
             setIsClosing(false);
         }, 300); // Match animation duration
     };
-    if (!currentEffect) return null;
+    if (!currentEffect) {
+        return null;
+    }
     switch (currentEffect.type) {
         case "option":
             return (
@@ -170,6 +176,31 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     isOpen={!isClosing}
                 />
             );
+
+        case "chain_check": {
+            const chainableCards = getChainableCards(gameState, currentEffect.chain ?? []);
+
+            return (
+                <MultiCardConditionSelector
+                    state={gameState}
+                    title="チェーン確認"
+                    getAvailableCards={() => chainableCards}
+                    condition={(selectedCards) => selectedCards.length === 1}
+                    onSelect={(selectedCards) => {
+                        handleClose(() => {
+                            processQueueTop({ type: "chain_select", selectedCard: selectedCards[0] });
+                        });
+                    }}
+                    onCancel={() => {
+                        handleClose(() => {
+                            processQueueTop({ type: "chain_select" });
+                        });
+                    }}
+                    type="single"
+                    isOpen={!isClosing}
+                />
+            );
+        }
 
         default:
             return null;

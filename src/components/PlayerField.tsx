@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import type { CardInstance } from "@/types/card";
 import { FieldZone } from "./FieldZone";
 import { CARD_SIZE, getLocationVectorWithPosition } from "@/const/card";
 import { useGameStore } from "@/store/gameStore";
 import AnimationWrapper from "./AnimationWrapper";
 import { Card } from "./Card";
+import { DeckEffectSelectorModal } from "./DeckEffectSelectorModal";
 
 interface PlayerFieldProps {
     field: {
@@ -28,7 +29,9 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
     setShowGraveyard,
     setShowExtraDeck,
 }) => {
-    const { currentFrom, currentTo } = useGameStore();
+    const { currentFrom, currentTo, deckEffects, activateDeckEffect } = useGameStore();
+    const [showDeckEffectModal, setShowDeckEffectModal] = useState(false);
+    const gameState = useGameStore();
 
     const cardSizeClass = CARD_SIZE.MEDIUM;
     const fieldZoneInitial =
@@ -133,23 +136,53 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
                     <div className={`${cardSizeClass}`}></div>
 
                     <div
-                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-20 absolute top-0 opacity-80 border-2 border-orange-900`}
+                        className={`${cardSizeClass} bg-orange-700 rounded flex items-center justify-center text-white font-bold z-20 absolute top-0 opacity-80 border-2 border-orange-900 ${
+                            deckEffects.filter((e) => e.canActivate(gameState)).length > 0
+                                ? "cursor-pointer hover:opacity-100"
+                                : ""
+                        }`}
+                        onClick={() => {
+                            const activableEffects = deckEffects.filter((e) => e.canActivate(gameState));
+                            if (activableEffects.length > 0) {
+                                // If only one effect, activate it directly
+                                if (activableEffects.length === 1) {
+                                    activateDeckEffect(activableEffects[0]);
+                                } else {
+                                    // Multiple effects - show selection modal
+                                    setShowDeckEffectModal(true);
+                                }
+                            }
+                        }}
                     >
                         <div>
                             <div className="text-xs">DECK</div>
                             <div className="text-lg">{deck.length}</div>
+                            {deckEffects.filter((e) => e.canActivate(gameState)).length > 0 && (
+                                <div className="text-xs text-yellow-300">★</div>
+                            )}
                         </div>
                     </div>
 
                     {deck.map((e) => (
                         <div key={e.id} className={`absolute top-0 z-10 ${cardSizeClass}`}>
-                            <AnimationWrapper initial={{ ...deckInitial }}>
+                            <AnimationWrapper initial={{ ...deckInitial }} key={e.id}>
                                 <Card key={e.id} card={{ ...e, position: "back" as const }} disableActivate={true} />
                             </AnimationWrapper>
                         </div>
                     ))}
                 </div>
             </div>
+
+            {showDeckEffectModal && (
+                <DeckEffectSelectorModal
+                    effects={deckEffects}
+                    onSelect={(effect) => {
+                        activateDeckEffect(effect);
+                        setShowDeckEffectModal(false);
+                    }}
+                    onCancel={() => setShowDeckEffectModal(false)}
+                />
+            )}
         </div>
     );
 };

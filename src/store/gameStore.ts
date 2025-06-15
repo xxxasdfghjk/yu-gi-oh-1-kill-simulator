@@ -1,22 +1,25 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { GameState } from "@/types/game";
-import { DECK, MAGIC_CARDS } from "@/data/cards";
+import type { Deck } from "@/data/deckUtils";
+import deckList from "@/data/deck/deckList";
+
 import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
-import { excludeFromAnywhere, sendCard, summon } from "@/utils/cardMovement";
-import type { CardInstance, MagicCard } from "@/types/card";
-import { withDelay, withUserSummon, type Position } from "@/utils/effectUtils";
+import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
+import type { CardInstance } from "@/types/card";
+import { withDelay, withUserSummon, type Position, playCardInternal, withDelayRecursive } from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
-import { getSpellTrapZoneIndex } from "../utils/cardMovement";
 import { placementPriority } from "@/components/SummonSelector";
+import type { DeckEffect } from "@/components/DeckEffectSelectorModal";
 
 export type ProcessQueuePayload =
     | { type: "cardSelect"; cardList: CardInstance[] }
     | { type: "option"; option: { name: string; value: string }[] }
     | { type: "summon"; zone: number; position: "back_defense" | "attack" | "back" | "defense" }
     | { type: "confirm"; confirmed: boolean }
-    | { type: "spellend" }
-    | { type: "delay" };
+    | { type: "spellend"; cardInstance: CardInstance; callback?: (state: GameStore, card: CardInstance) => void }
+    | { type: "delay" }
+    | { type: "chain_select"; selectedCard?: CardInstance };
 
 // Callback result types for documentation
 // These are the specific types passed to callbacks:
@@ -98,6 +101,25 @@ export type EffectQueueItem =
             }
           | {
                 id: string;
+                type: "notification";
+                cardInstance: CardInstance;
+                effectType: string;
+                message: string;
+                duration?: number;
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
+                type: "life_change";
+                cardInstance: CardInstance;
+                effectType: string;
+                target: "player" | "opponent";
+                amount: number;
+                operation: "decrease" | "increase";
+                callback?: (state: GameStore, cardInstance: CardInstance) => void;
+            }
+          | {
+                id: string;
                 type: "material_select";
                 cardInstance: CardInstance;
                 effectType: string;
@@ -106,11 +128,28 @@ export type EffectQueueItem =
                 getAvailableCards: (state: GameStore) => CardInstance[];
                 callback: (state: GameStore, cardInstance: CardInstance, selectedMaterials: CardInstance[]) => void;
             }
+          | {
+                id: string;
+                type: "chain_check";
+                cardInstance: CardInstance;
+                chain?: CardInstance[];
+                effectType: string;
+                delay?: number;
+                callback?: (state: GameStore, cardInstance: CardInstance, selected?: CardInstance) => void;
+            }
       ) & { order: number };
 
 export interface GameStore extends GameState {
     turnOnceUsedEffectMemo: Record<string, boolean>;
-    initializeGame: () => void;
+
+    // Deck selection
+    selectedDeck: Deck | null;
+    availableDecks: Deck[];
+    isDeckSelectionOpen: boolean;
+    selectDeck: (deck: Deck) => void;
+    setDeckSelectionOpen: (open: boolean) => void;
+
+    initializeGame: (deck?: Deck) => void;
     effectQueue: EffectQueueItem[];
     addEffectToQueue: (effect: EffectQueueItem) => void;
     processQueueTop: (payload: ProcessQueuePayload) => void;
@@ -130,16 +169,17 @@ export interface GameStore extends GameState {
     endGame: () => void;
     judgeWin: () => void;
     draw: () => void;
-    addBonmawashiToHand: () => void;
     resetAnimationState: () => void;
     setGameOver: (winner: "player" | "timeout") => void;
     animationExodiaWin: () => void;
+    activateDeckEffect: (callback: DeckEffect) => void;
 }
 
 const initialState: GameState = {
     turn: 1,
     phase: "main1",
     lifePoints: 8000,
+    opponentLifePoints: 8000,
     deck: [],
     hand: [],
     field: {
@@ -163,10 +203,16 @@ const initialState: GameState = {
     isOpponentTurn: false,
     gameOver: false,
     winner: null,
+    winReason: null,
     hasDrawnByEffect: false,
     currentFrom: { location: "Deck" },
     currentTo: { location: "Hand" },
     throne: [null, null, null, null, null],
+    isProcessing: false,
+    originDeck: null,
+    cardChain: [],
+    deckEffects: [],
+    monstersToGraveyardThisTurn: [],
 };
 
 export const useGameStore = create<GameStore>()(
@@ -174,11 +220,30 @@ export const useGameStore = create<GameStore>()(
         ...initialState,
         turnOnceUsedEffectMemo: {},
         effectQueue: [],
-        initializeGame: () => {
-            const deckData = DECK;
+
+        // Deck selection state
+        selectedDeck: null,
+        availableDecks: deckList.map((deck) => deck.default),
+        isDeckSelectionOpen: true,
+
+        selectDeck: (deck: Deck) => {
+            set((state) => {
+                state.selectedDeck = deck;
+                state.isDeckSelectionOpen = false;
+            });
+        },
+
+        setDeckSelectionOpen: (open: boolean) => {
+            set((state) => {
+                state.isDeckSelectionOpen = open;
+            });
+        },
+
+        initializeGame: (deck?: Deck) => {
+            const deckData = deck || deckList[0]?.default; // fallback to first deck if none provided
+            if (!deckData) return;
 
             const mainDeckInstances = deckData.main_deck.map((card) => createCardInstance(card, "Deck"));
-
             const extraDeckInstances = deckData.extra_deck.map((card) => createCardInstance(card, "ExtraDeck"));
 
             set((state) => {
@@ -202,8 +267,10 @@ export const useGameStore = create<GameStore>()(
                 state.turn = 1;
                 state.phase = "main1";
                 state.lifePoints = 8000;
+                state.opponentLifePoints = 8000;
                 state.gameOver = false;
                 state.winner = null;
+                state.winReason = null;
 
                 // Reset game flags
                 state.hasNormalSummoned = false;
@@ -226,19 +293,36 @@ export const useGameStore = create<GameStore>()(
                 // Reset all turn-based flags
                 state.turnOnceUsedEffectMemo = {};
                 state.throne = [null, null, null, null, null];
+                state.isProcessing = false;
+                state.originDeck = deckData;
+                state.cardChain = [];
+                state.deckEffects = [];
+                state.monstersToGraveyardThisTurn = [];
+                withDelayRecursive(
+                    state,
+                    { card: { card_name: "" } } as CardInstance,
+                    {},
+                    deck?.rules.includes("start_six_hand") ? 6 : 5,
+                    (state) => {
+                        sendCard(state, state.deck[0], "Hand");
+                    }
+                );
             });
         },
 
         activateEffect: (card: CardInstance) => {
             set((state) => {
+                state.isProcessing = true;
                 card.card.effect.onIgnition?.effect(state, card);
+                state.isProcessing = false;
             });
         },
 
         // Effect Queue System
         addEffectToQueue: (effect: EffectQueueItem) => {
             set((state) => {
-                state.effectQueue.push(effect);
+                const queue = [effect, ...state.effectQueue].sort((a, b) => a.order - b.order);
+                state.effectQueue = queue;
             });
         },
 
@@ -284,15 +368,32 @@ export const useGameStore = create<GameStore>()(
                                 position: payload.position,
                             });
                         }
+                        state.isProcessing = false;
                         break;
                     }
                     case "spellend": {
                         sendCard(state, currentEffect.cardInstance, "Graveyard");
+                        payload?.callback?.(state, payload.cardInstance);
+                        state.isProcessing = false;
                         break;
                     }
                     case "delay": {
-                        if (currentEffect.type === "notify")
+                        if (
+                            currentEffect.type === "notify" ||
+                            currentEffect.type === "notification" ||
+                            currentEffect.type === "life_change"
+                        )
                             currentEffect?.callback?.(state, currentEffect.cardInstance);
+                        break;
+                    }
+                    case "chain_select": {
+                        if (currentEffect.type === "chain_check") {
+                            if (payload.selectedCard) {
+                                currentEffect?.callback?.(state, currentEffect.cardInstance, payload.selectedCard);
+                            } else {
+                                currentEffect.callback?.(state, currentEffect.cardInstance);
+                            }
+                        }
                         break;
                     }
 
@@ -310,6 +411,7 @@ export const useGameStore = create<GameStore>()(
         popQueue: () => {
             set((state) => {
                 state.effectQueue.shift();
+                state.isProcessing = false;
             });
         },
         draw: () => {
@@ -317,17 +419,6 @@ export const useGameStore = create<GameStore>()(
                 sendCard(state, state.deck[0], "Hand");
             });
         },
-
-        addBonmawashiToHand: () => {
-            set((state) => {
-                const bonmawashiCard = MAGIC_CARDS.find((card) => card.card_name === "盆回し");
-                if (bonmawashiCard) {
-                    const bonmawashiInstance = createCardInstance(bonmawashiCard, "Hand");
-                    state.hand.push(bonmawashiInstance);
-                }
-            });
-        },
-
         // Game actions implementation
         selectedCard: null,
 
@@ -339,6 +430,8 @@ export const useGameStore = create<GameStore>()(
                         state.phase = "draw";
                         state.isOpponentTurn = true;
                         state.turn = state.turn + 1;
+                        // Reset turn-based tracking
+                        state.monstersToGraveyardThisTurn = [];
                         break;
                     case "draw":
                         state.phase = "main1";
@@ -348,93 +441,7 @@ export const useGameStore = create<GameStore>()(
 
         playCard: (card: CardInstance) => {
             set((state) => {
-                // Pure card type classification - UI has already checked conditions
-                if (card.card.card_type === "魔法") {
-                    // Handle spell cards
-                    const magicCard = card.card as MagicCard;
-                    const spellSubtype = magicCard.magic_type;
-
-                    if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
-                        // Spells that go to graveyard after use
-                        // 1. Queue spell_end job at the end
-
-                        // 2. Queue activation at the front (processed first)
-                        const index = getSpellTrapZoneIndex(state, card);
-                        if (index !== -1 && card.position === "back") {
-                            state.field.spellTrapZones[index]!.position = undefined;
-                        } else {
-                            const availableSpace = state.field.spellTrapZones
-                                .map((e, i) => ({ i, e: e }))
-                                .filter(({ e }) => e === null)
-                                .map((e) => e.i);
-                            const index = placementPriority(availableSpace);
-                            sendCard(state, card, "SpellField", { spellFieldIndex: index });
-                        }
-                        card.card.effect.onSpell?.effect(state, card);
-                        pushQueue(state, {
-                            order: 100,
-                            id: card.id + "_spell_end",
-                            type: "spell_end",
-                            cardInstance: card,
-                            effectType: "send_to_graveyard",
-                        });
-                    } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
-                        // Continuous/Equipment spells stay on field
-                        card.card.effect.onSpell?.effect(state, card);
-                        sendCard(state, card, "SpellField");
-                    } else if (spellSubtype === "フィールド魔法") {
-                        // Field spells go to field zone
-                        if (state.field.fieldZone !== null) {
-                            sendCard(state, state.field.fieldZone, "Graveyard");
-                            withDelay(state, card, { order: -1 }, (state, card) => {
-                                sendCard(state, card, "FieldZone");
-                                card.card.effect.onSpell?.effect(state, card);
-                            });
-                            return;
-                        } else {
-                            sendCard(state, card, "FieldZone");
-                            card.card.effect.onSpell?.effect(state, card);
-                        }
-                    }
-                } else if (card.card.card_type === "罠") {
-                    const index = getSpellTrapZoneIndex(state, card);
-                    if (index !== -1 && card.position === "back") {
-                        state.field.spellTrapZones[index]!.position = undefined;
-                    } else {
-                        sendCard(state, card, "SpellField", {});
-                    }
-                    card.card.effect.onSpell?.effect(state, card);
-                    pushQueue(state, {
-                        order: 100,
-                        id: card.id + "_spell_end",
-                        type: "spell_end",
-                        cardInstance: card,
-                        effectType: "send_to_graveyard",
-                    });
-                } else if (card.card.card_type === "モンスター") {
-                    // Handle monster cards - add to effect queue for user to choose position and zone
-                    pushQueue(state, {
-                        order: 0,
-                        id: card.id + "_normal_summon",
-                        type: "summon",
-                        cardInstance: card,
-                        effectType: "normal_summon",
-                        canSelectPosition: true,
-                        optionPosition: ["attack", "back_defense"],
-                        callback: (
-                            state: GameStore,
-                            cardInstance: CardInstance,
-                            result: {
-                                zone: number;
-                                position: "back_defense" | "attack" | "back" | "defense" | undefined;
-                            }
-                        ) => {
-                            summon(state, cardInstance, result.zone, result.position);
-                            // Mark that normal summon was used
-                            state.hasNormalSummoned = true;
-                        },
-                    });
-                }
+                playCardInternal(state, card);
             });
         },
 
@@ -555,6 +562,7 @@ export const useGameStore = create<GameStore>()(
                     } else {
                         state.gameOver = true;
                         state.winner = "player";
+                        state.winReason = "exodia";
                     }
                 }
             });
@@ -595,10 +603,18 @@ export const useGameStore = create<GameStore>()(
                 if (state.lifePoints <= 0) {
                     state.gameOver = true;
                     state.winner = "timeout";
+                } else if (state.opponentLifePoints <= 0) {
+                    state.gameOver = true;
+                    state.winner = "player";
+                    state.winReason = "life_points";
                 }
             });
         },
-
+        activateDeckEffect: (deckEffect: DeckEffect) => {
+            set((state) => {
+                deckEffect.activate(state, deckEffect.card);
+            });
+        },
         resetAnimationState: () => {
             set((state) => {
                 state.currentFrom = { location: "Deck" };

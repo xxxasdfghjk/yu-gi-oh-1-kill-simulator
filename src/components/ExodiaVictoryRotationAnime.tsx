@@ -11,7 +11,7 @@ export const ExodiaVictoryRotationAnime = ({ isVisible }: { isVisible: boolean }
     useEffect(() => {
         if (!isVisible) return;
         setTimeout(() => animationExodiaWin(), 200);
-    }, [isVisible]);
+    }, [isVisible, animationExodiaWin]);
 
     const ROTATION_DELAY_OFFSET = 2.5;
     return (
