@@ -4,7 +4,7 @@ import type { GameState } from "@/types/game";
 import type { Deck } from "@/data/deckUtils";
 import deckList from "@/data/deck/deckList";
 
-import { createCardInstance, isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
+import { createCardInstance, isLinkMonster, isMagicCard, isXyzMonster } from "@/utils/cardManagement";
 import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
 import { withDelay, withUserSummon, type Position, playCardInternal, withDelayRecursive } from "@/utils/effectUtils";
@@ -213,6 +213,7 @@ const initialState: GameState = {
     cardChain: [],
     deckEffects: [],
     monstersToGraveyardThisTurn: [],
+    isFieldSpellActivationAllowed: null,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -298,6 +299,8 @@ export const useGameStore = create<GameStore>()(
                 state.cardChain = [];
                 state.deckEffects = [];
                 state.monstersToGraveyardThisTurn = [];
+                state.isFieldSpellActivationAllowed = null;
+
                 withDelayRecursive(
                     state,
                     { card: { card_name: "" } } as CardInstance,
@@ -453,7 +456,11 @@ export const useGameStore = create<GameStore>()(
                     .filter(({ e }) => e === null)
                     .map((e) => e.i);
                 const index = placementPriority(availableSpace);
-                sendCard(state, newCard, "SpellField", { reverse: true, spellFieldIndex: index });
+                if (isMagicCard(card.card) && card.card.magic_type === "フィールド魔法") {
+                    sendCard(state, newCard, "FieldZone", { reverse: true });
+                } else {
+                    sendCard(state, newCard, "SpellField", { reverse: true, spellFieldIndex: index });
+                }
             });
         },
 
