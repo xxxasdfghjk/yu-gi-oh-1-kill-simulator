@@ -1,22 +1,5 @@
 import { expandDeckList, type Deck } from "@/data/deckUtils";
-import type { Card } from "@/types/card";
-
-const magicModules = import.meta.glob("./cards/magic/*.ts", { eager: true }) as Record<string, { default: Card }>;
-const monsterModules = import.meta.glob("./cards/monster/*.ts", { eager: true }) as Record<string, { default: Card }>;
-const extraModules = import.meta.glob("./cards/extra/*.ts", { eager: true }) as Record<string, { default: Card }>;
-const trapModules = import.meta.glob("./cards/trap/*.ts", { eager: true }) as Record<string, { default: Card }>;
-const tokenModules = import.meta.glob("./cards/token/*.ts", { eager: true }) as Record<string, { default: Card }>;
-
-// Create maps for easy lookup
-const magicCardList = Object.values(magicModules).map((e) => e.default);
-const monsterCardList = Object.values(monsterModules).map((e) => e.default);
-const extraCardList = Object.values(extraModules).map((e) => e.default);
-const trapCardList = Object.values(trapModules).map((e) => e.default);
-const tokenCardList = Object.values(tokenModules).map((e) => e.default);
-
-const allCardListMap = [monsterCardList, extraCardList, magicCardList, trapCardList, tokenCardList]
-    .flat()
-    .reduce((prev, cur) => ({ ...prev, [cur.card_name]: cur }), {});
+import cardMap from "@/data/cards/cardMap";
 
 const DECK_CONFIG = {
     deck_name: "エグゾディアデッキ",
@@ -74,8 +57,8 @@ const DECK_CONFIG = {
 };
 export default {
     deck_name: DECK_CONFIG.deck_name,
-    main_deck: expandDeckList(DECK_CONFIG.main_deck, allCardListMap),
-    extra_deck: expandDeckList(DECK_CONFIG.extra_deck, allCardListMap),
-    token: expandDeckList(DECK_CONFIG.token, allCardListMap),
+    main_deck: expandDeckList(DECK_CONFIG.main_deck, cardMap),
+    extra_deck: expandDeckList(DECK_CONFIG.extra_deck, cardMap),
+    token: expandDeckList(DECK_CONFIG.token, cardMap),
     rules: [],
 } satisfies Deck;

@@ -1,5 +1,5 @@
 import type { MagicCard } from "@/types/card";
-import { hasEmptySpellField, isMagicCard } from "../../../../../utils/cardManagement";
+import { hasEmptySpellField, isMagicCard } from "@/utils/cardManagement";
 import { CardSelector } from "@/utils/CardSelector";
 import { withDelayRecursive } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";

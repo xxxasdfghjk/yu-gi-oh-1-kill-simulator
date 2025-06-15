@@ -4,7 +4,7 @@ import { summon } from "@/utils/cardMovement";
 import { getPrioritySetMonsterZoneIndex } from "@/utils/gameUtils";
 import { CardSelector } from "@/utils/CardSelector";
 import type { GameStore } from "@/store/gameStore";
-import METAL_DEVIL_TOKEN from "../token/メタルデビル・トークン";
+import METAL_DEVIL_TOKEN from "@/data/cards/token/メタルデビル・トークン";
 
 export default {
     card_name: "デビルズ・サンクチュアリ",

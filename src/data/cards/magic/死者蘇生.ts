@@ -1,6 +1,6 @@
 import type { MagicCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withUserSummon } from "../../../../../utils/effectUtils";
+import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
 
 export default {
     card_name: "死者蘇生",

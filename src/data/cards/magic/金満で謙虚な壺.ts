@@ -7,7 +7,7 @@ import {
     withDelayRecursive,
 } from "@/utils/effectUtils";
 import { sendCard, randomExtractDeck } from "@/utils/cardMovement";
-import { sendCardById } from "../../../../../utils/cardMovement";
+import { sendCardById } from "@/utils/cardMovement";
 
 const card = {
     card_name: "金満で謙虚な壺",

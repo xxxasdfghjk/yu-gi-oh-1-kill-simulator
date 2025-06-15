@@ -1,8 +1,5 @@
 import type { ExtraMonster } from "@/types/card";
-import {
-    monsterFilter,
-    createCardInstance,
-} from "@/utils/cardManagement";
+import { monsterFilter, createCardInstance } from "@/utils/cardManagement";
 import {
     withUserSelectCard,
     withUserSummon,
@@ -14,7 +11,7 @@ import {
 import { sendCard, summon } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
-import TOKEN from "../token/幻獣機トークン";
+import TOKEN from "@/data/cards/token/幻獣機トークン";
 import { calcCanSummonLink, getPrioritySetMonsterZoneIndex } from "@/utils/gameUtils";
 
 const card = {
