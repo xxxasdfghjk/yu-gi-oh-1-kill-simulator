@@ -7,7 +7,6 @@ export interface DeckData {
 }
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
-type ChainEffectCallback = (gameState: GameStore, cardInstance: CardInstance, chainCardList: CardInstance[]) => void;
 type ChainConditionCallback = (
     gameState: GameStore,
     cardInstance: CardInstance,

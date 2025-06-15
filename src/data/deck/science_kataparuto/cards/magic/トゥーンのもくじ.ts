@@ -21,7 +21,7 @@ export default {
                     withNotification(state, card, { message: "対象が見つかりません" }, () => {});
                     return;
                 }
-                withUserSelectCard(state, card, list, { select: "single" }, (state, card, selected) => {
+                withUserSelectCard(state, card, list, { select: "single" }, (state, _card, selected) => {
                     sendCard(state, selected[0], "Hand");
                 });
             },
