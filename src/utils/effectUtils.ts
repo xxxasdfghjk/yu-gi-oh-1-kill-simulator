@@ -374,6 +374,30 @@ export const getChainableCards = (state: GameStore, chain: CardInstance[]): Card
     return chainableCards;
 };
 
+const canActivateMagicOrTrapCard = (state: GameStore, card: CardInstance) => {
+    return (
+        (isMagicCard(card.card) &&
+            card.card.effect?.onSpell?.condition(state, card) &&
+            (hasEmptySpellField(state) ||
+                (card.location === "SpellField" && card.position === "back") ||
+                (card.location === "FieldZone" && card.position === "back")) &&
+            card.position !== "attack" &&
+            (card.location === "Hand" || card.location === "SpellField" || card.location === "FieldZone") &&
+            (card.card.magic_type !== "フィールド魔法" ||
+                state.isFieldSpellActivationAllowed === card.id ||
+                state.isFieldSpellActivationAllowed === null) &&
+            (card.card.magic_type !== "速攻魔法" ||
+                card.location !== "SpellField" ||
+                card.position !== "back" ||
+                card.setTurn !== state.turn) &&
+            state.phase === "main1") ||
+        (isTrapCard(card.card) &&
+            card.card.effect.onSpell?.condition(state, card) &&
+            card.location === "SpellField" &&
+            (card?.setTurn ?? 999999) < state.turn)
+    );
+};
+
 export const getCardActions = (gameState: GameStore, card: CardInstance): string[] => {
     if (gameState.isProcessing) {
         return [];
@@ -382,23 +406,7 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     if (monsterFilter(card.card) && canNormalSummon(gameState, card) && card.location === "Hand") {
         actions.push("summon");
     }
-    if (
-        (isMagicCard(card.card) &&
-            card.card.effect?.onSpell?.condition(gameState, card) &&
-            (hasEmptySpellField(gameState) ||
-                (card.location === "SpellField" && card.position === "back") ||
-                (card.location === "FieldZone" && card.position === "back")) &&
-            card.position !== "attack" &&
-            (card.location === "Hand" || card.location === "SpellField" || card.location === "FieldZone") &&
-            (card.card.magic_type !== "フィールド魔法" ||
-                gameState.isFieldSpellActivationAllowed === card.id ||
-                gameState.isFieldSpellActivationAllowed === null) &&
-            gameState.phase === "main1") ||
-        (isTrapCard(card.card) &&
-            card.card.effect.onSpell?.condition(gameState, card) &&
-            card.location === "SpellField" &&
-            (card?.setTurn ?? 999999) < gameState.turn)
-    ) {
+    if (canActivateMagicOrTrapCard(gameState, card)) {
         actions.push("activate");
     }
 
