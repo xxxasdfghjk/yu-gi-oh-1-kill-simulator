@@ -1,6 +1,6 @@
 import type { CardInstance, MagicCard } from "@/types/card";
 import { isMagicCard } from "@/utils/cardManagement";
-import { sendCard } from "@/utils/cardMovement";
+import { sendCard, sendCardById } from "@/utils/cardMovement";
 import { withUserSelectCard, withDelay } from "@/utils/effectUtils";
 
 export default {
@@ -39,10 +39,11 @@ export default {
                         message: "デッキから異なるフィールド魔法カード2枚を選択してください",
                     },
                     (state, _cardInstance, selectedList) => {
+                        const selectedListId = selectedList.map((e) => e.id);
                         withUserSelectCard(
                             state,
                             _cardInstance,
-                            () => selectedList,
+                            (state) => selectedListId.map((id) => state.deck.find((c) => c.id === id)!),
                             {
                                 select: "single",
                                 message: "自分のフィールドゾーンにセットするフィールド魔法カードを選択してください",
@@ -51,14 +52,16 @@ export default {
                                 if (state.field.fieldZone !== null) {
                                     sendCard(state, state.field.fieldZone, "Graveyard");
                                 }
-                                const otherCard = selectedList.find((c) => c.id !== selected[0].id)!;
-                                sendCard(state, otherCard, "OpponentField");
-                                withDelay(state, card, { order: 0 }, (state) => {
-                                    sendCard(state, selected[0], "FieldZone");
-                                    selected[0].card.effect.onSpell?.effect(state, selected[0]);
-                                    // Set the other card to opponent's field zone
-                                    // Enable field spell prohibition
-                                    state.isFieldSpellActivationProhibited = true;
+                                const otherCard = selectedListId.find((c) => c !== selected[0].id)!;
+
+                                sendCardById(state, otherCard, "OpponentField", { reverse: true });
+
+                                // Extract the ID before withDelay to avoid proxy error
+                                const selectedCardId = selected[0].id;
+
+                                withDelay(state, _, { order: 0 }, (state) => {
+                                    sendCardById(state, selectedCardId, "FieldZone", { reverse: true });
+                                    state.isFieldSpellActivationAllowed = selectedCardId;
                                 });
                             }
                         );

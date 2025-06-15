@@ -197,12 +197,16 @@ export const sendCard = (
                 sendCard(state, state!.field!.fieldZone!, "Graveyard");
             }
             state.currentTo = { location: "FieldZone" };
-            state.field.fieldZone = { ...updatedCard };
+            const position = option?.reverse ? "back" : ("attack" satisfies Position);
+
+            state.field.fieldZone = { ...updatedCard, position };
             break;
         }
         case "OpponentField": {
             state.currentTo = { location: "OpponentField" };
-            state.opponentField.fieldZone = { ...updatedCard };
+            const position = option?.reverse ? "back" : ("attack" satisfies Position);
+
+            state.opponentField.fieldZone = { ...updatedCard, position };
             break;
         }
         case "Throne": {

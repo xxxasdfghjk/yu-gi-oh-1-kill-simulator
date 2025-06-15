@@ -19,48 +19,52 @@ const card = {
         onSpell: {
             condition: (state, card) =>
                 withTurnAtOneceCondition(state, card, (state) => state.extraDeck.length >= 3 && state.deck.length >= 3),
-            effect: (state, card) =>
-                withTurnAtOneceEffect(state, card, () => {
-                    withOption(
+            payCost: (state, card, after) => {
+                withOption(
+                    state,
+                    card,
+                    [
+                        {
+                            name: "３枚除外",
+                            condition: (state) => state.extraDeck.length >= 3 && state.deck.length >= 3,
+                        },
+                        {
+                            name: "６枚除外",
+                            condition: (state) => state.extraDeck.length >= 6 && state.deck.length >= 6,
+                        },
+                    ],
+                    (state, card, option) => {
+                        const excludeNum = option === "３枚除外" ? 3 : 6;
+                        const idList = randomExtractDeck(state, excludeNum).map((e) => e.id);
+
+                        withDelayRecursive(
+                            state,
+                            card,
+                            { delay: 50 },
+                            6,
+                            (state, _card, depth) => {
+                                sendCardById(state, idList[depth - 1], "Exclusion");
+                            },
+                            (state, card) => {
+                                after(state, card, { excludeNum: excludeNum });
+                            }
+                        );
+                    }
+                );
+            },
+            effect: (state, card, context) => {
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    withUserSelectCard(
                         state,
                         card,
-                        [
-                            {
-                                name: "３枚除外",
-                                condition: (state) => state.extraDeck.length >= 3 && state.deck.length >= 3,
-                            },
-                            {
-                                name: "６枚除外",
-                                condition: (state) => state.extraDeck.length >= 6 && state.deck.length >= 6,
-                            },
-                        ],
-                        (state, card, option) => {
-                            const excludeNum = option === "３枚除外" ? 3 : 6;
-                            const idList = randomExtractDeck(state, excludeNum).map((e) => e.id);
-
-                            withDelayRecursive(
-                                state,
-                                card,
-                                { delay: 50 },
-                                6,
-                                (state, _card, depth) => {
-                                    sendCardById(state, idList[depth - 1], "Exclusion");
-                                },
-                                (state, card) => {
-                                    withUserSelectCard(
-                                        state,
-                                        card,
-                                        (state) => state.deck.slice(0, excludeNum),
-                                        { select: "single" as const, message: "手札に加えるカードを選択してください" },
-                                        (state, _cardInstance, selected) => {
-                                            sendCard(state, selected[0], "Hand" as const);
-                                        }
-                                    );
-                                }
-                            );
+                        (state) => state.deck.slice(0, context?.["excludeNum"] ?? 3),
+                        { select: "single" as const, message: "手札に加えるカードを選択してください" },
+                        (state, _cardInstance, selected) => {
+                            sendCard(state, selected[0], "Hand" as const);
                         }
                     );
-                }),
+                });
+            },
         },
     },
 } satisfies MagicCard;

@@ -385,10 +385,14 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     if (
         (isMagicCard(card.card) &&
             card.card.effect?.onSpell?.condition(gameState, card) &&
-            (hasEmptySpellField(gameState) || (card.location === "SpellField" && card.position === "back")) &&
+            (hasEmptySpellField(gameState) ||
+                (card.location === "SpellField" && card.position === "back") ||
+                (card.location === "FieldZone" && card.position === "back")) &&
             card.position !== "attack" &&
-            (card.location === "Hand" || card.location === "SpellField") &&
-            !(card.card.magic_type === "フィールド魔法" && gameState.isFieldSpellActivationProhibited) &&
+            (card.location === "Hand" || card.location === "SpellField" || card.location === "FieldZone") &&
+            (card.card.magic_type !== "フィールド魔法" ||
+                gameState.isFieldSpellActivationAllowed === card.id ||
+                gameState.isFieldSpellActivationAllowed === null) &&
             gameState.phase === "main1") ||
         (isTrapCard(card.card) &&
             card.card.effect.onSpell?.condition(gameState, card) &&
@@ -399,7 +403,7 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
     }
 
     if (
-        (isTrapCard(card.card) || (isMagicCard(card.card) && card.card.magic_type !== "フィールド魔法")) &&
+        (isTrapCard(card.card) || isMagicCard(card.card)) &&
         hasEmptySpellField(gameState) &&
         card.location === "Hand" &&
         gameState.phase === "main1"
@@ -422,7 +426,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
         const spellSubtype = magicCard.magic_type;
 
         if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
-            const handler = (state: GameStore, card: CardInstance) => {
+            const handler = (state: GameStore, card: CardInstance, context?: Record<string, number>) => {
                 const index = getSpellTrapZoneIndex(state, card);
                 if (index !== -1 && card.position === "back") {
                     state.field.spellTrapZones[index]!.position = "attack";
@@ -439,10 +443,10 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                     state.cardChain.unshift(card);
                     withCheckChain(state, card, {}, (state, card, selected) => {
                         if (selected) {
-                            card.card.effect.onSpell?.effect(state, card);
+                            card.card.effect.onSpell?.effect(state, card, context);
                             playCardInternal(state, selected);
                         } else {
-                            card.card.effect.onSpell?.effect(state, card);
+                            card.card.effect.onSpell?.effect(state, card, context);
                         }
                     });
 
@@ -459,11 +463,11 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 });
             };
             if (card.card.effect.onSpell?.payCost) {
-                card.card.effect.onSpell.payCost(state, card, (state, card) => {
-                    handler(state, card);
+                card.card.effect.onSpell.payCost(state, card, (state, card, context) => {
+                    handler(state, card, context);
                 });
             } else {
-                handler(state, card);
+                handler(state, card, undefined);
             }
         } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
             // Continuous/Equipment spells stay on field
@@ -472,7 +476,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
             state.isProcessing = false;
         } else if (spellSubtype === "フィールド魔法") {
             // Field spells go to field zone
-            if (state.field.fieldZone !== null) {
+            if (state.field.fieldZone !== null && state.field.fieldZone?.id !== card?.id) {
                 sendCard(state, state.field.fieldZone, "Graveyard");
                 withDelay(state, card, { order: -1 }, (state, card) => {
                     sendCard(state, card, "FieldZone");

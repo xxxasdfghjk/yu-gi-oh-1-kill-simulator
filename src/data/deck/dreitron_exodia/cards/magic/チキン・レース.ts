@@ -22,7 +22,9 @@ export default {
                     card,
                     (state, card) =>
                         (state.field.fieldZone?.id === card.id || state.opponentField.fieldZone?.id === card.id) &&
-                        state.lifePoints >= 1000
+                        state.lifePoints >= 1000 &&
+                        card.location === "FieldZone" &&
+                        card.position !== "back"
                 );
                 // Check if card is in field zone and player has enough LP
             },

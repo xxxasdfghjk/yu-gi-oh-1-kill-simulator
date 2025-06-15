@@ -6,7 +6,7 @@ export interface DeckData {
     extra_deck: Card[];
 }
 
-type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
+type EffectCallback = (gameState: GameStore, cardInstance: CardInstance, context?: Record<string, number>) => void;
 type ChainConditionCallback = (
     gameState: GameStore,
     cardInstance: CardInstance,
@@ -14,8 +14,8 @@ type ChainConditionCallback = (
 ) => boolean;
 
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
-
-type PayCostCallback = (gameState: GameStore, cardInstance: CardInstance, afterCallback: EffectCallback) => void;
+type CostAfterCallback = (gameState: GameStore, cardInstance: CardInstance, context?: Record<string, number>) => void;
+type PayCostCallback = (gameState: GameStore, cardInstance: CardInstance, afterCallback: CostAfterCallback) => void;
 
 export type EffectType = {
     onSpell?: {
