@@ -28,6 +28,7 @@ export interface GameState {
     banished: CardInstance[];
     extraDeck: CardInstance[];
     hasNormalSummoned: boolean;
+    normalSummonProhibited: boolean;
     hasSpecialSummoned: boolean;
     hasDrawnByEffect: boolean;
     isLinkSummonProhibited: boolean;

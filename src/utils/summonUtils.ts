@@ -8,6 +8,7 @@ import type { GameStore } from "@/store/gameStore";
 export const canNormalSummon = (gameState: GameStore, card: CardInstance): boolean => {
     if (!monsterFilter(card.card)) return false;
     if (gameState.hasNormalSummoned) return false;
+    if (gameState.normalSummonProhibited) return false;
 
     if (gameState.phase !== "main1" && gameState.phase !== "main2") return false;
     // 特殊召喚モンスターは通常召喚できない

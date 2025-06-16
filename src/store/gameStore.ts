@@ -214,6 +214,7 @@ const createInitialGameState = (deckData?: Deck): GameState => {
         deckEffects: [],
         monstersToGraveyardThisTurn: [],
         isFieldSpellActivationAllowed: null,
+        normalSummonProhibited: false,
     };
 
     if (deckData) {
@@ -401,14 +402,40 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 // Basic phase progression
                 switch (state.phase) {
-                    case "main1":
-                        state.phase = "draw";
+                    case "main1": {
+                        state.phase = "standby";
                         state.isOpponentTurn = true;
                         state.turn = state.turn + 1;
                         // Reset turn-based tracking
                         state.monstersToGraveyardThisTurn = [];
+
+                        // Process onStandbyPhase effects for monsters in monster zones
+                        const monstersWithStandbyEffects = [
+                            ...state.field.monsterZones,
+                            ...state.field.extraMonsterZones,
+                        ];
+
+                        // Trigger standby phase effects
+                        withDelayRecursive(
+                            state,
+                            { card: { card_name: "" } } as CardInstance,
+                            {},
+                            monstersWithStandbyEffects.length,
+                            (state, _, depth) => {
+                                const monstersWithStandbyEffects = [
+                                    ...state.field.monsterZones,
+                                    ...state.field.extraMonsterZones,
+                                ];
+                                monstersWithStandbyEffects[depth - 1]?.card.effect.onStandbyPhase?.(
+                                    state,
+                                    monstersWithStandbyEffects[depth - 1]!
+                                );
+                            },
+                            () => {}
+                        );
                         break;
-                    case "draw":
+                    }
+                    case "standby":
                         state.phase = "main1";
                 }
             });

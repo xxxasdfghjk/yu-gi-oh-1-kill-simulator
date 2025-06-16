@@ -23,7 +23,7 @@ export default {
             condition: (state: GameStore) => {
                 return (
                     new CardSelector(state).allMonster().filter().nonNull().len() > 0 &&
-                    new CardSelector(state).deck().filter().canNormalSummon().len() > 0
+                    new CardSelector(state).deck().filter().canNormalSummon().noSummonLimited().len() > 0
                 );
             },
             payCost: (state: GameStore, card: CardInstance, after) => {
@@ -38,7 +38,7 @@ export default {
                     (state: GameStore, card: CardInstance, selected: CardInstance[]) => {
                         // 選択したモンスターをリリース
                         releaseCard(state, selected[0]);
-                        withDelay(state, card, { delay: 500 }, (state, card) => {
+                        withDelay(state, card, { delay: 100 }, (state, card) => {
                             after(state, card);
                         });
                     }
@@ -47,7 +47,11 @@ export default {
             effect: (state: GameStore, card: CardInstance) => {
                 const deckCards = new CardSelector(state).deck().get();
                 const foundIndex = deckCards.findIndex(
-                    (card) => card !== null && monsterFilter(card.card) && card.card.canNormalSummon === true
+                    (card) =>
+                        card !== null &&
+                        monsterFilter(card.card) &&
+                        card.card.canNormalSummon === true &&
+                        card.card.summonLimited !== true
                 );
                 if (foundIndex === -1) {
                     withNotification(state, card, {

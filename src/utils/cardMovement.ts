@@ -12,16 +12,31 @@ export const triggerEffects = (state: GameStore, card: CardInstance, from: Locat
     const effect = card.card.effect;
 
     // Field to Graveyard effects
-    if ((from === "MonsterField" || from === "FieldZone") && to === "Graveyard" && effect?.onFieldToGraveyard) {
+    if (
+        (from === "MonsterField" || from === "FieldZone" || from === "SpellField") &&
+        to === "Graveyard" &&
+        effect?.onFieldToGraveyard
+    ) {
         withDelay(state, card, { order: 3000 }, (state, card) => {
             card.card?.effect?.onFieldToGraveyard?.(state, card);
         });
+    }
+
+    if ((from === "SpellField" || from === "MonsterField" || from === "FieldZone") && card.card?.effect?.onLeaveField) {
+        card.card.effect?.onLeaveField(state, card);
+        return;
     }
 
     // Anywhere to Graveyard effects
     if (to === "Graveyard" && effect?.onAnywhereToGraveyard) {
         withDelay(state, card, { order: 3000 }, (state, card) => {
             card.card?.effect?.onAnywhereToGraveyard?.(state, card);
+        });
+    }
+    // Graveyard to Field effects
+    if (from === "Graveyard" && to === "MonsterField" && effect?.onGraveyardToField) {
+        withDelay(state, card, { order: 3000 }, (state, card) => {
+            card.card?.effect?.onGraveyardToField?.(state, card);
         });
     }
 };
@@ -56,6 +71,15 @@ export const addBuf = (state: GameStore, card: CardInstance, buf: Buf) => {
     }
 };
 
+export const releaseCardById = (state: GameStore, cardId: string) => {
+    const card = getCardInstanceFromId(state, cardId);
+    if (card === null || card === undefined) {
+        return;
+    }
+    sendCard(state, card, "Graveyard");
+    card.card.effect?.onRelease?.(state, card);
+};
+
 export const releaseCard = (state: GameStore, card: CardInstance) => {
     sendCard(state, card, "Graveyard");
     card.card.effect?.onRelease?.(state, card);
@@ -73,6 +97,26 @@ export const equipCard = (state: GameStore, equipMonster: CardInstance, equipped
             state.field.extraMonsterZones[i]?.equipment.push(equipment);
         }
     }
+};
+
+export const getEquipTarget = (state: GameStore, equippedCard: CardInstance) => {
+    for (let i = 0; i < 5; i++) {
+        if (state.field.monsterZones[i] !== null) {
+            const target = state.field.monsterZones[i]?.equipment.find((e) => e.id === equippedCard.id);
+            if (target) {
+                return target;
+            }
+        }
+    }
+    for (let i = 0; i < 2; i++) {
+        if (state.field.extraMonsterZones[i] !== null) {
+            const target = state.field.extraMonsterZones[i]?.equipment.find((e) => e.id === equippedCard.id);
+            if (target) {
+                return target;
+            }
+        }
+    }
+    return null;
 };
 
 export const getSpellTrapZoneIndex = (state: GameStore, card: CardInstance) => {
@@ -96,7 +140,14 @@ export const sendCard = (
     state: GameStore,
     card: CardInstance,
     to: Location,
-    option?: { reverse?: boolean; spellFieldIndex?: number; ignoreLeavingInstead?: boolean }
+    option?: {
+        reverse?: boolean;
+        spellFieldIndex?: number;
+        ignoreLeavingInstead?: boolean;
+        position?: Position;
+        zone?: number;
+        deckTop?: boolean;
+    }
 ) => {
     const originalLocation = card.location;
     // If the card is leaving the field and has equipment, send equipment to graveyard
@@ -104,12 +155,15 @@ export const sendCard = (
         (card.location === "MonsterField" || card.location === "SpellField") &&
         to !== "MonsterField" &&
         to !== "SpellField";
+    console.log(`Sending card ${card.card.card_name} from ${card.location} to ${to}`);
 
     if (isLeavingField) {
+        console.log(`Card ${card.card.card_name} is leaving the field, sending equipment and materials to graveyard`);
+
         // Send all equipped cards to graveyard using sendCard recursively
         const equipmentCopy = [...card.equipment]; // Make a copy to avoid modification during iteration
         const materialCopy = [...card.materials]; // Make a copy to avoid modification during iteration
-
+        console.log(`Equipment count: ${equipmentCopy.length}, Materials count: ${materialCopy.length}`);
         equipmentCopy.forEach((equipmentCard) => {
             sendCard(state, equipmentCard, "Graveyard");
         });
@@ -149,7 +203,11 @@ export const sendCard = (
     switch (to) {
         case "Deck":
             state.currentTo = { location: "Deck" };
-            state.deck.push(updatedCard);
+            if (option?.deckTop) {
+                state.deck.unshift(updatedCard);
+            } else {
+                state.deck.push(updatedCard);
+            }
             break;
         case "Hand":
             state.currentTo = { location: "Hand", index: state.hand.length, length: state.hand.length + 1 };
@@ -173,6 +231,15 @@ export const sendCard = (
             state.extraDeck.push(updatedCard);
             break;
         case "MonsterField":
+            state.currentTo = { location: "MonsterField" };
+            if (option!.zone! >= 0 && option!.zone! <= 4) {
+                state.currentTo = { location: "MonsterField", index: option!.zone, position: option!.position };
+                state.field.monsterZones[option!.zone!] = { ...updatedCard, position: option!.position };
+            } else if (option!.zone === 5 || option!.zone === 6) {
+                state.currentTo = { location: "MonsterField", index: option!.zone, position: option!.position! };
+                state.field.extraMonsterZones[option!.zone - 5] = { ...updatedCard, position: option!.position };
+            }
+
             // This should be handled by summon function
             break;
         case "SpellField": {
@@ -378,13 +445,13 @@ export const destroyByBattle = (state: GameStore, card: CardInstance, to: Locati
 
 // Destroy a card by effect (triggers onDestroyByEffect effect)
 export const destroyByEffect = (state: GameStore, card: CardInstance, to: Location = "Graveyard") => {
+    sendCard(state, card, to);
     // Trigger effect destruction effect before moving the card
     if (card.card.effect.onDestroyByEffect) {
         card.card.effect.onDestroyByEffect(state, card);
     }
 
     // Send the card to the specified location (usually graveyard)
-    sendCard(state, card, to);
 };
 
 export const banish = (state: GameStore, card: CardInstance) => {
@@ -417,8 +484,8 @@ export const getHandIndex = (state: GameStore, card: CardInstance) => {
 
 export const summon = (state: GameStore, monster: CardInstance, zone: number, position: Position) => {
     // Remove from current location
-    const from = excludeFromAnywhere(state, monster);
-    state.currentFrom = { ...from, position };
+
+    sendCard(state, monster, "MonsterField", { position, zone });
     // Create summoned monster instance
     const summonedMonster = {
         ...monster,
@@ -427,14 +494,6 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
         summonedBy: "Special" as const,
     };
 
-    // Place in appropriate zone
-    if (zone >= 0 && zone <= 4) {
-        state.currentTo = { location: "MonsterField", index: zone, position: monster.position };
-        state.field.monsterZones[zone] = summonedMonster;
-    } else if (zone === 5 || zone === 6) {
-        state.currentTo = { location: "MonsterField", index: zone, position: monster.position };
-        state.field.extraMonsterZones[zone - 5] = summonedMonster;
-    }
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {
         withDelay(state, monster, { order: 2000, delay: 100 }, (state, monster) => {
             monster.card.effect?.onSummon?.(state, monster);

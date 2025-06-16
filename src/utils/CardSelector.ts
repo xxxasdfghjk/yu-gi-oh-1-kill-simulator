@@ -48,6 +48,11 @@ export class CardSelector {
         return this;
     }
 
+    banished() {
+        this.list = [...this.list, ...this.state.banished];
+        return this;
+    }
+
     field() {
         this.list = [...this.list, this.state.field.fieldZone];
         return this;

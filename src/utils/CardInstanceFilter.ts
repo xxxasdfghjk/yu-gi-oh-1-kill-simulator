@@ -1,4 +1,4 @@
-import type { CardInstance } from "@/types/card";
+import type { CardInstance, Race } from "@/types/card";
 import { isFusionMonster, isMagicCard, monsterFilter } from "./cardManagement";
 import { getLevel } from "./gameUtils";
 
@@ -10,6 +10,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
 
     monster() {
         const monsterList = this.cardList.filter((e): e is CardInstance => e !== null && monsterFilter(e.card));
+        return new CardInstanceFilter<CardInstance[]>(monsterList);
+    }
+
+    race(race: Race) {
+        const monsterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.race === race
+        );
         return new CardInstanceFilter<CardInstance[]>(monsterList);
     }
 
@@ -51,6 +58,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(magicList);
     }
 
+    equipSpell() {
+        const magicList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && isMagicCard(e.card) && e.card.magic_type === "装備魔法"
+        );
+        return new CardInstanceFilter<CardInstance[]>(magicList);
+    }
+
     nonNull() {
         const nonNull = this.cardList.filter((e): e is CardInstance => e !== null);
         return new CardInstanceFilter<CardInstance[]>(nonNull);
@@ -62,6 +76,14 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         );
         return new CardInstanceFilter<CardInstance[]>(nonNull);
     }
+
+    noSummonLimited() {
+        const limited = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.summonLimited !== true
+        );
+        return new CardInstanceFilter<CardInstance[]>(limited);
+    }
+
     null() {
         const nullList = this.cardList.filter((e): e is null => e === null);
         return new CardInstanceFilter<null[]>(nullList);
