@@ -7,6 +7,38 @@ import type { CardInstance } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { getLevel } from "@/utils/gameUtils";
 
+const getDecalaredLevel = (state: GameStore) => {
+    const deckName = state.originDeck?.deck_name;
+    switch (deckName) {
+        case "サイエンカタパ": {
+            const hasLevel5Monster = new CardSelector(state).allMonster().filter().level(5).len() > 0;
+            const hasLevel1Monster = new CardSelector(state).allMonster().filter().level(1).len() > 0;
+            if (hasLevel5Monster && hasLevel1Monster) {
+                return Math.random() * 8 + 1;
+            } else if (hasLevel5Monster) {
+                return 1;
+            } else {
+                return 5;
+            }
+        }
+        case "ドグマブレード": {
+            const hasLevel8Monster = new CardSelector(state).allMonster().graveyard().filter().level(8).len() > 0;
+            const hasLevel6Monster = new CardSelector(state).allMonster().graveyard().filter().level(6).len() > 0;
+            if (!hasLevel8Monster) {
+                return 8;
+            }
+            if (!hasLevel6Monster) {
+                return 6;
+            } else {
+                return 1;
+            }
+            break;
+        }
+        default:
+            return Math.random() * 8 + 1;
+    }
+};
+
 export default {
     card_name: "名推理",
     card_type: "魔法" as const,
@@ -20,25 +52,7 @@ export default {
             },
             effect: (state: GameStore, card: CardInstance) => {
                 // 相手の宣言レベルを決定
-                const fieldMonsters = new CardSelector(state).allMonster().filter().nonNull().get();
-
-                let declaredLevel: number;
-                const hasLevel5Monster = fieldMonsters.some(
-                    (m) => monsterFilter(m.card) && "level" in m.card && m.card.level === 5
-                );
-                const hasLevel1Monster = fieldMonsters.some(
-                    (m) => monsterFilter(m.card) && "level" in m.card && m.card.level === 1
-                );
-
-                if (hasLevel5Monster && hasLevel1Monster) {
-                    declaredLevel = 8;
-                } else if (hasLevel5Monster) {
-                    declaredLevel = 1;
-                } else if (hasLevel1Monster) {
-                    declaredLevel = 5;
-                } else {
-                    declaredLevel = 5;
-                }
+                const declaredLevel = getDecalaredLevel(state);
 
                 withNotification(
                     state,
