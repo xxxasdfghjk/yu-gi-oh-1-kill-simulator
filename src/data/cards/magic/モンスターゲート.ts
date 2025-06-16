@@ -45,40 +45,42 @@ export default {
                 );
             },
             effect: (state: GameStore, card: CardInstance) => {
-                const deckCards = new CardSelector(state).deck().get();
-                const foundIndex = deckCards.findIndex(
-                    (card) =>
-                        card !== null &&
-                        monsterFilter(card.card) &&
-                        card.card.canNormalSummon === true &&
-                        card.card.summonLimited !== true
-                );
-                if (foundIndex === -1) {
-                    withNotification(state, card, {
-                        message: `${card.card.card_name}の効果を発動できませんでした。`,
-                    });
-                    return;
-                }
-
-                withDelayRecursive(
-                    state,
-                    card,
-                    { delay: 200 },
-                    foundIndex + 1, // 見つかったモンスターを含む枚数
-                    (state, card, depth) => {
-                        const currentCard = state.deck[0]; // デッキの一番上のカード
-                        if (depth === 1) {
-                            withNotification(state, card, { message: "宣言が外れました。" }, (state, card) => {
-                                // 宣言が外れた場合、特殊召喚
-                                withUserSummon(state, card, state.deck[0], {}, () => {});
-                            });
-                        } else {
-                            // 途中でめくったカードは墓地へ
-                            sendCard(state, currentCard, "Graveyard");
-                            state.deck[0].position = "attack";
-                        }
+                withDelay(state, card, {}, (state, card) => {
+                    const deckCards = new CardSelector(state).deck().get();
+                    const foundIndex = deckCards.findIndex(
+                        (card) =>
+                            card !== null &&
+                            monsterFilter(card.card) &&
+                            card.card.canNormalSummon === true &&
+                            card.card.summonLimited !== true
+                    );
+                    if (foundIndex === -1) {
+                        withNotification(state, card, {
+                            message: `${card.card.card_name}の効果を発動できませんでした。`,
+                        });
+                        return;
                     }
-                );
+
+                    withDelayRecursive(
+                        state,
+                        card,
+                        { delay: 200 },
+                        foundIndex + 1, // 見つかったモンスターを含む枚数
+                        (state, card, depth) => {
+                            const currentCard = state.deck[0]; // デッキの一番上のカード
+                            if (depth === 1) {
+                                withNotification(state, card, { message: "宣言が外れました。" }, (state, card) => {
+                                    // 宣言が外れた場合、特殊召喚
+                                    withUserSummon(state, card, state.deck[0], {}, () => {});
+                                });
+                            } else {
+                                // 途中でめくったカードは墓地へ
+                                sendCard(state, currentCard, "Graveyard");
+                                state.deck[0].position = "attack";
+                            }
+                        }
+                    );
+                });
             },
         },
     },
