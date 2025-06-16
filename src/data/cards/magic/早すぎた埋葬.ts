@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay, withLifeChange, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
-import { equipCard, getEquipTarget, sendCardById } from "@/utils/cardMovement";
+import { getPayLifeCost, withDelay, withLifeChange, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { equipCardById, sendCardById } from "@/utils/cardMovement";
 
 export default {
     card_name: "早すぎた埋葬",
@@ -11,20 +11,23 @@ export default {
     magic_type: "装備魔法" as const,
     effect: {
         onSpell: {
-            condition: (state) => {
+            condition: (state, card) => {
+                const cost = getPayLifeCost(state, card, 800);
                 return (
-                    state.lifePoints >= 800 &&
+                    state.lifePoints >= cost &&
                     new CardSelector(state).graveyard().filter().monster().noSummonLimited().len() > 0
                 );
             },
             effect: (state, card) => {
+                const cost = getPayLifeCost(state, card, 800);
+
                 // Pay 800 life points first
                 withLifeChange(
                     state,
                     card,
                     {
                         target: "player",
-                        amount: 800,
+                        amount: cost,
                         operation: "decrease",
                     },
                     (state, card) => {
@@ -40,7 +43,7 @@ export default {
                             },
                             (state, card, selected) => {
                                 const selectedMonster = selected[0];
-
+                                const equipmentId = card.id;
                                 // Special summon in attack position
                                 withUserSummon(
                                     state,
@@ -50,13 +53,8 @@ export default {
                                         canSelectPosition: false,
                                         optionPosition: ["attack"],
                                     },
-                                    (state, card, monster) => {
-                                        // Find the summoned monster by searching for the selected monster
-
-                                        // Search in monster zones
-                                        equipCard(state, monster, card);
-
-                                        // Store reference for mutual destruction
+                                    (state, _card, monster) => {
+                                        equipCardById(state, monster, equipmentId);
                                     }
                                 );
                             }
@@ -66,8 +64,8 @@ export default {
             },
         },
         // When this card leaves the field, destroy the equipped monster
-        onFieldToGraveyard: (state, card) => {
-            const target = getEquipTarget(state, card)?.id;
+        onFieldToGraveyard: (state, card, context) => {
+            const target = String(context?.equipCardId ?? 0);
             if (target) {
                 withDelay(state, card, {}, (state) => {
                     sendCardById(state, target, "Graveyard");

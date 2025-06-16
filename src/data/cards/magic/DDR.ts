@@ -1,6 +1,6 @@
 import type { MagicCard } from "@/types/card";
-import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
-import { sendCard, equipCard, getEquipTarget } from "@/utils/cardMovement";
+import { withDelay, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { sendCard, equipCard, getEquipTarget, sendCardById, equipCardById } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
 import type { GameStore } from "@/store/gameStore";
 
@@ -61,7 +61,7 @@ export default {
                     (state, card, selected) => {
                         if (selected.length > 0) {
                             const targetMonster = selected[0];
-
+                            const equipmentId = card.id;
                             // モンスターを攻撃表示で特殊召喚
                             withUserSummon(
                                 state,
@@ -71,9 +71,9 @@ export default {
                                     canSelectPosition: false,
                                     optionPosition: ["attack"], // 攻撃表示固定
                                 },
-                                (state, card, summonedMonster) => {
+                                (state, _card, summonedMonster) => {
                                     // このカードを装備
-                                    equipCard(state, summonedMonster, card);
+                                    equipCardById(state, summonedMonster, equipmentId);
                                 }
                             );
                         }
@@ -82,12 +82,13 @@ export default {
             },
         },
         // フィールドから離れた時の効果
-        onLeaveField: (state, card) => {
+        onLeaveField: (state, card, context) => {
             // 装備されているモンスターを探す
-            const equipTarget = getEquipTarget(state, card);
-            if (equipTarget) {
-                // 装備モンスターを破壊
-                sendCard(state, equipTarget, "Graveyard");
+            const target = String(context?.equipCardId ?? 0);
+            if (target) {
+                withDelay(state, card, {}, (state) => {
+                    sendCardById(state, target, "Graveyard");
+                });
             }
         },
     },

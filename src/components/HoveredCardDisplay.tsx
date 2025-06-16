@@ -1,10 +1,13 @@
 import { useAtom } from "jotai";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
 import { getAttack, getLevel } from "@/utils/gameUtils";
-import { hasLevelMonsterFilter, isLinkMonster, isXyzMonster, monsterFilter } from "@/utils/cardManagement";
+import { hasLevelMonsterFilter, isLinkMonster, isXyzMonster, monsterFilter, isMagicCard } from "@/utils/cardManagement";
 import type { DefensableMonsterCard } from "@/types/card";
+import { getMonsterEquippedWith } from "@/utils/cardMovement";
+import { useGameStore } from "@/store/gameStore";
 export const HoveredCardDisplay = () => {
     const [hoveredCard] = useAtom(hoveredCardAtom);
+    const gameState = useGameStore();
     const isBattleField = hoveredCard?.location === "MonsterField";
     return (
         <div className={`flex-1 flex flex-row justify-center h-[668px] w-[240px] mt-6 px-8`}>
@@ -135,6 +138,56 @@ export const HoveredCardDisplay = () => {
                                         </div>
                                     </div>
                                 )}
+
+                            {/* モンスターの装備カード情報 */}
+                            {monsterFilter(hoveredCard.card) &&
+                                hoveredCard.equipment &&
+                                hoveredCard.equipment.length > 0 && (
+                                    <div className="text-sm text-gray-700 border-t pt-2">
+                                        <div className="font-semibold mb-2 text-center">装備カード:</div>
+                                        <div className="space-y-1">
+                                            {hoveredCard.equipment.map((equipment) => (
+                                                <div
+                                                    key={equipment.id}
+                                                    className="text-xs bg-blue-100 rounded px-2 py-1"
+                                                >
+                                                    {equipment.card.card_name}
+                                                    {isMagicCard(equipment.card) && (
+                                                        <span className="ml-2 text-gray-500">
+                                                            装備魔法
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* 装備カードが装備しているモンスター情報 */}
+                            {isMagicCard(hoveredCard.card) &&
+                                hoveredCard.card.magic_type === "装備魔法" &&
+                                (() => {
+                                    const equippedMonster = getMonsterEquippedWith(gameState, hoveredCard);
+                                    return equippedMonster ? (
+                                        <div className="text-sm text-gray-700 border-t pt-2">
+                                            <div className="font-semibold mb-2 text-center">装備対象:</div>
+                                            <div className="space-y-1">
+                                                <div className="text-xs bg-green-100 rounded px-2 py-1">
+                                                    {equippedMonster.card.card_name}
+                                                    {monsterFilter(equippedMonster.card) && "attack" in equippedMonster.card && (
+                                                        <span className="ml-2 text-gray-500">
+                                                            ATK: {equippedMonster.card.attack}
+                                                            {"defense" in equippedMonster.card &&
+                                                                ` / DEF: ${equippedMonster.card.defense}`}
+                                                            {hasLevelMonsterFilter(equippedMonster.card) &&
+                                                                ` / LV: ${equippedMonster.card.level}`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : null;
+                                })()}
 
                             {/* カードテキスト */}
                             <div className="text-[14px] text-gray-600 max-h-60 overflow-y-scroll border-t pt-2 whitespace-pre-wrap">

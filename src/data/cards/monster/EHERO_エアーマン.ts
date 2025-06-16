@@ -29,13 +29,11 @@ export default {
                 [
                     {
                         name: "魔法・罠カードを破壊",
-                        condition: (state, card) => {
-                            // 自分フィールドのこのカードを除くHEROの数を数える
+                        condition: (state) => {
                             const heroCount = new CardSelector(state)
                                 .allMonster()
                                 .filter()
                                 .nonNull()
-                                .excludeId(card.id)
                                 .get()
                                 .filter((c) => c.card.card_name.includes("HERO")).length;
 
@@ -61,12 +59,10 @@ export default {
                 (state, card, option) => {
                     if (option === "魔法・罠カードを破壊") {
                         // 自分フィールドのこのカードを除くHEROの数を数える
-                        const cardId = card.id;
                         const heroCount = new CardSelector(state)
                             .allMonster()
                             .filter()
                             .nonNull()
-                            .excludeId(cardId)
                             .get()
                             .filter((c) => c.card.card_name.includes("HERO")).length;
 
@@ -81,7 +77,7 @@ export default {
                                 {
                                     select: "multi",
                                     condition: (selected) => selected.length > 0 && selected.length <= heroCount,
-                                    message: `相手の魔法・罠カードを最大${heroCount}枚まで選んでください`,
+                                    message: `魔法・罠カードを最大${heroCount}枚まで選んでください`,
                                     canCancel: true,
                                 },
                                 (state, _, selected) => {

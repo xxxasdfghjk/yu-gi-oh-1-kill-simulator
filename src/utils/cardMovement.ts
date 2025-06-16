@@ -8,7 +8,13 @@ import { withDelay } from "./effectUtils";
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
 // Trigger effects based on card movement
-export const triggerEffects = (state: GameStore, card: CardInstance, from: Location, to: Location) => {
+export const triggerEffects = (
+    state: GameStore,
+    card: CardInstance,
+    from: Location,
+    to: Location,
+    context?: { equipCardId: string }
+) => {
     const effect = card.card.effect;
 
     // Field to Graveyard effects
@@ -18,12 +24,14 @@ export const triggerEffects = (state: GameStore, card: CardInstance, from: Locat
         effect?.onFieldToGraveyard
     ) {
         withDelay(state, card, { order: 3000 }, (state, card) => {
-            card.card?.effect?.onFieldToGraveyard?.(state, card);
+            card.card?.effect?.onFieldToGraveyard?.(state, card, { equipCardId: context?.equipCardId ?? "" });
         });
     }
 
     if ((from === "SpellField" || from === "MonsterField" || from === "FieldZone") && card.card?.effect?.onLeaveField) {
-        card.card.effect?.onLeaveField(state, card);
+        withDelay(state, card, { order: 3000 }, (state, card) => {
+            card.card.effect?.onLeaveField?.(state, card, { equipCardId: context?.equipCardId ?? "" });
+        });
         return;
     }
 
@@ -36,7 +44,7 @@ export const triggerEffects = (state: GameStore, card: CardInstance, from: Locat
     // Graveyard to Field effects
     if (from === "Graveyard" && to === "MonsterField" && effect?.onGraveyardToField) {
         withDelay(state, card, { order: 3000 }, (state, card) => {
-            card.card?.effect?.onGraveyardToField?.(state, card);
+            card.card?.effect?.onGraveyardToField?.(state, card, { equipCardId: context?.equipCardId ?? "" });
         });
     }
 };
@@ -85,6 +93,14 @@ export const releaseCard = (state: GameStore, card: CardInstance) => {
     card.card.effect?.onRelease?.(state, card);
 };
 
+export const equipCardById = (state: GameStore, equipMonster: CardInstance, equippedCardId: string) => {
+    const equippedCard = getCardInstanceFromId(state, equippedCardId);
+    if (equippedCard === null || equippedCard === undefined) {
+        return;
+    }
+    equipCard(state, equipMonster, equippedCard);
+};
+
 export const equipCard = (state: GameStore, equipMonster: CardInstance, equippedCard: CardInstance) => {
     const equipment = { ...equippedCard, location: "FieldZone" as const };
     for (let i = 0; i < 5; i++) {
@@ -114,6 +130,25 @@ export const getEquipTarget = (state: GameStore, equippedCard: CardInstance) => 
             if (target) {
                 return target;
             }
+        }
+    }
+    return null;
+};
+
+// 装備カードが装備されているモンスターを取得する関数
+export const getMonsterEquippedWith = (state: GameStore, equipmentCard: CardInstance): CardInstance | null => {
+    // 通常モンスターゾーンをチェック
+    for (let i = 0; i < 5; i++) {
+        const monster = state.field.monsterZones[i];
+        if (monster && monster.equipment.some((eq) => eq.id === equipmentCard.id)) {
+            return monster;
+        }
+    }
+    // エクストラモンスターゾーンをチェック
+    for (let i = 0; i < 2; i++) {
+        const monster = state.field.extraMonsterZones[i];
+        if (monster && monster.equipment.some((eq) => eq.id === equipmentCard.id)) {
+            return monster;
         }
     }
     return null;
@@ -155,15 +190,11 @@ export const sendCard = (
         (card.location === "MonsterField" || card.location === "SpellField") &&
         to !== "MonsterField" &&
         to !== "SpellField";
-    console.log(`Sending card ${card.card.card_name} from ${card.location} to ${to}`);
 
     if (isLeavingField) {
-        console.log(`Card ${card.card.card_name} is leaving the field, sending equipment and materials to graveyard`);
-
         // Send all equipped cards to graveyard using sendCard recursively
         const equipmentCopy = [...card.equipment]; // Make a copy to avoid modification during iteration
         const materialCopy = [...card.materials]; // Make a copy to avoid modification during iteration
-        console.log(`Equipment count: ${equipmentCopy.length}, Materials count: ${materialCopy.length}`);
         equipmentCopy.forEach((equipmentCard) => {
             sendCard(state, equipmentCard, "Graveyard");
         });
@@ -293,15 +324,15 @@ export const sendCard = (
         }
     }
     // Trigger effects after the card has been moved
-    triggerEffects(state, updatedCard, originalLocation, to);
+    triggerEffects(state, updatedCard, originalLocation, to, { equipCardId: from?.equipCard?.id ?? "" });
 };
 
 // Remove card from any location and return where it was
 export const excludeFromAnywhere = (
     state: GameStore,
     card: CardInstance
-): { location: DisplayField; index?: number; length?: number } => {
-    let result: { location: DisplayField; index?: number; length?: number } = {
+): { location: DisplayField; index?: number; length?: number; equipCard?: CardInstance } => {
+    let result: { location: DisplayField; index?: number; length?: number; equipCard?: CardInstance } = {
         location: card.location as DisplayField,
         index: undefined,
         length: undefined,
@@ -412,6 +443,7 @@ export const excludeFromAnywhere = (
             );
             if (equipmentIndex !== -1) {
                 state.field.monsterZones[i]!.equipment.splice(equipmentIndex, 1);
+                result.equipCard = state.field.monsterZones[i]!;
                 break;
             }
         }
@@ -424,11 +456,11 @@ export const excludeFromAnywhere = (
             );
             if (equipmentIndex !== -1) {
                 state.field.extraMonsterZones[i]!.equipment.splice(equipmentIndex, 1);
+                result.equipCard = state.field.monsterZones[i]!;
                 break;
             }
         }
     }
-
     return result;
 };
 

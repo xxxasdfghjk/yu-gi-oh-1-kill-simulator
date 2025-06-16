@@ -1,7 +1,7 @@
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
-import { getSpellTrapZoneIndex, releaseCard, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
+import { getSpellTrapZoneIndex, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
 import { canNormalSummon } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";

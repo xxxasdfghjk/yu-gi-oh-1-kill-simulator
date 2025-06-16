@@ -6,7 +6,11 @@ export interface DeckData {
     extra_deck: Card[];
 }
 
-type EffectCallback = (gameState: GameStore, cardInstance: CardInstance, context?: Record<string, number>) => void;
+type EffectCallback = (
+    gameState: GameStore,
+    cardInstance: CardInstance,
+    context?: Record<string, number | string>
+) => void;
 type ChainConditionCallback = (
     gameState: GameStore,
     cardInstance: CardInstance,
@@ -14,7 +18,11 @@ type ChainConditionCallback = (
 ) => boolean;
 
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
-type CostAfterCallback = (gameState: GameStore, cardInstance: CardInstance, context?: Record<string, number>) => void;
+type CostAfterCallback = (
+    gameState: GameStore,
+    cardInstance: CardInstance,
+    context?: Record<string, number | string>
+) => void;
 type PayCostCallback = (gameState: GameStore, cardInstance: CardInstance, afterCallback: CostAfterCallback) => void;
 type OnPayLifeCostCallback = (
     gameState: GameStore,
