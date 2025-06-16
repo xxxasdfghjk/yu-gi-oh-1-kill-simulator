@@ -1,7 +1,7 @@
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
-import { getSpellTrapZoneIndex, sendCard, summon } from "./cardMovement";
+import { getSpellTrapZoneIndex, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
 import { canNormalSummon } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
@@ -61,7 +61,8 @@ export const withOption = <T extends string>(
     state: GameStore,
     card: CardInstance,
     options: { name: T; condition: ConditionCallback }[],
-    callback: (state: GameStore, card: CardInstance, option: T) => void
+    callback: (state: GameStore, card: CardInstance, option: T) => void,
+    canCancel?: boolean
 ) => {
     // Add option selection to effect queue
     const availableOptions = options.filter((opt) => opt.condition(state, card));
@@ -74,7 +75,7 @@ export const withOption = <T extends string>(
         cardInstance: card,
         option: availableOptions.map((opt) => ({ name: opt.name, value: opt.name })),
         effectType: "with_option_callback",
-        canCancel: false,
+        canCancel: canCancel ?? false,
         callback: (state: GameStore, cardInstance: CardInstance, selectedOption: string) => {
             callback(state, cardInstance, selectedOption as T);
         },
@@ -268,6 +269,103 @@ export const withLifeChange = (
         operation: options.operation,
         callback,
     });
+};
+
+export const withDraw = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        count: number;
+        order?: number;
+        target?: "player" | "opponent";
+    },
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    const target = options.target ?? "player";
+
+    if (target === "player") {
+        // Check if there are enough cards to draw
+        if (state.deck.length < options.count) {
+            // Not enough cards to draw - player loses
+            state.gameOver = true;
+            state.winner = "timeout";
+            state.winReason = "deck_out";
+            return;
+        }
+
+        // Draw cards from deck to hand
+        withDelayRecursive(
+            state,
+            card,
+            {},
+            options.count,
+            (state) => {
+                if (state.deck.length > 0) {
+                    sendCard(state, state.deck[0], "Hand");
+                } else {
+                    state.gameOver = true;
+                    state.winner = "timeout";
+                    state.winReason = "deck_out";
+                }
+            },
+            (state, card) => {
+                if (callback) {
+                    callback(state, card);
+                }
+            }
+        );
+        // Execute callback after all cards are drawn
+    }
+};
+
+export const withExclusionMonsters = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        cardIdList: string[];
+    },
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    // Draw cards from deck to hand
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        options.cardIdList.length,
+        (state, _, depth) => {
+            sendCardById(state, options.cardIdList[depth - 1], "Exclusion");
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
+export const withReleaseMonsters = (
+    state: GameStore,
+    card: CardInstance,
+    options: {
+        cardIdList: string[];
+    },
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        options.cardIdList.length,
+        (state, _, depth) => {
+            releaseCardById(state, options.cardIdList[depth - 1]);
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
 };
 
 export const withDelayRecursive = (
@@ -479,9 +577,17 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
             }
         } else if (spellSubtype === "永続魔法" || spellSubtype === "装備魔法") {
             // Continuous/Equipment spells stay on field
-            card.card.effect.onSpell?.effect(state, card);
-            sendCard(state, card, "SpellField");
-            state.isProcessing = false;
+            if (card.card.effect.onSpell?.payCost) {
+                card.card.effect.onSpell.payCost(state, card, (state, card) => {
+                    card.card.effect.onSpell?.effect(state, card);
+                    sendCard(state, card, "SpellField");
+                    state.isProcessing = false;
+                });
+            } else {
+                card.card.effect.onSpell?.effect(state, card);
+                sendCard(state, card, "SpellField");
+                state.isProcessing = false;
+            }
         } else if (spellSubtype === "フィールド魔法") {
             // Field spells go to field zone
             if (state.field.fieldZone !== null && state.field.fieldZone?.id !== card?.id) {
@@ -531,4 +637,15 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
             }
         );
     }
+};
+
+export const getPayLifeCost = (state: GameStore, card: CardInstance, lifeCost: number): number => {
+    const fieldCard = new CardSelector(state).allMonster().allFieldSpellTrap().field().getNonNull();
+    let payCost = lifeCost;
+    for (const target of fieldCard) {
+        if (target.card.effect?.onPayLifeCost) {
+            payCost = target.card.effect?.onPayLifeCost?.(state, target, card, payCost);
+        }
+    }
+    return payCost;
 };

@@ -10,12 +10,12 @@ export default {
     magic_type: "通常魔法" as const,
     effect: {
         onSpell: {
-            condition: (state) => new CardSelector(state).graveyard().filter().monster().len() > 0,
+            condition: (state) => new CardSelector(state).graveyard().filter().monster().noSummonLimited().len() > 0,
             effect: (state, card) => {
                 return withUserSelectCard(
                     state,
                     card,
-                    (state) => new CardSelector(state).graveyard().filter().monster().get(),
+                    (state) => new CardSelector(state).graveyard().filter().monster().noSummonLimited().get(),
                     { select: "single" },
                     (state, card, selected) => {
                         withUserSummon(state, card, selected[0], {}, () => {});

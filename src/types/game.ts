@@ -28,6 +28,7 @@ export interface GameState {
     banished: CardInstance[];
     extraDeck: CardInstance[];
     hasNormalSummoned: boolean;
+    normalSummonProhibited: boolean;
     hasSpecialSummoned: boolean;
     hasDrawnByEffect: boolean;
     isLinkSummonProhibited: boolean;
@@ -36,7 +37,7 @@ export interface GameState {
     isOpponentTurn: boolean;
     gameOver: boolean;
     winner: "player" | "timeout" | null;
-    winReason?: "exodia" | "life_points" | null;
+    winReason?: "exodia" | "life_points" | "deck_out" | null;
     turnRestrictions?: {
         cannotActivateEffects?: string[];
     };

@@ -6,7 +6,11 @@ export interface DeckData {
     extra_deck: Card[];
 }
 
-type EffectCallback = (gameState: GameStore, cardInstance: CardInstance, context?: Record<string, number>) => void;
+type EffectCallback = (
+    gameState: GameStore,
+    cardInstance: CardInstance,
+    context?: Record<string, number | string>
+) => void;
 type ChainConditionCallback = (
     gameState: GameStore,
     cardInstance: CardInstance,
@@ -14,8 +18,18 @@ type ChainConditionCallback = (
 ) => boolean;
 
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
-type CostAfterCallback = (gameState: GameStore, cardInstance: CardInstance, context?: Record<string, number>) => void;
+type CostAfterCallback = (
+    gameState: GameStore,
+    cardInstance: CardInstance,
+    context?: Record<string, number | string>
+) => void;
 type PayCostCallback = (gameState: GameStore, cardInstance: CardInstance, afterCallback: CostAfterCallback) => void;
+type OnPayLifeCostCallback = (
+    gameState: GameStore,
+    cardInstance: CardInstance,
+    targetCard: CardInstance,
+    lifeCost: number
+) => number;
 
 export type EffectType = {
     onSpell?: {
@@ -31,6 +45,7 @@ export type EffectType = {
     onRelease?: EffectCallback;
     onFieldToGraveyard?: EffectCallback;
     onAnywhereToGraveyard?: EffectCallback;
+    onGraveyardToField?: EffectCallback;
     onDestroyByBattle?: EffectCallback;
     onDestroyByEffect?: EffectCallback;
     onActivateEffect?: {
@@ -42,6 +57,8 @@ export type EffectType = {
     onChain?: {
         condition: ChainConditionCallback;
     };
+    onStandbyPhase?: EffectCallback;
+    onPayLifeCost?: OnPayLifeCostCallback;
 };
 
 type CardTypeName = "モンスター" | "魔法" | "罠";
@@ -83,6 +100,7 @@ export interface MonsterCard extends Card {
     canNormalSummon: boolean;
     hasTuner?: boolean;
     canUseMaterilForRitualSummon?: true;
+    summonLimited?: true;
 }
 
 export interface DefensableMonsterCard extends MonsterCard {

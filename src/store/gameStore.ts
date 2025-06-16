@@ -174,6 +174,16 @@ export interface GameStore extends GameState {
     activateDeckEffect: (callback: DeckEffect) => void;
 }
 
+// Fisher-Yates (Knuth) シャッフルアルゴリズム
+const shuffleArray = <T>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+};
+
 const createInitialGameState = (deckData?: Deck): GameState => {
     const baseState: GameState = {
         turn: 1,
@@ -214,6 +224,7 @@ const createInitialGameState = (deckData?: Deck): GameState => {
         deckEffects: [],
         monstersToGraveyardThisTurn: [],
         isFieldSpellActivationAllowed: null,
+        normalSummonProhibited: false,
     };
 
     if (deckData) {
@@ -222,7 +233,7 @@ const createInitialGameState = (deckData?: Deck): GameState => {
 
         return {
             ...baseState,
-            deck: mainDeckInstances.sort(() => Math.random() - 0.5),
+            deck: shuffleArray(mainDeckInstances),
             extraDeck: extraDeckInstances,
             originDeck: deckData,
         };
@@ -391,6 +402,13 @@ export const useGameStore = create<GameStore>()(
         },
         draw: () => {
             set((state) => {
+                if (state.deck.length === 0) {
+                    // No cards to draw - player loses
+                    state.gameOver = true;
+                    state.winner = "timeout";
+                    state.winReason = "deck_out";
+                    return;
+                }
                 sendCard(state, state.deck[0], "Hand");
             });
         },
@@ -401,14 +419,40 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 // Basic phase progression
                 switch (state.phase) {
-                    case "main1":
-                        state.phase = "draw";
+                    case "main1": {
+                        state.phase = "standby";
                         state.isOpponentTurn = true;
                         state.turn = state.turn + 1;
                         // Reset turn-based tracking
                         state.monstersToGraveyardThisTurn = [];
+
+                        // Process onStandbyPhase effects for monsters in monster zones
+                        const monstersWithStandbyEffects = [
+                            ...state.field.monsterZones,
+                            ...state.field.extraMonsterZones,
+                        ];
+
+                        // Trigger standby phase effects
+                        withDelayRecursive(
+                            state,
+                            { card: { card_name: "" } } as CardInstance,
+                            {},
+                            monstersWithStandbyEffects.length,
+                            (state, _, depth) => {
+                                const monstersWithStandbyEffects = [
+                                    ...state.field.monsterZones,
+                                    ...state.field.extraMonsterZones,
+                                ];
+                                monstersWithStandbyEffects[depth - 1]?.card.effect.onStandbyPhase?.(
+                                    state,
+                                    monstersWithStandbyEffects[depth - 1]!
+                                );
+                            },
+                            () => {}
+                        );
                         break;
-                    case "draw":
+                    }
+                    case "standby":
                         state.phase = "main1";
                 }
             });

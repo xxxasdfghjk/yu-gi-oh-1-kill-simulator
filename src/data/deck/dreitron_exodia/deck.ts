@@ -2,7 +2,7 @@ import { expandDeckList, type Deck } from "@/data/deckUtils";
 import cardMap from "@/data/cards/cardMap";
 
 const DECK_CONFIG = {
-    deck_name: "エグゾディアデッキ",
+    deck_name: "ドライトロンエグゾディア",
     main_deck: [
         // Monsters
         { card_name: "封印されしエクゾディア", quantity: 1 },
