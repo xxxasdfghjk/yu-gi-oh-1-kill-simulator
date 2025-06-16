@@ -57,7 +57,7 @@ const card = {
                     withUserSelectCard(
                         state,
                         card,
-                        (state) => state.deck.slice(0, context?.["excludeNum"] ?? 3),
+                        (state) => state.deck.slice(0, Number(context?.["excludeNum"] ?? 3)),
                         { select: "single" as const, message: "手札に加えるカードを選択してください" },
                         (state, _cardInstance, selected) => {
                             sendCard(state, selected[0], "Hand" as const);

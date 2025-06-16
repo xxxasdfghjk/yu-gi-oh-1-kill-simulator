@@ -1,6 +1,6 @@
 import type { MagicCard } from "@/types/card";
 import { withDelay, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
-import { sendCard, equipCard, getEquipTarget, sendCardById, equipCardById } from "@/utils/cardMovement";
+import { sendCard, sendCardById, equipCardById } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
 import type { GameStore } from "@/store/gameStore";
 

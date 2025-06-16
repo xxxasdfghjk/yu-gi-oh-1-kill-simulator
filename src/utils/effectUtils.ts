@@ -532,7 +532,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
         const spellSubtype = magicCard.magic_type;
 
         if (spellSubtype === "通常魔法" || spellSubtype === "速攻魔法" || spellSubtype === "儀式魔法") {
-            const handler = (state: GameStore, card: CardInstance, context?: Record<string, number>) => {
+            const handler = (state: GameStore, card: CardInstance, context?: Record<string, number | string>) => {
                 const index = getSpellTrapZoneIndex(state, card);
                 if (index !== -1 && card.position === "back") {
                     state.field.spellTrapZones[index]!.position = "attack";
