@@ -227,8 +227,9 @@ export const sendCard = (
         ...card,
         location: to,
         position: option?.reverse ? "back" : undefined,
-        equipment: [],
-        materials: [],
+        // Only clear equipment and materials when leaving the field, not when entering
+        equipment: isLeavingField ? [] : card.equipment,
+        materials: isLeavingField ? [] : card.materials,
     } satisfies CardInstance;
 
     switch (to) {
