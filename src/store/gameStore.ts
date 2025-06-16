@@ -402,6 +402,13 @@ export const useGameStore = create<GameStore>()(
         },
         draw: () => {
             set((state) => {
+                if (state.deck.length === 0) {
+                    // No cards to draw - player loses
+                    state.gameOver = true;
+                    state.winner = "timeout";
+                    state.winReason = "deck_out";
+                    return;
+                }
                 sendCard(state, state.deck[0], "Hand");
             });
         },

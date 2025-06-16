@@ -433,7 +433,9 @@ export const GameBoard: React.FC = () => {
                                     animate={{ opacity: 1 }}
                                     transition={{ delay: 1.2, duration: 0.6 }}
                                 >
-                                    あなたの負けです！
+                                    {winReason === "deck_out"
+                                        ? "デッキからドローできません！"
+                                        : "あなたの負けです！"}
                                 </motion.p>
                                 <motion.button
                                     className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${

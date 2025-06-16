@@ -284,6 +284,15 @@ export const withDraw = (
     const target = options.target ?? "player";
 
     if (target === "player") {
+        // Check if there are enough cards to draw
+        if (state.deck.length < options.count) {
+            // Not enough cards to draw - player loses
+            state.gameOver = true;
+            state.winner = "timeout";
+            state.winReason = "deck_out";
+            return;
+        }
+
         // Draw cards from deck to hand
         withDelayRecursive(
             state,
@@ -291,7 +300,13 @@ export const withDraw = (
             {},
             options.count,
             (state) => {
-                sendCard(state, state.deck[0], "Hand");
+                if (state.deck.length > 0) {
+                    sendCard(state, state.deck[0], "Hand");
+                } else {
+                    state.gameOver = true;
+                    state.winner = "timeout";
+                    state.winReason = "deck_out";
+                }
             },
             (state, card) => {
                 if (callback) {
