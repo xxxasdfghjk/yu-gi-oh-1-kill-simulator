@@ -1,7 +1,6 @@
 import type { CardInstance, LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import {
-    withDelay,
     withLifeChange,
     withNotification,
     withReleaseMonsters,
@@ -52,6 +51,7 @@ export default {
                                 cards.filter((c) => c.card.card_name.includes("D-HERO")).length >= 1
                             );
                         },
+                        canCancel: true,
                     },
                     (state, card, selected) => {
                         withReleaseMonsters(state, card, { cardIdList: selected.map((e) => e.id) }, (state, card) => {

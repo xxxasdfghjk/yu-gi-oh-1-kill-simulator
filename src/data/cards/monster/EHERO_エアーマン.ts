@@ -117,7 +117,8 @@ export default {
                             }
                         );
                     }
-                }
+                },
+                true
             );
         },
     },
