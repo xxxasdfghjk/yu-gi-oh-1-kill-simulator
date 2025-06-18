@@ -71,7 +71,8 @@ export type DisplayField =
     | "Hand"
     | "TokenRemove"
     | "Throne"
-    | "Exclusion";
+    | "Exclusion"
+    | "Material";
 export const getFieldCoodrinateAbsolute = (
     fieldType: DisplayField,
     index: number = 0,
@@ -81,6 +82,7 @@ export const getFieldCoodrinateAbsolute = (
         case "Deck":
             return { x: DECK_X, y: DECK_Y };
         case "MonsterField":
+        case "Material":
             if (index >= 5) {
                 return {
                     x: FIELD_CENTER_X + (index === 5 ? -1 : 1) * (CARD_WIDTH + CARD_MARGIN),

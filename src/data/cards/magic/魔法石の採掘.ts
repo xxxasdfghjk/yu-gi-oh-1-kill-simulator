@@ -46,7 +46,7 @@ export default {
                     }
                 );
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // First, select 2 cards from hand to discard as cost
                 withUserSelectCard(
                     state,
@@ -56,8 +56,9 @@ export default {
                         select: "single",
                         message: "墓地から手札に加える魔法カードを1枚選んでください",
                     },
-                    (state, _card, selected) => {
+                    (state, card, selected) => {
                         sendCard(state, selected[0], "Hand");
+                        resolve?.(state, card);
                     }
                 );
             },

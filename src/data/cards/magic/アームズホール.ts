@@ -32,12 +32,12 @@ export default {
                     });
                 }
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // デッキと墓地から装備魔法カードを探す
                 const equipSpells = (state: GameStore) =>
                     new CardSelector(state).deck().graveyard().filter().equipSpell().get();
 
-                if (equipSpells.length > 0) {
+                if (equipSpells(state).length > 0) {
                     withUserSelectCard(
                         state,
                         card,
@@ -47,10 +47,13 @@ export default {
                             message: "手札に加える装備魔法カードを選択してください",
                             canCancel: false,
                         },
-                        (state, _, selected) => {
+                        (state, card, selected) => {
                             sendCard(state, selected[0], "Hand");
+                            resolve?.(state, card);
                         }
                     );
+                } else {
+                    resolve?.(state, card);
                 }
             },
         },

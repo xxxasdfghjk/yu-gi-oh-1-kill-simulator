@@ -1,8 +1,8 @@
 import type { LeveledMonsterCard, CardInstance, MagicCard } from "@/types/card";
 import { monsterFilter, hasLevelMonsterFilter } from "@/utils/cardManagement";
-import { sendCard } from "@/utils/cardMovement";
-import { withTurnAtOneceCondition, withUserSelectCard, withDelay, withUserSummon } from "@/utils/effectUtils";
-import { hasEmptyMonsterZone, getLevel } from "@/utils/gameUtils";
+import { sendCardById } from "@/utils/cardMovement";
+import { withTurnAtOneceCondition, withUserSelectCard, withUserSummon, withDelayRecursive } from "@/utils/effectUtils";
+import { hasEmptyMonsterZone, getLevel, getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "高等儀式術",
@@ -40,7 +40,7 @@ export default {
                     );
                 });
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 withUserSelectCard(
                     state,
                     card,
@@ -87,12 +87,25 @@ export default {
                                 message: "儀式素材として墓地に送る通常モンスターを選択してください",
                             },
                             (state, card, selected) => {
-                                for (let i = 0; i < selected.length; i++) {
-                                    withDelay(state, card, { delay: i * 20, order: 0 }, (state) => {
-                                        sendCard(state, selected[i], "Graveyard");
-                                    });
-                                }
-                                withUserSummon(state, card, ritualMonster[0], { order: 1 }, () => {});
+                                const selectedIds = selected.map((e) => e.id);
+                                const ritualMonsterId = ritualMonster[0].id;
+                                const cardId = card.id;
+                                withDelayRecursive(
+                                    state,
+                                    card,
+                                    {},
+                                    selected.length,
+                                    (state, _, depth) => {
+                                        sendCardById(state, selectedIds[depth - 1], "Graveyard");
+                                    },
+                                    (state, card) => {
+                                        const ritualMonster = getCardInstanceFromId(state, ritualMonsterId)!;
+                                        withUserSummon(state, card, ritualMonster, {}, (state) => {
+                                            const card = getCardInstanceFromId(state, cardId)!;
+                                            resolve?.(state, card);
+                                        });
+                                    }
+                                );
                             }
                         );
                     }

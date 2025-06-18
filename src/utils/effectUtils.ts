@@ -271,6 +271,54 @@ export const withLifeChange = (
     });
 };
 
+export const withSendToGraveyard = (
+    state: GameStore,
+    card: CardInstance,
+    cardList: CardInstance[],
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    const idList = cardList.map((c) => c.id);
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        cardList.length,
+        (state, _, depth) => {
+            sendCardById(state, idList[depth - 1], "Graveyard");
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
+export const withSendToDeckTop = (
+    state: GameStore,
+    card: CardInstance,
+    cardList: CardInstance[],
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    const idList = cardList.map((c) => c.id);
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        cardList.length,
+        (state, _, depth) => {
+            sendCardById(state, idList[depth - 1], "Deck");
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
 export const withDraw = (
     state: GameStore,
     card: CardInstance,
@@ -548,23 +596,16 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 withDelay(state, card, { delay: 500 }, (state, card) => {
                     state.cardChain.unshift(card);
                     withCheckChain(state, card, {}, (state, card, selected) => {
+                        card.card.effect.onSpell?.effect(state, card, context, (state, card) => {
+                            withDelay(state, card, {}, (state, card) => {
+                                sendCard(state, card, "Graveyard");
+                                state.cardChain.shift();
+                                state.isProcessing = false;
+                            });
+                        });
                         if (selected) {
-                            card.card.effect.onSpell?.effect(state, card, context);
                             playCardInternal(state, selected);
-                        } else {
-                            card.card.effect.onSpell?.effect(state, card, context);
                         }
-                    });
-
-                    pushQueue(state, {
-                        order: 100 - state.cardChain.length,
-                        id: card.id + "_spell_end",
-                        type: "spell_end",
-                        cardInstance: card,
-                        effectType: "send_to_graveyard",
-                        callback: (state, card) => {
-                            state.cardChain = state.cardChain.filter((e) => e.id !== card.id);
-                        },
                     });
                 });
             };
@@ -579,14 +620,20 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
             // Continuous/Equipment spells stay on field
             if (card.card.effect.onSpell?.payCost) {
                 card.card.effect.onSpell.payCost(state, card, (state, card) => {
-                    card.card.effect.onSpell?.effect(state, card);
                     sendCard(state, card, "SpellField");
-                    state.isProcessing = false;
+                    card.card.effect.onSpell?.effect(state, card, undefined, (state, card) => {
+                        withDelay(state, card, {}, (state) => {
+                            state.isProcessing = false;
+                        });
+                    });
                 });
             } else {
-                card.card.effect.onSpell?.effect(state, card);
                 sendCard(state, card, "SpellField");
-                state.isProcessing = false;
+                card.card.effect.onSpell?.effect(state, card, undefined, (state, card) => {
+                    withDelay(state, card, {}, (state) => {
+                        state.isProcessing = false;
+                    });
+                });
             }
         } else if (spellSubtype === "フィールド魔法") {
             // Field spells go to field zone
@@ -594,14 +641,16 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 sendCard(state, state.field.fieldZone, "Graveyard");
                 withDelay(state, card, { order: -1 }, (state, card) => {
                     sendCard(state, card, "FieldZone");
-                    card.card.effect.onSpell?.effect(state, card);
-                    state.isProcessing = false;
+                    card.card.effect.onSpell?.effect(state, card, undefined, () => {
+                        state.isProcessing = false;
+                    });
                 });
                 return;
             } else {
                 sendCard(state, card, "FieldZone");
-                card.card.effect.onSpell?.effect(state, card);
-                state.isProcessing = false;
+                card.card.effect.onSpell?.effect(state, card, undefined, (state) => {
+                    state.isProcessing = false;
+                });
             }
         }
     } else if (card.card.card_type === "罠") {
@@ -611,13 +660,11 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
         } else {
             sendCard(state, card, "SpellField", {});
         }
-        card.card.effect.onSpell?.effect(state, card);
-        pushQueue(state, {
-            order: 100,
-            id: card.id + "_spell_end",
-            type: "spell_end",
-            cardInstance: card,
-            effectType: "send_to_graveyard",
+        card.card.effect.onSpell?.effect(state, card, undefined, (state, card) => {
+            withDelay(state, card, {}, (state, card) => {
+                sendCard(state, card, "Graveyard");
+                state.isProcessing = false;
+            });
         });
     } else if (card.card.card_type === "モンスター") {
         // Handle monster cards - add to effect queue for user to choose position and zone

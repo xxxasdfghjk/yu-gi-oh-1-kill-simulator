@@ -14,7 +14,7 @@ export default {
                 // 手札が0枚の時のみ発動可能
                 return state.hand.length === 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // 墓地の魔法カードの枚数を数える
                 const magicCardsInGraveyard = state.graveyard.filter(c => isMagicCard(c.card)).length;
                 
@@ -29,6 +29,7 @@ export default {
                         operation: "decrease"
                     });
                 }
+                resolve?.(state, card);
             }
         }
     },

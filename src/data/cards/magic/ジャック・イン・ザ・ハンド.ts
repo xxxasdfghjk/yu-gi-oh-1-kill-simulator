@@ -21,7 +21,7 @@ const card = {
                     const uniqueNames = new Set(level1Monsters.map((e) => e.card.card_name));
                     return uniqueNames.size >= 3;
                 }),
-            effect: (state, card) =>
+            effect: (state, card, _, resolve) =>
                 withTurnAtOneceEffect(state, card, () => {
                     // Player selects from remaining 2 cards
                     withUserSelectCard(
@@ -50,8 +50,9 @@ const card = {
                                 _cardInstance,
                                 () => option,
                                 { select: "single", message: "手札に加えるレベル1モンスターを選択してください" },
-                                (state, _cardInstance, selected) => {
+                                (state, card, selected) => {
                                     sendCard(state, selected[0], "Hand");
+                                    resolve?.(state, card);
                                 }
                             );
                         }

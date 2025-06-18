@@ -8,6 +8,7 @@ import {
 } from "@/utils/effectUtils";
 import { CardSelector } from "@/utils/CardSelector";
 import type { GameStore } from "@/store/gameStore";
+import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "次元融合",
@@ -23,7 +24,8 @@ export default {
                 const lifeCosts = getPayLifeCost(state, card, 2000);
                 return state.lifePoints >= lifeCosts && banishedMonsters.length > 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
+                const cardId = card.id;
                 const lifeCosts = getPayLifeCost(state, card, 2000);
                 withLifeChange(
                     state,
@@ -38,6 +40,7 @@ export default {
                         const availableMonsters = new CardSelector(state).banished().filter().noSummonLimited().get();
 
                         if (availableMonsters.length === 0) {
+                            resolve?.(state, card);
                             return;
                         }
 
@@ -69,6 +72,9 @@ export default {
                                             () => {}
                                         );
                                     }
+                                },
+                                (state, card) => {
+                                    resolve?.(state, card);
                                 }
                             );
                         } else {
@@ -110,6 +116,9 @@ export default {
                                                         () => {}
                                                     );
                                                 }
+                                            },
+                                            (state) => {
+                                                resolve?.(state, getCardInstanceFromId(state, cardId)!);
                                             }
                                         );
                                     }

@@ -18,7 +18,7 @@ export default {
                 // CardSelectorを使用してモンスターゾーンの空きをチェック
                 return new CardSelector(state).monster().filter().null().len() > 0;
             },
-            effect: (state: GameStore) => {
+            effect: (state: GameStore, card, _, resolve) => {
                 // メタルデビル・トークンを作成
                 const metalDevilToken = createCardInstance(METAL_DEVIL_TOKEN, "MonsterField", true);
 
@@ -29,6 +29,7 @@ export default {
                     // トークンを攻撃表示で召喚
                     summon(state, metalDevilToken, zoneIndex, "attack");
                 }
+                resolve?.(state, card);
             },
         },
     },

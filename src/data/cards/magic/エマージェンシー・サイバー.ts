@@ -24,8 +24,20 @@ const card = {
                                 e.card.canNormalSummon === false
                         )
                 ),
-            effect: (state, card) =>
-                withTurnAtOneceEffect(state, card, () => {
+            effect: (state, card, _, resolve) =>
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    if (
+                        state.deck.filter(
+                            (e) =>
+                                monsterFilter(e.card) &&
+                                e.card.race === "機械" &&
+                                e.card.element === "光" &&
+                                e.card.canNormalSummon === false
+                        ).length === 0
+                    ) {
+                        resolve?.(state, card);
+                        return;
+                    }
                     withUserSelectCard(
                         state,
                         card,
@@ -41,8 +53,9 @@ const card = {
                             select: "single" as const,
                             message: "デッキから手札に加える機械族・光属性モンスターを選択してください",
                         },
-                        (state, _cardInstance, selected) => {
+                        (state, card, selected) => {
                             sendCard(state, selected[0], "Hand" as const);
+                            resolve?.(state, card);
                         }
                     );
                 }),

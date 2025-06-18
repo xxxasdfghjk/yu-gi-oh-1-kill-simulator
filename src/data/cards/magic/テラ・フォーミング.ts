@@ -13,14 +13,15 @@ const card = {
         onSpell: {
             condition: (state) =>
                 state.deck.filter((e) => isMagicCard(e.card) && e.card.magic_type === "フィールド魔法").length > 0,
-            effect: (state, card) =>
+            effect: (state, card, _, resolve) =>
                 withUserSelectCard(
                     state,
                     card,
                     (state) => state.deck.filter((e) => isMagicCard(e.card) && e.card.magic_type === "フィールド魔法"),
                     { select: "single", message: "デッキから手札に加えるフィールド魔法カードを選択してください" },
-                    (state, _cardInstance, selected) => {
+                    (state, card, selected) => {
                         sendCard(state, selected[0], "Hand");
+                        resolve?.(state, card);
                     }
                 ),
         },

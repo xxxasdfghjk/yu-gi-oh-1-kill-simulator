@@ -180,12 +180,6 @@ export const GameBoard: React.FC = () => {
                     processQueueTop({ type: "chain_select" });
                 }
                 // If there are chainable cards, the modal will handle it
-            } else if (currentEffect?.type === "spell_end") {
-                processQueueTop({
-                    type: "spellend",
-                    callback: currentEffect.callback,
-                    cardInstance: currentEffect.cardInstance,
-                });
             }
         };
         func();
@@ -433,9 +427,7 @@ export const GameBoard: React.FC = () => {
                                     animate={{ opacity: 1 }}
                                     transition={{ delay: 1.2, duration: 0.6 }}
                                 >
-                                    {winReason === "deck_out"
-                                        ? "デッキからドローできません！"
-                                        : "あなたの負けです！"}
+                                    {winReason === "deck_out" ? "デッキからドローできません！" : "あなたの負けです！"}
                                 </motion.p>
                                 <motion.button
                                     className={`font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-colors ${

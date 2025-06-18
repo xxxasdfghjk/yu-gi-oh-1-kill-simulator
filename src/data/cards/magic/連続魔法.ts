@@ -25,9 +25,10 @@ export default {
                     (hasEmptySpellField(state) || card.location === "SpellField")
                 );
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 const chainCardList = state.cardChain.filter((e) => e.id !== card.id);
                 if (chainCardList.length === 0) {
+                    resolve?.(state, card);
                     return false;
                 }
 
@@ -42,7 +43,9 @@ export default {
                     },
                     (state, card) => {
                         const chainCardList = state.cardChain.filter((e) => e.id !== card.id).at(0);
-                        chainCardList?.card?.effect?.onSpell?.effect?.(state, card);
+                        chainCardList?.card?.effect?.onSpell?.effect?.(state, card, undefined, (state, card) => {
+                            resolve?.(state, card);
+                        });
                     }
                 );
             },

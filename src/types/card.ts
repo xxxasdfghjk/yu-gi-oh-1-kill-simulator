@@ -6,11 +6,11 @@ export interface DeckData {
     extra_deck: Card[];
 }
 
-type EffectCallback = (
-    gameState: GameStore,
-    cardInstance: CardInstance,
-    context?: Record<string, number | string>
-) => void;
+type ContextType = Record<string, number | string> | undefined;
+
+type CardWithStatusArgs = [gameState: GameStore, cardInstance: CardInstance, context?: ContextType];
+
+type EffectCallback = (...args: CardWithStatusArgs) => void;
 type ChainConditionCallback = (
     gameState: GameStore,
     cardInstance: CardInstance,
@@ -31,11 +31,15 @@ type OnPayLifeCostCallback = (
     lifeCost: number
 ) => number;
 
+type OnSpellEffectCallback = (
+    ...args: [...CardWithStatusArgs, resolve?: (state: GameStore, card: CardInstance) => void]
+) => void;
+
 export type EffectType = {
     onSpell?: {
         condition: ConditionCallback;
         payCost?: PayCostCallback;
-        effect: EffectCallback;
+        effect: OnSpellEffectCallback;
     };
     onSummon?: EffectCallback;
     onIgnition?: {

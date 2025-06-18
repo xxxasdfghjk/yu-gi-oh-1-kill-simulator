@@ -1,11 +1,8 @@
 import type { MagicCard } from "@/types/card";
 import { monsterFilter, hasLevelMonsterFilter } from "@/utils/cardManagement";
-import {
-    withUserSelectCard,
-    withUserSummon,
-} from "@/utils/effectUtils";
+import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { hasEmptyMonsterZone } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 const card = {
     card_name: "ワン・フォー・ワン",
@@ -38,7 +35,7 @@ const card = {
                 }
                 return true;
             },
-            effect: (state, card) =>
+            effect: (state, card, _, resolve) =>
                 withUserSelectCard(
                     state,
                     card,
@@ -61,6 +58,8 @@ const card = {
                         },
                     },
                     (state, card, select) => {
+                        const cardId = card.id;
+
                         sendCard(state, select[0], "Graveyard");
                         withUserSelectCard(
                             state,
@@ -74,7 +73,9 @@ const card = {
                                 message: "特殊召喚するレベル1モンスターを選択してください",
                             },
                             (state, card, selected) => {
-                                withUserSummon(state, card, selected[0], {}, () => {});
+                                withUserSummon(state, card, selected[0], {}, (state) => {
+                                    resolve?.(state, getCardInstanceFromId(state, cardId)!);
+                                });
                             }
                         );
                     }

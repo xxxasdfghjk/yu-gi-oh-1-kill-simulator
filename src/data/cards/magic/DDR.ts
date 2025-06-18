@@ -43,11 +43,14 @@ export default {
                     }
                 );
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // 除外ゾーンのモンスターを選択
                 const banishedMonsters = (state: GameStore) =>
                     new CardSelector(state).banished().filter().noSummonLimited().get();
-
+                if (banishedMonsters(state).length === 0) {
+                    resolve?.(state, card);
+                    return;
+                }
                 withUserSelectCard(
                     state,
                     card,
@@ -71,11 +74,14 @@ export default {
                                     canSelectPosition: false,
                                     optionPosition: ["attack"], // 攻撃表示固定
                                 },
-                                (state, _card, summonedMonster) => {
+                                (state, card, summonedMonster) => {
                                     // このカードを装備
                                     equipCardById(state, summonedMonster, equipmentId);
+                                    resolve?.(state, card);
                                 }
                             );
+                        } else {
+                            resolve?.(state, card);
                         }
                     }
                 );

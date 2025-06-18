@@ -43,9 +43,10 @@ export default {
                     }
                 );
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // 2枚ドロー
                 withDraw(state, card, { count: 2 });
+                resolve?.(state, card);
             },
         },
     },

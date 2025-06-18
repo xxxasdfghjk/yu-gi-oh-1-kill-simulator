@@ -1,7 +1,6 @@
 import type { MagicCard } from "@/types/card";
-import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay, withUserSelectCard } from "@/utils/effectUtils";
+import { withDelay, withDraw, withSendToGraveyard, withUserSelectCard } from "@/utils/effectUtils";
 
 export default {
     card_name: "天使の施し",
@@ -14,29 +13,26 @@ export default {
             condition: (state) => {
                 return new CardSelector(state).deck().len() >= 2;
             },
-            effect: (state, card) => {
-                for (let i = 0; i < 3; i++) {
-                    withDelay(state, card, { delay: 30 * i, order: -3 }, (state) => {
-                        sendCard(state, state.deck[0], "Hand");
-                    });
-                }
-                withDelay(state, card, { delay: 200, order: 0 }, (state, card) => {
-                    withUserSelectCard(
-                        state,
-                        card,
-                        (state) => new CardSelector(state).hand().getNonNull(),
-                        {
-                            select: "multi",
-                            condition: (list) => list.length === 2,
-                        },
-                        (state, card, selected) => {
-                            for (let i = 0; i < 2; i++) {
-                                withDelay(state, card, { delay: 20 * i }, (state) => {
-                                    sendCard(state, selected[i], "Graveyard");
+            effect: (state, card, _, resolve) => {
+                withDraw(state, card, { count: 3 }, (state, card) => {
+                    withDelay(state, card, { delay: 200, order: 0 }, (state, card) => {
+                        withUserSelectCard(
+                            state,
+                            card,
+                            (state) => new CardSelector(state).hand().getNonNull(),
+                            {
+                                select: "multi",
+                                condition: (list) => list.length === 2,
+                            },
+                            (state, card, selected) => {
+                                withSendToGraveyard(state, card, selected, (state, card) => {
+                                    withDelay(state, card, {}, (state, card) => {
+                                        resolve?.(state, card);
+                                    });
                                 });
                             }
-                        }
-                    );
+                        );
+                    });
                 });
             },
         },

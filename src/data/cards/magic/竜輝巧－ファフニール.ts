@@ -22,7 +22,7 @@ const card = {
                     );
                     return draitronSpellTrap.length > 0;
                 }),
-            effect: (state, card) =>
+            effect: (state, card, _, resolve) =>
                 withTurnAtOneceEffect(state, card, () => {
                     const draitronSpellTrap = (state: GameStore) =>
                         state.deck.filter(
@@ -39,8 +39,9 @@ const card = {
                             select: "single",
                             message: "デッキから手札に加えるドライトロン魔法・罠カードを選択してください",
                         },
-                        (state, _cardInstance, selected) => {
+                        (state, card, selected) => {
                             sendCard(state, selected[0], "Hand");
+                            resolve?.(state, card);
                         }
                     );
                 }),

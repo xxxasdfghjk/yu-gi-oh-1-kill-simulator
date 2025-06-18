@@ -19,7 +19,7 @@ export default {
                 const uniqueNames = new Set(fieldSpells.map((e) => e.card.card_name));
                 return uniqueNames.size >= 2;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // Group by card name and select up to 2 different names
                 // User selects which field spell to set on their own field zone
                 withUserSelectCard(
@@ -59,9 +59,10 @@ export default {
                                 // Extract the ID before withDelay to avoid proxy error
                                 const selectedCardId = selected[0].id;
 
-                                withDelay(state, _, { order: 0 }, (state) => {
+                                withDelay(state, _, { order: 0 }, (state, card) => {
                                     sendCardById(state, selectedCardId, "FieldZone", { reverse: true });
                                     state.isFieldSpellActivationAllowed = selectedCardId;
+                                    resolve?.(state, card);
                                 });
                             }
                         );

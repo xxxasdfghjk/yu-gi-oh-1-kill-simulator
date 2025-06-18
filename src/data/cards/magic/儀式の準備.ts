@@ -16,7 +16,7 @@ export default {
                     (e) =>
                         hasLevelMonsterFilter(e.card) && e.card.monster_type === "儀式モンスター" && e.card.level <= 7
                 ).length > 0,
-            effect: (state, card) =>
+            effect: (state, card, _, resolve) =>
                 withUserSelectCard(
                     state,
                     card,
@@ -31,7 +31,7 @@ export default {
                         select: "single",
                         message: "デッキから手札に加えるレベル7以下の儀式モンスターを選択してください",
                     },
-                    (state, _cardInstance, selected) => {
+                    (state, card, selected) => {
                         sendCard(state, selected[0], "Hand");
                         // Check if there are ritual spell cards in graveyard
                         const ritualSpells = state.graveyard.filter(
@@ -40,7 +40,7 @@ export default {
                         if (ritualSpells.length > 0) {
                             withUserSelectCard(
                                 state,
-                                _cardInstance,
+                                card,
                                 (state) =>
                                     state.graveyard.filter(
                                         (e) => isMagicCard(e.card) && e.card.magic_type === "儀式魔法"
@@ -49,10 +49,13 @@ export default {
                                     select: "single",
                                     message: "墓地から手札に加える儀式魔法カードを選択してください",
                                 },
-                                (state, _cardInstance, selected) => {
+                                (state, card, selected) => {
                                     sendCard(state, selected[0], "Hand");
+                                    resolve?.(state, card);
                                 }
                             );
+                        } else {
+                            resolve?.(state, card);
                         }
                     }
                 ),

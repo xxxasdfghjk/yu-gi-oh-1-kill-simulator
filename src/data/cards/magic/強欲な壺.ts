@@ -1,7 +1,6 @@
 import type { MagicCard } from "@/types/card";
-import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelay } from "@/utils/effectUtils";
+import { withDraw } from "@/utils/effectUtils";
 
 export default {
     card_name: "強欲な壺",
@@ -14,12 +13,10 @@ export default {
             condition: (state) => {
                 return new CardSelector(state).deck().len() >= 2;
             },
-            effect: (state, card) => {
-                for (let i = 0; i < 2; i++) {
-                    withDelay(state, card, { delay: 20 * i }, (state) => {
-                        sendCard(state, state.deck[0], "Hand");
-                    });
-                }
+            effect: (state, card, _, resolve) => {
+                withDraw(state, card, { count: 2 }, (state, card) => {
+                    resolve?.(state, card);
+                });
             },
         },
     },

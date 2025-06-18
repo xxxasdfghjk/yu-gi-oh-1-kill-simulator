@@ -1,5 +1,5 @@
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance } from "@/types/card";
+import type { CardInstance, MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { withTurnAtOneceCondition, withTurnAtOneceEffect, withOption } from "@/utils/effectUtils";
 import { shuffleDeck } from "@/utils/gameUtils";
@@ -13,7 +13,9 @@ export default {
     effect: {
         onSpell: {
             condition: () => true,
-            effect: () => true,
+            effect: (state, card, _, resolve) => {
+                resolve?.(state, card);
+            },
         },
         onIgnition: {
             condition: (state: GameStore, card: CardInstance) => {
@@ -73,4 +75,4 @@ export default {
             },
         },
     },
-};
+} satisfies MagicCard;

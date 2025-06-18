@@ -86,13 +86,6 @@ export type EffectQueueItem =
             }
           | {
                 id: string;
-                type: "spell_end";
-                cardInstance: CardInstance;
-                effectType: string;
-                callback?: (state: GameStore, cardInstance: CardInstance) => void;
-            }
-          | {
-                id: string;
                 type: "notify";
                 cardInstance: CardInstance;
                 effectType: string;
@@ -354,12 +347,6 @@ export const useGameStore = create<GameStore>()(
                                 position: payload.position,
                             });
                         }
-                        state.isProcessing = false;
-                        break;
-                    }
-                    case "spellend": {
-                        sendCard(state, currentEffect.cardInstance, "Graveyard");
-                        payload?.callback?.(state, payload.cardInstance);
                         state.isProcessing = false;
                         break;
                     }

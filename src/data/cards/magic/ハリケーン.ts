@@ -15,7 +15,7 @@ export default {
             condition: (state, card) => {
                 return new CardSelector(state).allFieldSpellTrap().filter().nonNull().excludeId(card.id).len() > 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 const targetListId = new CardSelector(state)
                     .allFieldSpellTrap()
                     .filter()
@@ -32,7 +32,9 @@ export default {
                         const cardInstance = getCardInstanceFromId(state, targetListId[depth - 1])!;
                         sendCard(state, cardInstance, "Hand");
                     },
-                    () => {}
+                    (state, card) => {
+                        resolve?.(state, card);
+                    }
                 );
             },
         },

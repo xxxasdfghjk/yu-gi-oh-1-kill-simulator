@@ -11,6 +11,7 @@ import {
 import { monsterFilter } from "@/utils/cardManagement";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance } from "@/types/card";
+import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "モンスターゲート",
@@ -44,7 +45,12 @@ export default {
                     }
                 );
             },
-            effect: (state: GameStore, card: CardInstance) => {
+            effect: (
+                state: GameStore,
+                card: CardInstance,
+                _?: Record<string, string | number>,
+                resolve?: (state: GameStore, card: CardInstance) => void
+            ) => {
                 withDelay(state, card, {}, (state, card) => {
                     const deckCards = new CardSelector(state).deck().get();
                     const foundIndex = deckCards.findIndex(
@@ -55,9 +61,16 @@ export default {
                             card.card.summonLimited !== true
                     );
                     if (foundIndex === -1) {
-                        withNotification(state, card, {
-                            message: `${card.card.card_name}の効果を発動できませんでした。`,
-                        });
+                        withNotification(
+                            state,
+                            card,
+                            {
+                                message: `${card.card.card_name}の効果を発動できませんでした。`,
+                            },
+                            (state, card) => {
+                                resolve?.(state, card);
+                            }
+                        );
                         return;
                     }
 
@@ -68,16 +81,21 @@ export default {
                         foundIndex + 1, // 見つかったモンスターを含む枚数
                         (state, card, depth) => {
                             const currentCard = state.deck[0]; // デッキの一番上のカード
+                            const cardId = card.id; // デッキの一番上のカード
+
                             if (depth === 1) {
-                                withNotification(state, card, { message: "宣言が外れました。" }, (state, card) => {
-                                    // 宣言が外れた場合、特殊召喚
-                                    withUserSummon(state, card, state.deck[0], {}, () => {});
+                                withUserSummon(state, card, state.deck[0], {}, (state) => {
+                                    const card = getCardInstanceFromId(state, cardId)!;
+                                    resolve?.(state, card);
                                 });
                             } else {
                                 // 途中でめくったカードは墓地へ
                                 sendCard(state, currentCard, "Graveyard");
                                 state.deck[0].position = "attack";
                             }
+                        },
+                        (state, card) => {
+                            resolve?.(state, card);
                         }
                     );
                 });

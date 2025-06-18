@@ -15,14 +15,17 @@ export default {
             condition: (state) => {
                 return new CardSelector(state).deck().filter().include("トゥーン").len() > 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 const list = (state: GameStore) => new CardSelector(state).deck().filter().include("トゥーン").get();
                 if (list.length === 0) {
-                    withNotification(state, card, { message: "対象が見つかりません" }, () => {});
+                    withNotification(state, card, { message: "対象が見つかりません" }, () => {
+                        resolve?.(state, card);
+                    });
                     return;
                 }
-                withUserSelectCard(state, card, list, { select: "single" }, (state, _card, selected) => {
+                withUserSelectCard(state, card, list, { select: "single" }, (state, card, selected) => {
                     sendCard(state, selected[0], "Hand");
+                    resolve?.(state, card);
                 });
             },
         },

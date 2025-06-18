@@ -11,7 +11,9 @@ export default {
             condition: () => {
                 return true;
             },
-            effect: () => {},
+            effect: (state, card, _, resolve) => {
+                resolve?.(state, card);
+            },
         },
         onPayLifeCost: (_state, card, _targetCard, lifeCost) => {
             // 魔力倹約術がフィールドにある場合、ライフコストを0にする

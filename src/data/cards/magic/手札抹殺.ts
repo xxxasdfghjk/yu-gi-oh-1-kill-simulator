@@ -1,7 +1,6 @@
 import type { MagicCard } from "@/types/card";
-import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelayRecursive } from "@/utils/effectUtils";
+import { withDraw, withSendToGraveyard } from "@/utils/effectUtils";
 
 export default {
     card_name: "手札抹殺",
@@ -14,21 +13,12 @@ export default {
             condition: (state, card) => {
                 return new CardSelector(state).hand().filter().excludeId(card.id).len() > 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 const handCard = new CardSelector(state).hand().filter().excludeId(card.id).nonNull().get();
-                withDelayRecursive(
-                    state,
-                    card,
-                    { delay: 100 },
-                    handCard.length,
-                    (state) => {
-                        sendCard(state, state.hand[0], "Graveyard");
-                    },
-                    (state, card) => {
-                        withDelayRecursive(state, card, { delay: 100 }, handCard.length, (state, _card, depth) => {
-                            sendCard(state, state.deck[depth - 1], "Hand");
-                        });
-                    }
+                withSendToGraveyard(state, card, handCard, (state, card) =>
+                    withDraw(state, card, { count: handCard.length }, (state, card) => {
+                        resolve?.(state, card);
+                    })
                 );
             },
         },

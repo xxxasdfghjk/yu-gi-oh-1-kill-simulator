@@ -13,7 +13,7 @@ export default {
     effect: {
         onSpell: {
             condition: () => true,
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // Create a unique effect for this activation
                 const effectId = uuidv4();
                 // Create deck effect
@@ -64,6 +64,7 @@ export default {
 
                 // Add to deck effects
                 state.deckEffects.push(deckEffect);
+                resolve?.(state, card);
             },
         },
     },

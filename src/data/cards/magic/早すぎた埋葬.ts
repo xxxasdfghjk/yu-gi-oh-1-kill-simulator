@@ -2,6 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import { getPayLifeCost, withDelay, withLifeChange, withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
 import { equipCardById, sendCardById } from "@/utils/cardMovement";
+import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "早すぎた埋葬",
@@ -18,7 +19,7 @@ export default {
                     new CardSelector(state).graveyard().filter().monster().noSummonLimited().len() > 0
                 );
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 const cost = getPayLifeCost(state, card, 800);
 
                 // Pay 800 life points first
@@ -53,8 +54,10 @@ export default {
                                         canSelectPosition: false,
                                         optionPosition: ["attack"],
                                     },
-                                    (state, _card, monster) => {
+                                    (state, _, monster) => {
                                         equipCardById(state, monster, equipmentId);
+                                        const instance = getCardInstanceFromId(state, equipmentId)!;
+                                        resolve?.(state, instance);
                                     }
                                 );
                             }

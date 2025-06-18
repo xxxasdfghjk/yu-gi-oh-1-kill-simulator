@@ -21,7 +21,7 @@ export default {
                 );
                 return warriors.length > 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // デッキからレベル4以下の戦士族モンスターを取得
                 const warriorMonsters = (state: GameStore) =>
                     new CardSelector(state).deck().filter().race("戦士").underLevel(4).get();
@@ -35,10 +35,11 @@ export default {
                         message: "手札に加える戦士族モンスターを選択してください",
                         canCancel: false,
                     },
-                    (state, _, selected) => {
+                    (state, card, selected) => {
                         if (selected.length > 0) {
                             sendCard(state, selected[0], "Hand");
                         }
+                        resolve?.(state, card);
                     }
                 );
             },

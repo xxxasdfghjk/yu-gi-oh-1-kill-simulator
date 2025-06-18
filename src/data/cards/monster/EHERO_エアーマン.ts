@@ -80,7 +80,7 @@ export default {
                                     message: `魔法・罠カードを最大${heroCount}枚まで選んでください`,
                                     canCancel: true,
                                 },
-                                (state, _, selected) => {
+                                (state, card, selected) => {
                                     // 選択されたカードを破壊
                                     const selectedIds = selected.map((c) => c.id);
                                     withDelayRecursive(state, card, {}, selected.length, (state, _, depth) => {

@@ -50,7 +50,7 @@ export default {
                     }
                 );
             },
-            effect: (state: GameStore, card: CardInstance) => {
+            effect: (state: GameStore, card: CardInstance, _, resolve) => {
                 // 手札から魔法カード2枚を選択
                 withUserSelectCard(
                     state,
@@ -60,8 +60,9 @@ export default {
                         select: "single",
                         message: "墓地から手札に加える魔法カードを1枚選んでください",
                     },
-                    (state: GameStore, _card: CardInstance, selected: CardInstance[]) => {
+                    (state: GameStore, card: CardInstance, selected: CardInstance[]) => {
                         sendCard(state, selected[0], "Hand");
+                        resolve?.(state, card);
                     }
                 );
             },

@@ -15,7 +15,7 @@ export default {
                 // デッキにカードが1枚以上必要
                 return state.deck.length >= 1;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // デッキからカードを選択
                 withUserSelectCard(
                     state,
@@ -26,11 +26,12 @@ export default {
                         message: "除外するカードを選択してください",
                         canCancel: false,
                     },
-                    (state, _, selected) => {
+                    (state, card, selected) => {
                         if (selected.length > 0) {
                             // 選択したカードを除外
                             sendCard(state, selected[0], "Exclusion");
                         }
+                        resolve?.(state, card);
                     }
                 );
             },

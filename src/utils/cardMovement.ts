@@ -195,11 +195,15 @@ export const sendCard = (
         // Send all equipped cards to graveyard using sendCard recursively
         const equipmentCopy = [...card.equipment]; // Make a copy to avoid modification during iteration
         const materialCopy = [...card.materials]; // Make a copy to avoid modification during iteration
-        equipmentCopy.forEach((equipmentCard) => {
-            sendCard(state, equipmentCard, "Graveyard");
+        equipmentCopy.forEach((equipmentCard, i) => {
+            withDelay(state, equipmentCard, { delay: 100 + i * 20 }, (state, card) => {
+                sendCard(state, card, "Graveyard");
+            });
         });
-        materialCopy.forEach((materialCard) => {
-            sendCard(state, materialCard, "Graveyard");
+        materialCopy.forEach((materialCard, i) => {
+            withDelay(state, materialCard, { delay: 100 + i * 20 }, (state, card) => {
+                sendCard(state, card, "Graveyard");
+            });
         });
         if (isExtraDeckMonster(card.card) && (to === "Deck" || to === "Hand")) {
             sendCard(state, { ...card, equipment: [], materials: [] }, "ExtraDeck");

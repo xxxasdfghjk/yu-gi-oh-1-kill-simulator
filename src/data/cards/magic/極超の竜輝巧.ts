@@ -6,7 +6,7 @@ import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
 } from "@/utils/effectUtils";
-import { hasEmptyMonsterZone } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 const card = {
     card_name: "極超の竜輝巧",
@@ -24,8 +24,9 @@ const card = {
                         state.deck.filter((e) => monsterFilter(e.card) && e.card.card_name.includes("竜輝巧")).length >
                             0 && hasEmptyMonsterZone(state)
                 ),
-            effect: (state, card) =>
+            effect: (state, card, _, resolve) =>
                 withTurnAtOneceEffect(state, card, () => {
+                    const cardId = card.id;
                     withUserSelectCard(
                         state,
                         card,
@@ -36,7 +37,10 @@ const card = {
                             message: "デッキから特殊召喚するドライトロンモンスターを選択してください",
                         },
                         (state, _cardInstance, selected) => {
-                            withUserSummon(state, _cardInstance, selected[0], {}, () => {});
+                            withUserSummon(state, _cardInstance, selected[0], {}, (state) => {
+                                const cardInstance = getCardInstanceFromId(state, cardId)!;
+                                resolve?.(state, cardInstance);
+                            });
                         }
                     );
                 }),

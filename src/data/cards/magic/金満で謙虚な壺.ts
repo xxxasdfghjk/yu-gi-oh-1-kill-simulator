@@ -52,15 +52,16 @@ const card = {
                     }
                 );
             },
-            effect: (state, card, context) => {
+            effect: (state, card, context, resolve) => {
                 withTurnAtOneceEffect(state, card, (state, card) => {
                     withUserSelectCard(
                         state,
                         card,
                         (state) => state.deck.slice(0, Number(context?.["excludeNum"] ?? 3)),
                         { select: "single" as const, message: "手札に加えるカードを選択してください" },
-                        (state, _cardInstance, selected) => {
+                        (state, card, selected) => {
                             sendCard(state, selected[0], "Hand" as const);
+                            resolve?.(state, card);
                         }
                     );
                 });

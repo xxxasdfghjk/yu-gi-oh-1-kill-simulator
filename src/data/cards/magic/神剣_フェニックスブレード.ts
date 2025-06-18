@@ -18,7 +18,7 @@ export default {
                 const warriors = new CardSelector(state).allMonster().filter().race("戦士").get();
                 return warriors.length > 0;
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
                 // 戦士族モンスターを選択して装備
                 const warriorMonsters = (state: GameStore) =>
                     new CardSelector(state).allMonster().filter().race("戦士").get();
@@ -40,6 +40,7 @@ export default {
                             // 攻撃力+300
                             addBuf(state, card, { attack: 300, defense: 0, level: 0 });
                         }
+                        resolve?.(state, card);
                     }
                 );
             },

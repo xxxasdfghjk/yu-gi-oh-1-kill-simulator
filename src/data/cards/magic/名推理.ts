@@ -50,7 +50,12 @@ export default {
             condition: (state: GameStore) => {
                 return new CardSelector(state).deck().filter().canNormalSummon().len() > 0;
             },
-            effect: (state: GameStore, card: CardInstance) => {
+            effect: (
+                state: GameStore,
+                card: CardInstance,
+                _?: Record<string, string | number>,
+                resolve?: (state: GameStore, card: CardInstance) => void
+            ) => {
                 // 相手の宣言レベルを決定
                 const declaredLevel = getDecalaredLevel(state);
 
@@ -68,9 +73,16 @@ export default {
                         );
 
                         if (foundIndex === -1) {
-                            withNotification(state, card, {
-                                message: `${card.card.card_name}の効果を発動できませんでした。`,
-                            });
+                            withNotification(
+                                state,
+                                card,
+                                {
+                                    message: `${card.card.card_name}の効果を発動できませんでした。`,
+                                },
+                                () => {
+                                    resolve?.(state, card);
+                                }
+                            );
                             return;
                         }
                         const foundMonster = deckCards[foundIndex]!;
@@ -80,27 +92,41 @@ export default {
                         state.deck[0].position = "attack";
 
                         // めくったカードの処理（見つかったモンスターまで）
-                        withDelayRecursive(state, card, { delay: 200 }, foundIndex + 1, (state, card, depth) => {
-                            const currentCard = state.deck[0]; // デッキの一番上のカード
-                            if (depth === 1) {
-                                // 見つかったモンスターの処理
-                                if (isCorrectGuess) {
-                                    // 宣言が的中した場合、墓地へ
-                                    withNotification(state, card, { message: "宣言が的中しました。" }, (state) => {
-                                        sendCard(state, state.deck[0], "Graveyard");
-                                    });
+                        withDelayRecursive(
+                            state,
+                            card,
+                            { delay: 200 },
+                            foundIndex + 1,
+                            (state, card, depth) => {
+                                const currentCard = state.deck[0]; // デッキの一番上のカード
+                                if (depth === 1) {
+                                    // 見つかったモンスターの処理
+                                    if (isCorrectGuess) {
+                                        // 宣言が的中した場合、墓地へ
+                                        withNotification(state, card, { message: "宣言が的中しました。" }, (state) => {
+                                            sendCard(state, state.deck[0], "Graveyard");
+                                        });
+                                    } else {
+                                        withNotification(
+                                            state,
+                                            card,
+                                            { message: "宣言が外れました。" },
+                                            (state, card) => {
+                                                // 宣言が外れた場合、特殊召喚
+                                                withUserSummon(state, card, state.deck[0], {}, () => {});
+                                            }
+                                        );
+                                    }
                                 } else {
-                                    withNotification(state, card, { message: "宣言が外れました。" }, (state, card) => {
-                                        // 宣言が外れた場合、特殊召喚
-                                        withUserSummon(state, card, state.deck[0], {}, () => {});
-                                    });
+                                    // 途中でめくったカードは墓地へ
+                                    sendCard(state, currentCard, "Graveyard");
+                                    state.deck[0].position = "attack";
                                 }
-                            } else {
-                                // 途中でめくったカードは墓地へ
-                                sendCard(state, currentCard, "Graveyard");
-                                state.deck[0].position = "attack";
+                            },
+                            (state, card) => {
+                                resolve?.(state, card);
                             }
-                        });
+                        );
                     }
                 );
             },

@@ -12,6 +12,7 @@ import {
     getAllMonsterInMonsterZones,
     getAttack,
     hasEmptyMonsterZoneWithExclude,
+    getCardInstanceFromId,
 } from "@/utils/gameUtils";
 
 export default {
@@ -79,7 +80,8 @@ export default {
                     }
                 }
             },
-            effect: (state, card) => {
+            effect: (state, card, _, resolve) => {
+                const spellId = card.id;
                 withUserSelectCard(
                     state,
                     card,
@@ -135,7 +137,9 @@ export default {
                                 for (const select of selected) {
                                     sendCard(state, select, "Graveyard");
                                 }
-                                withUserSummon(state, card, ritual[0], {}, () => {});
+                                withUserSummon(state, card, ritual[0], {}, (state) => {
+                                    resolve?.(state, getCardInstanceFromId(state, spellId)!);
+                                });
                             }
                         );
                     }
