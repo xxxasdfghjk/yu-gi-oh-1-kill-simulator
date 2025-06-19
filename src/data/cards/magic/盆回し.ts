@@ -2,6 +2,7 @@ import type { CardInstance, MagicCard } from "@/types/card";
 import { isMagicCard } from "@/utils/cardManagement";
 import { sendCard, sendCardById } from "@/utils/cardMovement";
 import { withUserSelectCard, withDelay } from "@/utils/effectUtils";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "盆回し",
@@ -62,6 +63,7 @@ export default {
                                 withDelay(state, _, { order: 0 }, (state, card) => {
                                     sendCardById(state, selectedCardId, "FieldZone", { reverse: true });
                                     state.isFieldSpellActivationAllowed = selectedCardId;
+                                    shuffleDeck(state);
                                     resolve?.(state, card);
                                 });
                             }

@@ -2,6 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "おろかな埋葬",
@@ -20,6 +21,7 @@ const card = {
                     { select: "single", message: "デッキから墓地に送るモンスターを選択してください" },
                     (state, card, selected) => {
                         sendCard(state, selected[0], "Graveyard");
+                        shuffleDeck(state);
                         resolve?.(state, card);
                     }
                 ),

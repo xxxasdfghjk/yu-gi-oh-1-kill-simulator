@@ -2,6 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "封印の黄金櫃",
@@ -31,6 +32,7 @@ export default {
                             // 選択したカードを除外
                             sendCard(state, selected[0], "Exclusion");
                         }
+                        shuffleDeck(state);
                         resolve?.(state, card);
                     }
                 );

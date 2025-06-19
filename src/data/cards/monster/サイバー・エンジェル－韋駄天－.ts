@@ -3,6 +3,7 @@ import type { GameStore } from "@/store/gameStore";
 import { isMagicCard } from "@/utils/cardManagement";
 import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "サイバー・エンジェル－韋駄天－",
@@ -36,6 +37,7 @@ const card = {
                 { select: "single", order: 999, message: "儀式魔法カードを選択してください" },
                 (state, _, selected) => {
                     sendCard(state, selected[0], "Hand");
+                    shuffleDeck(state);
                 }
             );
         },

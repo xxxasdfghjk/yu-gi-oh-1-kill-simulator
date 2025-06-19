@@ -3,6 +3,7 @@ import type { GameStore } from "@/store/gameStore";
 import { isMagicCard, isTrapCard } from "@/utils/cardManagement";
 import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "竜輝巧－ファフニール",
@@ -41,6 +42,7 @@ const card = {
                         },
                         (state, card, selected) => {
                             sendCard(state, selected[0], "Hand");
+                            shuffleDeck(state);
                             resolve?.(state, card);
                         }
                     );

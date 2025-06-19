@@ -2,6 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "エマージェンシー・サイバー",
@@ -55,6 +56,7 @@ const card = {
                         },
                         (state, card, selected) => {
                             sendCard(state, selected[0], "Hand" as const);
+                            shuffleDeck(state);
                             resolve?.(state, card);
                         }
                     );

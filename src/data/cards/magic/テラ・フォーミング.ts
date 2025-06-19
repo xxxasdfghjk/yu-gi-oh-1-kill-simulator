@@ -2,6 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { isMagicCard } from "@/utils/cardManagement";
 import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "テラ・フォーミング",
@@ -21,6 +22,7 @@ const card = {
                     { select: "single", message: "デッキから手札に加えるフィールド魔法カードを選択してください" },
                     (state, card, selected) => {
                         sendCard(state, selected[0], "Hand");
+                        shuffleDeck(state);
                         resolve?.(state, card);
                     }
                 ),

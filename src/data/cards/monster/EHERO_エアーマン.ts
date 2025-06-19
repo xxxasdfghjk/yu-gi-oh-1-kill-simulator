@@ -3,6 +3,7 @@ import { withDelayRecursive, withOption, withUserSelectCard } from "@/utils/effe
 import { sendCard, sendCardById } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
 import type { GameStore } from "@/store/gameStore";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "E・HERO エアーマン",
@@ -113,6 +114,7 @@ export default {
                             (state, _, selected) => {
                                 if (selected.length > 0) {
                                     sendCard(state, selected[0], "Hand");
+                                    shuffleDeck(state);
                                 }
                             }
                         );

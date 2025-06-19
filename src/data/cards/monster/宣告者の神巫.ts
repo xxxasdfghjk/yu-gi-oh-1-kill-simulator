@@ -3,6 +3,7 @@ import type { CardInstance, LeveledMonsterCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { sendCard, addBuf } from "@/utils/cardMovement";
 import { withUserSelectCard } from "@/utils/effectUtils";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "宣告者の神巫",
@@ -39,6 +40,7 @@ export default {
                         const targetCard = selected[0].card as LeveledMonsterCard;
                         sendCard(state, selected[0], "Graveyard");
                         addBuf(state, card, { attack: 0, defense: 0, level: targetCard.level });
+                        shuffleDeck(state);
                     }
                 );
             }

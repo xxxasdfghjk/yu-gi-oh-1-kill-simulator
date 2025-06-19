@@ -2,6 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { hasLevelMonsterFilter, isMagicCard } from "@/utils/cardManagement";
 import { sendCard } from "@/utils/cardMovement";
 import { withUserSelectCard } from "@/utils/effectUtils";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "儀式の準備",
@@ -51,6 +52,7 @@ export default {
                                 },
                                 (state, card, selected) => {
                                     sendCard(state, selected[0], "Hand");
+                                    shuffleDeck(state);
                                     resolve?.(state, card);
                                 }
                             );

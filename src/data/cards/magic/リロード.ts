@@ -1,7 +1,6 @@
 import type { MagicCard } from "@/types/card";
-import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
-import { withDelayRecursive, withDraw, withSendToDeckTop } from "@/utils/effectUtils";
+import { withDraw, withSendToDeckTop } from "@/utils/effectUtils";
 import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {

@@ -3,7 +3,7 @@ import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
 import { monsterFilter } from "@/utils/cardManagement";
-import { getLevel } from "@/utils/gameUtils";
+import { getLevel, shuffleDeck } from "@/utils/gameUtils";
 import type { GameStore } from "@/store/gameStore";
 
 export default {
@@ -39,6 +39,7 @@ export default {
                         if (selected.length > 0) {
                             sendCard(state, selected[0], "Hand");
                         }
+                        shuffleDeck(state);
                         resolve?.(state, card);
                     }
                 );

@@ -3,6 +3,7 @@ import { withUserSelectCard, withDelay } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
 import type { GameStore } from "@/store/gameStore";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "アームズ・ホール",
@@ -49,6 +50,7 @@ export default {
                         },
                         (state, card, selected) => {
                             sendCard(state, selected[0], "Hand");
+                            shuffleDeck(state);
                             resolve?.(state, card);
                         }
                     );

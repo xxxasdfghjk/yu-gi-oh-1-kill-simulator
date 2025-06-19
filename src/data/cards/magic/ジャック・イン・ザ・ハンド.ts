@@ -2,6 +2,7 @@ import type { MagicCard, CardInstance } from "@/types/card";
 import { hasLevelMonsterFilter } from "@/utils/cardManagement";
 import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "ジャック・イン・ザ・ハンド",
@@ -52,6 +53,7 @@ const card = {
                                 { select: "single", message: "手札に加えるレベル1モンスターを選択してください" },
                                 (state, card, selected) => {
                                     sendCard(state, selected[0], "Hand");
+                                    shuffleDeck(state);
                                     resolve?.(state, card);
                                 }
                             );

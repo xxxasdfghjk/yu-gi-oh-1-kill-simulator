@@ -2,7 +2,7 @@ import type { MagicCard } from "@/types/card";
 import { monsterFilter, hasLevelMonsterFilter } from "@/utils/cardManagement";
 import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone, shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "ワン・フォー・ワン",
@@ -74,6 +74,7 @@ const card = {
                             },
                             (state, card, selected) => {
                                 withUserSummon(state, card, selected[0], {}, (state) => {
+                                    shuffleDeck(state);
                                     resolve?.(state, getCardInstanceFromId(state, cardId)!);
                                 });
                             }

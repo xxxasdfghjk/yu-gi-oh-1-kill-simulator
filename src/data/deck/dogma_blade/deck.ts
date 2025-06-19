@@ -24,7 +24,7 @@ const DECK_CONFIG = {
         { card_name: "封印の黄金櫃", quantity: 1 },
         { card_name: "D・D・R", quantity: 2 },
         { card_name: "魔法石の採掘", quantity: 2 },
-        { card_name: "早すぎた埋葬", quantity: 1 },
+        { card_name: "早すぎた埋葬", quantity: 10 },
 
         { card_name: "ハリケーン", quantity: 1 },
         { card_name: "次元融合", quantity: 1 },

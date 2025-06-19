@@ -3,6 +3,7 @@ import type { MagicCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
 import { CardSelector } from "@/utils/CardSelector";
 import { withNotification, withUserSelectCard } from "@/utils/effectUtils";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "トゥーンのもくじ",
@@ -25,6 +26,7 @@ export default {
                 }
                 withUserSelectCard(state, card, list, { select: "single" }, (state, card, selected) => {
                     sendCard(state, selected[0], "Hand");
+                    shuffleDeck(state);
                     resolve?.(state, card);
                 });
             },

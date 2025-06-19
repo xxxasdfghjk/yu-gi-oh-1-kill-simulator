@@ -6,7 +6,7 @@ import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
 } from "@/utils/effectUtils";
-import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone, shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "極超の竜輝巧",
@@ -39,6 +39,7 @@ const card = {
                         (state, _cardInstance, selected) => {
                             withUserSummon(state, _cardInstance, selected[0], {}, (state) => {
                                 const cardInstance = getCardInstanceFromId(state, cardId)!;
+                                shuffleDeck(state);
                                 resolve?.(state, cardInstance);
                             });
                         }

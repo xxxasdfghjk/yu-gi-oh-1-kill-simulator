@@ -3,6 +3,7 @@ import { monsterFilter } from "@/utils/cardManagement";
 import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 import type { GameStore } from "@/store/gameStore";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 const card = {
     card_name: "サイバー・エンジェル－弁天－",
@@ -34,6 +35,7 @@ const card = {
                 { select: "single", order: 999, message: "天使族・光属性モンスターを選択してください" },
                 (state, _card, selected) => {
                     sendCard(state, selected[0], "Hand");
+                    shuffleDeck(state);
                 }
             );
         },

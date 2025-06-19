@@ -2,7 +2,7 @@ import type { LeveledMonsterCard, CardInstance, MagicCard } from "@/types/card";
 import { monsterFilter, hasLevelMonsterFilter } from "@/utils/cardManagement";
 import { sendCardById } from "@/utils/cardMovement";
 import { withTurnAtOneceCondition, withUserSelectCard, withUserSummon, withDelayRecursive } from "@/utils/effectUtils";
-import { hasEmptyMonsterZone, getLevel, getCardInstanceFromId } from "@/utils/gameUtils";
+import { hasEmptyMonsterZone, getLevel, getCardInstanceFromId, shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "高等儀式術",
@@ -102,6 +102,7 @@ export default {
                                         const ritualMonster = getCardInstanceFromId(state, ritualMonsterId)!;
                                         withUserSummon(state, card, ritualMonster, {}, (state) => {
                                             const card = getCardInstanceFromId(state, cardId)!;
+                                            shuffleDeck(state);
                                             resolve?.(state, card);
                                         });
                                     }

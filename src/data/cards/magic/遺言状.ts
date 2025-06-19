@@ -2,6 +2,7 @@ import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, MagicCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { shuffleDeck } from "@/utils/gameUtils";
 import { v4 as uuidv4 } from "uuid";
 
 export default {
@@ -54,6 +55,7 @@ export default {
                                         optionPosition: ["attack", "defense"],
                                     },
                                     (state) => {
+                                        shuffleDeck(state);
                                         state.deckEffects = state.deckEffects.filter((e) => e.id !== effectId);
                                     }
                                 );
