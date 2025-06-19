@@ -560,7 +560,10 @@ export const getCardActions = (gameState: GameStore, card: CardInstance): string
         (isTrapCard(card.card) || isMagicCard(card.card)) &&
         hasEmptySpellField(gameState) &&
         card.location === "Hand" &&
-        gameState.phase === "main1"
+        gameState.phase === "main1" &&
+        (!isMagicCard(card.card) ||
+            card.card.magic_type !== "フィールド魔法" ||
+            gameState.isFieldSpellActivationAllowed === null)
     ) {
         actions.push("set");
     }
