@@ -141,6 +141,10 @@ export interface GameStore extends GameState {
     selectDeck: (deck: Deck) => void;
     setDeckSelectionOpen: (open: boolean) => void;
 
+    // Game settings
+    autoSummon: boolean;
+    setAutoSummon: (value: boolean) => void;
+
     initializeGame: (deck?: Deck) => void;
     effectQueue: EffectQueueItem[];
     addEffectToQueue: (effect: EffectQueueItem) => void;
@@ -249,6 +253,9 @@ export const useGameStore = create<GameStore>()(
 
         availableDecks: deckList.map((deck) => deck.default),
 
+        // Game settings
+        autoSummon: false,
+
         selectDeck: (deck: Deck) => {
             set((state) => {
                 state.selectedDeck = deck;
@@ -259,6 +266,12 @@ export const useGameStore = create<GameStore>()(
         setDeckSelectionOpen: (open: boolean) => {
             set((state) => {
                 state.isDeckSelectionOpen = open;
+            });
+        },
+
+        setAutoSummon: (value: boolean) => {
+            set((state) => {
+                state.autoSummon = value;
             });
         },
 

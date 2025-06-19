@@ -57,6 +57,9 @@ export const GameBoard: React.FC = () => {
         isDeckSelectionOpen,
         selectDeck,
         setDeckSelectionOpen,
+        // Game settings
+        autoSummon,
+        setAutoSummon,
     } = useGameStore();
     const gameState = useGameStore();
     const setShowGraveyard = useSetAtom(graveyardModalAtom);
@@ -257,6 +260,19 @@ export const GameBoard: React.FC = () => {
                                     tooltipText="あなたのライフポイント"
                                     color="blue"
                                 />
+                                
+                                {/* 自動召喚設定 */}
+                                <div className="mt-4 flex items-center justify-center gap-2">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={autoSummon}
+                                            onChange={(e) => setAutoSummon(e.target.checked)}
+                                            className="mr-2"
+                                        />
+                                        <span className="text-sm text-gray-700">自動召喚</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 

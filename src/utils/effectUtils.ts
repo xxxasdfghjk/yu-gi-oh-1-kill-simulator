@@ -6,8 +6,9 @@ import { type EffectQueueItem } from "../store/gameStore";
 import { canNormalSummon } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
-import { placementPriority } from "@/components/SummonSelector";
+import { placementPriority, getLinkMonsterSummonalble } from "@/components/SummonSelector";
 import { getLevel } from "./gameUtils";
+import { isLinkMonster } from "./cardManagement";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
@@ -23,6 +24,29 @@ const markTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
 
 const checkTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
     return gameStore.turnOnceUsedEffectMemo?.[effectId] === true;
+};
+
+// Helper function to get summonable zones for a monster
+const getSummonableZones = (state: GameStore, monster: CardInstance): number[] => {
+    const isLink = isLinkMonster(monster.card);
+
+    if (isLink) {
+        return getLinkMonsterSummonalble(state.field.extraMonsterZones, state.field.monsterZones);
+    } else if (
+        monsterFilter(monster.card) &&
+        (monster.card.monster_type === "エクシーズモンスター" || monster.card.monster_type === "シンクロモンスター")
+    ) {
+        return [
+            ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
+            ...state.field.extraMonsterZones
+                .map((e, index) => ({ elem: e, index: index + 5 }))
+                .filter(({ elem }) => elem === null),
+        ].map((e) => e.index);
+    } else {
+        return [
+            ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
+        ].map((e) => e.index);
+    }
 };
 
 export const pushQueue = (state: GameStore, item: EffectQueueItem) => {
@@ -150,6 +174,24 @@ export const withUserSummon = (
     },
     callback: (state: GameStore, card: CardInstance, monster: CardInstance) => void
 ) => {
+    const defaultPositon = optionPosition?.[0] ?? "attack";
+    console.log(defaultPositon);
+    const handler = (state: GameStore, card: CardInstance, monster: CardInstance) => {
+        const summonable = getSummonableZones(state, monster);
+        const defaultZone = placementPriority(summonable);
+        if (defaultZone >= 0) {
+            state.isProcessing = false;
+            const summonResult = summon(state, monster, defaultZone, defaultPositon);
+            callback(state, card, summonResult);
+            return;
+        }
+    };
+    // Check if auto summon is enabled
+    if (state.autoSummon && !needRelease) {
+        handler(state, _card, monster);
+        return;
+    }
+
     if ((needRelease ?? 0) > 0) {
         // Add summon selection to effect queue
         withUserSelectCard(
@@ -172,6 +214,12 @@ export const withUserSummon = (
                         sendCard(state, selected[depth - 1], "Graveyard");
                     },
                     (state) => {
+                        // Check auto summon after release
+                        if (state.autoSummon) {
+                            handler(state, _card, monster);
+                            return;
+                        }
+
                         pushQueue(state, {
                             id: uuidv4(),
                             order: order ?? 1,
@@ -194,6 +242,17 @@ export const withUserSummon = (
             }
         );
     } else {
+        // Check auto summon for normal case
+        if (state.autoSummon) {
+            const summonable = getSummonableZones(state, monster);
+            const defaultZone = placementPriority(summonable);
+            if (defaultZone >= 0) {
+                const summonResult = summon(state, monster, defaultZone, "attack");
+                callback(state, _card, summonResult);
+                return;
+            }
+        }
+
         pushQueue(state, {
             id: uuidv4(),
             order: order ?? 1,
