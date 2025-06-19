@@ -175,7 +175,6 @@ export const withUserSummon = (
     callback: (state: GameStore, card: CardInstance, monster: CardInstance) => void
 ) => {
     const defaultPositon = optionPosition?.[0] ?? "attack";
-    console.log(defaultPositon);
     const handler = (state: GameStore, card: CardInstance, monster: CardInstance) => {
         const summonable = getSummonableZones(state, monster);
         const defaultZone = placementPriority(summonable);

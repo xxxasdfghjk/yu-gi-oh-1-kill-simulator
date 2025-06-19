@@ -105,12 +105,12 @@ export const equipCard = (state: GameStore, equipMonster: CardInstance, equipped
     const equipment = { ...equippedCard, location: "FieldZone" as const };
     for (let i = 0; i < 5; i++) {
         if (state.field.monsterZones[i] !== null && state.field.monsterZones[i]?.id === equipMonster.id) {
-            state.field.monsterZones[i]?.equipment.push(equipment);
+            state.field.monsterZones[i]!.equipment.push(equipment);
         }
     }
     for (let i = 0; i < 2; i++) {
         if (state.field.extraMonsterZones[i] !== null && state.field.extraMonsterZones[i]?.id === equipMonster.id) {
-            state.field.extraMonsterZones[i]?.equipment.push(equipment);
+            state.field.extraMonsterZones[i]!.equipment.push(equipment);
         }
     }
 };
