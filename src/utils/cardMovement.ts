@@ -232,8 +232,9 @@ export const sendCard = (
         location: to,
         position: option?.reverse ? "back" : undefined,
         // Only clear equipment and materials when leaving the field, not when entering
-        equipment: isLeavingField ? [] : card.equipment,
-        materials: isLeavingField ? [] : card.materials,
+        // Always create new extensible arrays to prevent "object is not extensible" errors
+        equipment: isLeavingField ? [] : [...(card.equipment || [])],
+        materials: isLeavingField ? [] : [...(card.materials || [])],
     } satisfies CardInstance;
 
     switch (to) {
@@ -523,12 +524,14 @@ export const summon = (state: GameStore, monster: CardInstance, zone: number, po
     // Remove from current location
 
     sendCard(state, monster, "MonsterField", { position, zone });
-    // Create summoned monster instance
+    // Create summoned monster instance with extensible arrays
     const summonedMonster = {
         ...monster,
         position,
         location: "MonsterField" as const,
         summonedBy: "Special" as const,
+        equipment: [...(monster.equipment || [])],
+        materials: [...(monster.materials || [])],
     };
 
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {

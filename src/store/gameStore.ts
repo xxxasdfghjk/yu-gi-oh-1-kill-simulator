@@ -545,7 +545,7 @@ export const useGameStore = create<GameStore>()(
                     summonType: "xyz",
                     callback: (state, card, selected) => {
                         const newMaterials = selected.map((e) => ({ ...e, location: "Material" as const }));
-                        const newInstance = { ...card, materials: [...newMaterials] };
+                        const newInstance = { ...card, materials: [...newMaterials], equipment: [...(card.equipment || [])] };
                         for (const card of selected) {
                             const from = excludeFromAnywhere(state, card);
                             state.currentFrom = from;
