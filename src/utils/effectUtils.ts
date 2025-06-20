@@ -184,11 +184,19 @@ export const withUserSummon = (
             callback(state, card, summonResult);
             return;
         }
+        // If no zone is available, fall back to manual selection
+        // This happens mainly with Link monsters when no suitable zones exist
     };
     // Check if auto summon is enabled
     if (state.autoSummon && !needRelease) {
-        handler(state, _card, monster);
-        return;
+        const summonable = getSummonableZones(state, monster);
+        const defaultZone = placementPriority(summonable);
+        if (defaultZone >= 0) {
+            handler(state, _card, monster);
+            return;
+        }
+        // If auto summon fails (no available zone), fall back to manual selection
+        // This happens mainly with Link monsters when no suitable zones exist
     }
 
     if ((needRelease ?? 0) > 0) {
@@ -215,8 +223,13 @@ export const withUserSummon = (
                     (state) => {
                         // Check auto summon after release
                         if (state.autoSummon) {
-                            handler(state, _card, monster);
-                            return;
+                            const summonable = getSummonableZones(state, monster);
+                            const defaultZone = placementPriority(summonable);
+                            if (defaultZone >= 0) {
+                                handler(state, _card, monster);
+                                return;
+                            }
+                            // If auto summon fails, fall back to manual selection
                         }
 
                         pushQueue(state, {
@@ -250,6 +263,7 @@ export const withUserSummon = (
                 callback(state, _card, summonResult);
                 return;
             }
+            // If auto summon fails, fall back to manual selection
         }
 
         pushQueue(state, {
