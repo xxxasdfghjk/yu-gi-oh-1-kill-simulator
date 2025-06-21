@@ -1,0 +1,17 @@
+export default {
+    card_name: "ライトロード・サモナー ルミナス",
+    card_type: "モンスター" as const,
+    text: "１ターンに１度、手札を１枚捨てる事で自分の墓地に存在するレベル４以下の「ライトロード」と名のついたモンスター１体を自分フィールド上に特殊召喚する。このカードが自分フィールド上に表側表示で存在する限り、自分のエンドフェイズ毎に、自分のデッキの上からカードを３枚墓地に送る。",
+    image: "card1002382_1.jpg",
+    monster_type: "効果モンスター",
+    level: 3,
+    element: "光" as const,
+    race: "魔法使い族" as const,
+    attack: 1000,
+    defense: 1000,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

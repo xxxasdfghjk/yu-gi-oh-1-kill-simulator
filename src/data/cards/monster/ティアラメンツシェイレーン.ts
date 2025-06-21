@@ -1,0 +1,17 @@
+export default {
+    card_name: "ティアラメンツ・シェイレーン",
+    card_type: "モンスター" as const,
+    text: "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 ①：自分メインフェイズに発動できる。 このカードを手札から特殊召喚し、自分の手札からモンスター１体を選んで墓地へ送る。 その後、自分のデッキの上からカードを３枚墓地へ送る。 ②：このカードが効果で墓地へ送られた場合に発動できる。 融合モンスターカードによって決められた、墓地のこのカードを含む融合素材モンスターを自分の手札・フィールド・墓地から好きな順番で持ち主のデッキの下に戻し、その融合モンスター１体をＥＸデッキから融合召喚する。",
+    image: "card100260390_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "闇" as const,
+    race: "水族" as const,
+    attack: 1800,
+    defense: 1300,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

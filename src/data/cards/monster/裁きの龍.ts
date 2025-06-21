@@ -1,0 +1,17 @@
+export default {
+    card_name: "裁きの龍",
+    card_type: "モンスター" as const,
+    text: "このカードは通常召喚できない。自分の墓地に「ライトロード」と名のついたモンスターカードが４種類以上存在する場合のみ特殊召喚する事ができる。１０００ライフポイントを払う事で、このカードを除くフィールド上のカードを全て破壊する。このカードが自分フィールド上に表側表示で存在する場合、自分のエンドフェイズ毎に、自分のデッキの上からカードを４枚墓地に送る。",
+    image: "card73708044_1.jpg",
+    monster_type: "効果モンスター",
+    level: 8,
+    element: "光" as const,
+    race: "ドラゴン族" as const,
+    attack: 3000,
+    defense: 2600,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

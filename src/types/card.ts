@@ -76,8 +76,20 @@ export interface Card {
 }
 
 export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;
-export type Element = "闇" | "光" | "風" | "炎" | "地" | "水" | "火";
-export type Race = "魔法使い" | "機械" | "悪魔" | "天使" | "サイバース" | "戦士" | "水" | "ドラゴン";
+export type Element = "闇" | "光" | "風" | "炎" | "地" | "水" | "火" | "神";
+export type Race =
+    | "魔法使い"
+    | "機械"
+    | "悪魔"
+    | "天使"
+    | "サイバース"
+    | "戦士"
+    | "水"
+    | "ドラゴン"
+    | "幻神獣"
+    | "恐竜"
+    | "獣"
+    | "岩石";
 
 type MonsterType =
     | "通常モンスター"

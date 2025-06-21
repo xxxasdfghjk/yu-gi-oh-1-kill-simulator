@@ -1,0 +1,17 @@
+export default {
+    card_name: "未界域のモスマン",
+    card_type: "モンスター" as const,
+    text: "このカード名の②の効果は１ターンに１度しか使用できない。①：手札のこのカードを相手に見せて発動できる。自分の全ての手札の中から、相手がランダムに１枚選び、自分はそのカードを捨てる。それが「未界域のモスマン」以外だった場合、さらに手札から「未界域のモスマン」１体を特殊召喚し、自分はデッキから１枚ドローする。②：このカードが手札から捨てられた場合に発動できる。お互いのプレイヤーはデッキから１枚ドローし、その後手札を１枚選んで捨てる。",
+    image: "card100276920_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "闇" as const,
+    race: "昆虫族" as const,
+    attack: 1800,
+    defense: 400,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

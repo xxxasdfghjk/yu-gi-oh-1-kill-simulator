@@ -1,0 +1,15 @@
+export default {
+    card_name: "ラーの翼神竜-球体形",
+    card_type: "モンスター" as const,
+    text: "星 10 / 神 / 幻神獣族 / 攻? / 守? このカードは特殊召喚できない。 このカードを通常召喚する場合、自分フィールドのモンスター３体をリリースして自分フィールドに召喚、または相手フィールドのモンスター３体をリリースして相手フィールドに召喚しなければならず、召喚したこのカードのコントロールは次のターンのエンドフェイズに元々の持ち主に戻る。 ①：このカードは攻撃できず、相手の攻撃・効果の対象にならない。 ②：このカードをリリースして発動できる。 手札・デッキから「ラーの翼神竜」１体を、召喚条件を無視し、攻撃力・守備力を４０００にして特殊召喚する。",
+    image: "card100024574_1.jpg",
+    monster_type: "効果モンスター",
+    element: "" as const,
+    race: "" as const,
+    attack: 0,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

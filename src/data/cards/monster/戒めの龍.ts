@@ -1,0 +1,17 @@
+export default {
+    card_name: "戒めの龍",
+    card_type: "モンスター" as const,
+    text: "このカードは通常召喚できない。除外されている自分の「ライトロード」モンスターが４種類以上の場合のみ特殊召喚できる。①：１ターンに１度、１０００ＬＰを払って発動できる。「ライトロード」モンスター以外の、お互いの墓地のカード及び表側表示で除外されているカードを全て持ち主のデッキに戻す。この効果は相手ターンでも発動できる。②：１ターンに１度、自分の「ライトロード」モンスターの効果が発動した場合に発動する。自分のデッキの上からカードを４枚墓地へ送る。",
+    image: "card100330647_1.jpg",
+    monster_type: "効果モンスター",
+    level: 8,
+    element: "闇" as const,
+    race: "ドラゴン族" as const,
+    attack: 3000,
+    defense: 2600,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

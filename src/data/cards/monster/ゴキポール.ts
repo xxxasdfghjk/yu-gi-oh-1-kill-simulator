@@ -1,0 +1,17 @@
+export default {
+    card_name: "ゴキポール",
+    card_type: "モンスター" as const,
+    text: "このカード名の効果は１ターンに１度しか使用できない。 ①：このカードが墓地へ送られた場合に発動できる。デッキからレベル４の昆虫族モンスター１体を手札に加える。この効果で通常モンスターを手札に加えた場合、さらにそのモンスターを手札から特殊召喚できる。その後、この効果で特殊召喚したモンスターの攻撃力以上の攻撃力を持つ、フィールドのモンスター１体を選んで破壊できる。",
+    image: "card100110945_1.jpg",
+    monster_type: "効果モンスター",
+    level: 3,
+    element: "地" as const,
+    race: "昆虫" as const,
+    attack: 1000,
+    defense: 1200,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: true as const,
+};

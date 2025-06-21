@@ -1,0 +1,17 @@
+export default {
+    card_name: "ライトロード・デーモン ヴァイス",
+    card_type: "モンスター" as const,
+    text: "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 ①：手札から他の「ライトロード」カード１枚をデッキの一番上に戻して発動できる。 このカードを手札から特殊召喚する。 その後、自分のデッキの上からカードを２枚墓地へ送る。 ②：このカードがデッキから墓地へ送られた場合、「ライトロード・デーモン ヴァイス」以外の自分の墓地の「ライトロード」モンスター１体を対象として発動できる。 そのモンスターを特殊召喚する。",
+    image: "card100325862_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "光" as const,
+    race: "悪魔族" as const,
+    attack: 0,
+    defense: 1700,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

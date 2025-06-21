@@ -1,0 +1,17 @@
+export default {
+    card_name: "光の創造神 ホルアクティ",
+    card_type: "モンスター" as const,
+    text: "このカードは通常召喚できない。自分フィールド上の、元々のカード名が「オシリスの天空竜」「オベリスクの巨神兵」「ラーの翼神竜」となるモンスターをそれぞれ１枚ずつリリースした場合のみ特殊召喚できる。このカードの特殊召喚は無効化されない。このカードを特殊召喚したプレイヤーはデュエルに勝利する。",
+    image: "card100003456_1.jpg",
+    monster_type: "効果モンスター",
+    element: "" as const,
+    race: "" as const,
+    attack: 0,
+    defense: 0,
+    level: 12,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

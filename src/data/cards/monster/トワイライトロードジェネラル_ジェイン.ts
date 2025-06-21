@@ -1,0 +1,17 @@
+export default {
+    card_name: "トワイライトロード・ジェネラル ジェイン",
+    card_type: "モンスター" as const,
+    text: "①：１ターンに１度、自分の手札・墓地から「ライトロード」モンスター１体を除外し、フィールドの表側表示モンスター１体を対象として発動できる。 そのモンスターの攻撃力・守備力はターン終了時まで、除外したモンスターのレベル×３００ダウンする。 ②：１ターンに１度、このカード以外の自分の「ライトロード」モンスターの効果が発動した場合に発動する。自分のデッキの上からカードを２枚墓地へ送る。",
+    image: "card100051817_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "闇" as const,
+    race: "戦士族" as const,
+    attack: 1800,
+    defense: 1200,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

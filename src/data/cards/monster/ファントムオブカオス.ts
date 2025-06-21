@@ -1,0 +1,17 @@
+export default {
+    card_name: "ファントム・オブ・カオス",
+    card_type: "モンスター" as const,
+    text: "自分の墓地に存在する効果モンスター１体を選択し、ゲームから除外する事ができる。このカードが自分フィールド上に表側表示で存在する限り、このカードはエンドフェイズ時まで選択したモンスターと同名カードとして扱い、選択したモンスターと同じ攻撃力とモンスター効果を得る。この効果は１ターンに１度しか使用できない。このモンスターの戦闘によって発生する相手プレイヤーへの戦闘ダメージは０になる。",
+    image: "card100188699_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "闇" as const,
+    race: "悪魔族" as const,
+    attack: 0,
+    defense: 0,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

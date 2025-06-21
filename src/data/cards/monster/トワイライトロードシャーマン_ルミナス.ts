@@ -1,0 +1,17 @@
+export default {
+    card_name: "トワイライトロード・シャーマン ルミナス",
+    card_type: "モンスター" as const,
+    text: "①：１ターンに１度、自分の手札・墓地から「ライトロード」モンスター１体を除外し、「トワイライトロード・シャーマン ルミナス」以外の除外されている自分の「ライトロード」モンスター１体を対象として発動できる。そのモンスターを特殊召喚する。②：１ターンに１度、このカード以外の自分の「ライトロード」モンスターの効果が発動した場合に発動する。自分のデッキの上からカードを３枚墓地へ送る。",
+    image: "card100051664_1.jpg",
+    monster_type: "効果モンスター",
+    level: 3,
+    element: "闇" as const,
+    race: "魔法使い族" as const,
+    attack: 1000,
+    defense: 1000,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

@@ -1,0 +1,17 @@
+export default {
+    card_name: "Emトリック・クラウン",
+    card_type: "モンスター" as const,
+    text: "「Ｅｍトリック・クラウン」の効果は１ターンに１度しか使用できない。 ①：このカードが墓地へ送られた場合、自分の墓地の「Ｅｍ」モンスター１体を対象として発動できる。 そのモンスターを、攻撃力・守備力を０にして特殊召喚する。 その後、自分は１０００ダメージを受ける。",
+    image: "card100180167_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "光" as const,
+    race: "魔法使い族" as const,
+    attack: 1600,
+    defense: 1200,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

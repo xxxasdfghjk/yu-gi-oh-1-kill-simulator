@@ -1,0 +1,17 @@
+export default {
+    card_name: "ライトロード・ウォリアー ガロス",
+    card_type: "モンスター" as const,
+    text: "自分フィールド上に表側表示で存在する「ライトロード・ウォリアー ガロス」以外の「ライトロード」と名のついたモンスターの効果によって自分のデッキからカードが墓地に送られる度に、自分のデッキの上からカードを２枚墓地に送る。このカードの効果で墓地に送られた「ライトロード」と名のついたモンスター１体につき、自分のデッキからカードを１枚ドローする。",
+    image: "card1002381_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "光" as const,
+    race: "戦士族" as const,
+    attack: 1850,
+    defense: 1300,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

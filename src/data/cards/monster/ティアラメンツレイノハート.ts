@@ -1,0 +1,17 @@
+export default {
+    card_name: "ティアラメンツ・レイノハート",
+    card_type: "モンスター" as const,
+    text: "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 ①：このカードが召喚・特殊召喚に成功した場合に発動できる。 デッキから「ティアラメンツ・レイノハート」以外の「ティアラメンツ」モンスター１体を墓地へ送る。 ②：このカードが効果で墓地へ送られた場合に発動できる。 このカードを特殊召喚し、自分の手札から「ティアラメンツ」カード１枚を選んで墓地へ送る。 この効果で特殊召喚したこのカードは、フィールドから離れた場合に除外される。",
+    image: "card100260417_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "水" as const,
+    race: "戦士族" as const,
+    attack: 1500,
+    defense: 2100,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

@@ -1,0 +1,17 @@
+export default {
+    card_name: "剣神官ムドラ",
+    card_type: "モンスター" as const,
+    text: "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 ①：手札から他の天使族・地属性モンスター１体を捨てて発動できる。 このカードを手札から特殊召喚する。 その後、デッキから「墓守の罠」１枚を選んで自分の魔法＆罠ゾーンに表側表示で置く事ができる。 ②：自分・相手ターンに、フィールド・墓地のこのカードを除外し、自分・相手の墓地のカードを合計５枚まで対象として発動できる。 そのカードをデッキに戻す。 自分のフィールド及び墓地に「現世と冥界の逆転」が存在しない場合、この効果の対象は３枚までとなる。",
+    image: "card100264017_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "地" as const,
+    race: "天使族" as const,
+    attack: 1500,
+    defense: 1800,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};

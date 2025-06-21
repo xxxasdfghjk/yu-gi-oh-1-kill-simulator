@@ -1,0 +1,17 @@
+export default {
+    card_name: "光道の龍",
+    card_type: "モンスター" as const,
+    text: "このカード名の①②③の効果はそれぞれ１ターンに１度しか使用できない。 ①：自分の墓地に「ライトロード」モンスターが存在する場合に発動できる。 このカードを手札から特殊召喚する。 ②：このカードが特殊召喚した場合に発動できる。 デッキから「光道の龍」以外の「ライトロード」カード１枚を墓地へ送る。 ③：このカードが墓地へ送られた場合に発動できる。 デッキから攻撃力３０００／守備力２６００のドラゴン族モンスター１体を手札に加える。",
+    image: "card100325859_1.jpg",
+    monster_type: "効果モンスター",
+    level: 4,
+    element: "光" as const,
+    race: "ドラゴン族" as const,
+    attack: 1500,
+    defense: 1300,
+    hasDefense: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
+    hasLink: false as const,
+    canNormalSummon: false as const,
+};
