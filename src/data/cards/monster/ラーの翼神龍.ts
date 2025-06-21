@@ -1,4 +1,8 @@
 import type { LeveledMonsterCard } from "@/types/card";
+import { CardSelector } from "@/utils/CardSelector";
+import { withUserSelectCard, withOption, withLifeChange } from "@/utils/effectUtils";
+import { addBuf, sendCard } from "@/utils/cardMovement";
+import type { GameStore } from "@/store/gameStore";
 
 export default {
     card_name: "ラーの翼神竜",
@@ -16,5 +20,77 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: true as const,
-    effect: {},
+    effect: {
+        onSummon: (state, card) => {
+            // 召喚成功時、100LPになるようにLPを払って攻撃力・守備力をアップする効果を選択可能
+            withOption(
+                state,
+                card,
+                [
+                    {
+                        name: "LPを支払い、攻撃力・守備力をアップする",
+                        condition: () => state.lifePoints > 100,
+                    },
+                    {
+                        name: "何もしない",
+                        condition: () => true,
+                    },
+                ],
+                (state, card, option) => {
+                    if (option === "LPを支払い、攻撃力・守備力をアップする" && state.lifePoints > 100) {
+                        const paidLP = state.lifePoints - 100;
+                        withLifeChange(
+                            state,
+                            card,
+                            {
+                                target: "player",
+                                amount: paidLP,
+                                operation: "decrease",
+                            },
+                            (state, card) => {
+                                addBuf(state, card, { attack: paidLP, defense: paidLP, level: 0 });
+                            }
+                        );
+                    }
+                },
+                true
+            );
+        },
+        onIgnition: {
+            condition: (state, card) => {
+                const allFieldMonsters = (state: GameStore) =>
+                    new CardSelector(state).allMonster().filter().nonNull().get();
+
+                return state.lifePoints >= 1000 && allFieldMonsters.length > 0 && card.location === "MonsterField";
+            },
+            effect: (state, card) => {
+                withLifeChange(
+                    state,
+                    card,
+                    {
+                        target: "player",
+                        amount: 1000,
+                        operation: "decrease",
+                    },
+                    (state, card) => {
+                        withUserSelectCard(
+                            state,
+                            card,
+                            (state: GameStore) => new CardSelector(state).allMonster().filter().nonNull().get(),
+
+                            {
+                                select: "single",
+                                message: "破壊するモンスターを選択してください",
+                            },
+                            (state, _card, selected) => {
+                                if (selected.length > 0) {
+                                    sendCard(state, selected[0], "Graveyard");
+                                }
+                            }
+                        );
+                    }
+                );
+            },
+        },
+    },
 } satisfies LeveledMonsterCard;

@@ -5,6 +5,18 @@ import { getLevel } from "./gameUtils";
 import { CardSelector } from "./CardSelector";
 import type { GameStore } from "@/store/gameStore";
 
+export const getNeedReleaseCount = (gameState: GameStore, card: CardInstance): number => {
+    return monsterFilter(card.card)
+        ? card.card.element === "神"
+            ? 3
+            : getLevel(card) <= 4
+            ? 0
+            : getLevel(card) <= 6
+            ? 1
+            : 2
+        : 0;
+};
+
 export const canNormalSummon = (gameState: GameStore, card: CardInstance): boolean => {
     if (!monsterFilter(card.card)) return false;
     if (gameState.hasNormalSummoned) return false;
@@ -13,7 +25,7 @@ export const canNormalSummon = (gameState: GameStore, card: CardInstance): boole
     if (gameState.phase !== "main1" && gameState.phase !== "main2") return false;
     // 特殊召喚モンスターは通常召喚できない
     if (!card.card.canNormalSummon) return false;
-    const needRelease = getLevel(card) <= 4 ? 0 : getLevel(card) <= 6 ? 1 : 2;
+    const needRelease = getNeedReleaseCount(gameState, card);
     if (needRelease) {
         return new CardSelector(gameState).allMonster().getNonNull().length >= needRelease;
     } else {

@@ -49,6 +49,10 @@ export const isXyzMonster = (card: Card): card is XyzMonsterCard => {
     return monsterFilter(card) && card.monster_type === "エクシーズモンスター";
 };
 
+export const isSynchroMonster = (card: Card) => {
+    return monsterFilter(card) && card.monster_type === "シンクロモンスター";
+};
+
 export const isExodia = (card: Card) => {
     return [
         "封印されしエクゾディア",

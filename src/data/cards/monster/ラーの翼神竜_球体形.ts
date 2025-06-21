@@ -1,3 +1,7 @@
+import { CardSelector } from "@/utils/CardSelector";
+import { withUserSelectCard, withUserSummon } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
+
 export default {
     card_name: "ラーの翼神竜-球体形",
     card_type: "モンスター" as const,
@@ -12,4 +16,57 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onIgnition: {
+            condition: (state, card) => {
+                const raInHandOrDeck = [
+                    ...new CardSelector(state).hand().get(),
+                    ...new CardSelector(state).deck().get(),
+                ].filter((c) => c.card.card_name === "ラーの翼神竜");
+                return raInHandOrDeck.length > 0 && card.location === "MonsterField";
+            },
+            effect: (state, card) => {
+                const raInHandOrDeck = [
+                    ...new CardSelector(state).hand().get(),
+                    ...new CardSelector(state).deck().get(),
+                ].filter((c) => c.card.card_name === "ラーの翼神竜");
+
+                if (raInHandOrDeck.length > 0) {
+                    // 球体形をリリース
+                    sendCard(state, card, "Graveyard");
+
+                    withUserSelectCard(
+                        state,
+                        card,
+                        () => raInHandOrDeck,
+                        {
+                            select: "single",
+                            message: "特殊召喚する「ラーの翼神竜」を選択してください",
+                        },
+                        (state, card, selected) => {
+                            if (selected.length > 0) {
+                                const raCard = selected[0];
+                                // 攻撃力・守備力を4000に設定
+                                const buffedRa = {
+                                    ...raCard,
+                                    buf: { attack: 4000, defense: 4000, level: 0 },
+                                };
+
+                                withUserSummon(
+                                    state,
+                                    card,
+                                    buffedRa,
+                                    {
+                                        canSelectPosition: false,
+                                        optionPosition: ["attack"],
+                                    },
+                                    () => {}
+                                );
+                            }
+                        }
+                    );
+                }
+            },
+        },
+    },
 };

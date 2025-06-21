@@ -35,6 +35,20 @@ export const triggerEffects = (
         return;
     }
 
+    // Deck to Graveyard effects
+    if (from === "Deck" && to === "Graveyard" && effect?.onDeckToGraveyard) {
+        withDelay(state, card, { order: 3000 }, (state, card) => {
+            card.card?.effect?.onDeckToGraveyard?.(state, card);
+        });
+    }
+
+    // Hand to Graveyard effects
+    if (from === "Hand" && to === "Graveyard" && effect?.onHandToGraveyard) {
+        withDelay(state, card, { order: 3000 }, (state, card) => {
+            card.card?.effect?.onHandToGraveyard?.(state, card);
+        });
+    }
+
     // Anywhere to Graveyard effects
     if (to === "Graveyard" && effect?.onAnywhereToGraveyard) {
         withDelay(state, card, { order: 3000 }, (state, card) => {

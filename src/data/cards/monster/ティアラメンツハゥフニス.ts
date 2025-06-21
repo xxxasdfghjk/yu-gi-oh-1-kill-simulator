@@ -1,3 +1,6 @@
+import { withUserSummon, withDelayRecursive, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
+
 export default {
     card_name: "ティアラメンツ・ハゥフニス",
     card_type: "モンスター" as const,
@@ -14,4 +17,55 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onIgnition: {
+            condition: (state, card) => {
+                return withTurnAtOneceCondition(state, card, (state, card) => {
+                    return card.location === "Hand";
+                }, "TearlamentHaufenis_HandEffect");
+            },
+            effect: (state, card) => {
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    // 手札から特殊召喚
+                    withUserSummon(
+                        state,
+                        card,
+                        card,
+                        {
+                            canSelectPosition: true,
+                            optionPosition: ["attack", "defense"]
+                        },
+                        (state, card) => {
+                            // デッキの上から3枚墓地に送る
+                            withDelayRecursive(
+                                state,
+                                card,
+                                { delay: 100 },
+                                3,
+                                (state, card, depth) => {
+                                    if (state.deck.length > 0) {
+                                        sendCard(state, state.deck[0], "Graveyard");
+                                    }
+                                }
+                            );
+                        }
+                    );
+                }, "TearlamentHaufenis_HandEffect");
+            }
+        },
+        onAnywhereToGraveyard: (state, card) => {
+            // 効果で墓地に送られた場合の融合召喚効果（簡略化：デッキの上から3枚墓地に送るのみ）
+            withDelayRecursive(
+                state,
+                card,
+                { delay: 100 },
+                3,
+                (state, card, depth) => {
+                    if (state.deck.length > 0) {
+                        sendCard(state, state.deck[0], "Graveyard");
+                    }
+                }
+            );
+        }
+    },
 };

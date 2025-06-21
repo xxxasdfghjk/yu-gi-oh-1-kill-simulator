@@ -1,3 +1,6 @@
+import { withUserSummon, withUserSelectCard, withDelayRecursive } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
+
 export default {
     card_name: "ライトロード・アーチャー フェリス",
     card_type: "モンスター" as const,
@@ -14,4 +17,65 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onDeckToGraveyard: (state, card) => {
+            // 効果モンスターの効果によってデッキから墓地に送られた時、特殊召喚する
+            withUserSummon(
+                state,
+                card,
+                card,
+                {
+                    canSelectPosition: true,
+                    optionPosition: ["attack", "defense"]
+                },
+                () => {}
+            );
+        },
+        onIgnition: {
+            condition: (state, card) => {
+                const opponentMonsters = [
+                    ...state.opponentField.monsterZones.filter(m => m !== null),
+                    ...state.opponentField.extraMonsterZones.filter(m => m !== null)
+                ];
+                return opponentMonsters.length > 0 && card.location === "MonsterField";
+            },
+            effect: (state, card) => {
+                const opponentMonsters = [
+                    ...state.opponentField.monsterZones.filter(m => m !== null),
+                    ...state.opponentField.extraMonsterZones.filter(m => m !== null)
+                ];
+                
+                // このカードをリリース
+                sendCard(state, card, "Graveyard");
+                
+                withUserSelectCard(
+                    state,
+                    card,
+                    () => opponentMonsters,
+                    {
+                        select: "single",
+                        message: "破壊する相手モンスターを選択してください"
+                    },
+                    (state, card, selected) => {
+                        if (selected.length > 0) {
+                            sendCard(state, selected[0], "Graveyard");
+                            
+                            // デッキの上から3枚墓地に送る
+                            withDelayRecursive(
+                                state,
+                                card,
+                                { delay: 100 },
+                                3,
+                                (state, card, depth) => {
+                                    if (state.deck.length > 0) {
+                                        sendCard(state, state.deck[0], "Graveyard");
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+    },
 };

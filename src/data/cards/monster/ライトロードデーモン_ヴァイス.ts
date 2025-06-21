@@ -1,3 +1,7 @@
+import { CardSelector } from "@/utils/CardSelector";
+import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect, withUserSummon, withDelayRecursive } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
+
 export default {
     card_name: "ライトロード・デーモン ヴァイス",
     card_type: "モンスター" as const,
@@ -14,4 +18,94 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onIgnition: {
+            condition: (state, card) => {
+                return withTurnAtOneceCondition(state, card, (state, card) => {
+                    const lightlordInHand = new CardSelector(state).hand().get()
+                        .filter(c => c.card.card_name.includes("ライトロード") && c.id !== card.id);
+                    
+                    return lightlordInHand.length > 0 && card.location === "Hand";
+                }, "LightlordVice_HandEffect");
+            },
+            effect: (state, card) => {
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    const lightlordInHand = new CardSelector(state).hand().get()
+                        .filter(c => c.card.card_name.includes("ライトロード") && c.id !== card.id);
+                    
+                    withUserSelectCard(
+                        state,
+                        card,
+                        () => lightlordInHand,
+                        {
+                            select: "single",
+                            message: "デッキの一番上に戻す「ライトロード」カードを選択してください"
+                        },
+                        (state, card, selected) => {
+                            if (selected.length > 0) {
+                                sendCard(state, selected[0], "Deck", { deckTop: true });
+                                
+                                // ヴァイスを特殊召喚
+                                withUserSummon(
+                                    state,
+                                    card,
+                                    card,
+                                    {
+                                        canSelectPosition: true,
+                                        optionPosition: ["attack", "defense"]
+                                    },
+                                    (state, card) => {
+                                        // デッキの上から2枚墓地に送る
+                                        withDelayRecursive(
+                                            state,
+                                            card,
+                                            { delay: 100 },
+                                            2,
+                                            (state, card, depth) => {
+                                                if (state.deck.length > 0) {
+                                                    sendCard(state, state.deck[0], "Graveyard");
+                                                }
+                                            }
+                                        );
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }, "LightlordVice_HandEffect");
+            }
+        },
+        onDeckToGraveyard: (state, card) => {
+            const lightlordInGrave = new CardSelector(state).graveyard().get()
+                .filter(c => c.card.card_name.includes("ライトロード") && 
+                           c.card.card_type === "モンスター" && 
+                           c.card.card_name !== "ライトロード・デーモン ヴァイス");
+            
+            if (lightlordInGrave.length > 0) {
+                withUserSelectCard(
+                    state,
+                    card,
+                    () => lightlordInGrave,
+                    {
+                        select: "single",
+                        message: "特殊召喚する「ライトロード」モンスターを選択してください"
+                    },
+                    (state, card, selected) => {
+                        if (selected.length > 0) {
+                            withUserSummon(
+                                state,
+                                card,
+                                selected[0],
+                                {
+                                    canSelectPosition: true,
+                                    optionPosition: ["attack", "defense"]
+                                },
+                                () => {}
+                            );
+                        }
+                    }
+                );
+            }
+        }
+    },
 };

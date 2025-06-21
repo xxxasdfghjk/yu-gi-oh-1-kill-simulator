@@ -1,3 +1,6 @@
+import type { LeveledMonsterCard } from "@/types/card";
+import { withUserSummon } from "@/utils/effectUtils";
+
 export default {
     card_name: "ライトロード・ビースト ウォルフ",
     card_type: "モンスター" as const,
@@ -6,7 +9,7 @@ export default {
     monster_type: "効果モンスター",
     level: 4,
     element: "光" as const,
-    race: "獣戦士族" as const,
+    race: "獣戦士" as const,
     attack: 2100,
     defense: 300,
     hasDefense: true as const,
@@ -14,4 +17,19 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
-};
+    effect: {
+        onDeckToGraveyard: (state, card) => {
+            // デッキから墓地に送られた時、特殊召喚する
+            withUserSummon(
+                state,
+                card,
+                card,
+                {
+                    canSelectPosition: true,
+                    optionPosition: ["attack", "defense"],
+                },
+                () => {}
+            );
+        },
+    },
+} satisfies LeveledMonsterCard;

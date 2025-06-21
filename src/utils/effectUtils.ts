@@ -3,11 +3,10 @@ import type { CardInstance, MagicCard } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
 import { getSpellTrapZoneIndex, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
-import { canNormalSummon } from "./summonUtils";
+import { canNormalSummon, getNeedReleaseCount } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
 import { placementPriority, getLinkMonsterSummonalble } from "@/components/SummonSelector";
-import { getLevel } from "./gameUtils";
 import { isLinkMonster } from "./cardManagement";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
@@ -343,6 +342,29 @@ export const withLifeChange = (
     });
 };
 
+export const withSendToGraveyardFromDeckTop = (
+    state: GameStore,
+    card: CardInstance,
+    count: number,
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        count,
+        (state) => {
+            sendCard(state, state.deck[0], "Graveyard");
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
 export const withSendToGraveyard = (
     state: GameStore,
     card: CardInstance,
@@ -389,6 +411,31 @@ export const withSendToDeckTop = (
         }
     );
     // Execute callback after all cards are drawn
+};
+
+export const withSendDeckBottom = (
+    state: GameStore,
+    card: CardInstance,
+    cardIdList: string[],
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    // シャッフルして順番をランダムにする
+    const shuffledIdList = [...cardIdList].sort(() => Math.random() - 0.5);
+
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        shuffledIdList.length,
+        (state, _, depth) => {
+            sendCardById(state, shuffledIdList[depth - 1], "Deck", { deckTop: false });
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
 };
 
 export const withDraw = (
@@ -743,8 +790,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
         });
     } else if (card.card.card_type === "モンスター") {
         // Handle monster cards - add to effect queue for user to choose position and zone
-        const level = getLevel(card);
-        const needRelease = level <= 4 ? 0 : level <= 6 ? 1 : 2;
+        const needRelease = getNeedReleaseCount(state, card);
         withUserSummon(
             state,
             card,

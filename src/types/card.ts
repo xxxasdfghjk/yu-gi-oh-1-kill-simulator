@@ -49,6 +49,8 @@ export type EffectType = {
     onRelease?: EffectCallback;
     onFieldToGraveyard?: EffectCallback;
     onAnywhereToGraveyard?: EffectCallback;
+    onDeckToGraveyard?: EffectCallback;
+    onHandToGraveyard?: EffectCallback;
     onGraveyardToField?: EffectCallback;
     onDestroyByBattle?: EffectCallback;
     onDestroyByEffect?: EffectCallback;
@@ -89,7 +91,11 @@ export type Race =
     | "幻神獣"
     | "恐竜"
     | "獣"
-    | "岩石";
+    | "岩石"
+    | "サイキック"
+    | "獣戦士"
+    | "創造神"
+    | "昆虫";
 
 type MonsterType =
     | "通常モンスター"

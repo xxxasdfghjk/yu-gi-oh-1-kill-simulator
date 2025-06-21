@@ -1,5 +1,5 @@
-import type { CardInstance, Race } from "@/types/card";
-import { isFusionMonster, isMagicCard, monsterFilter } from "./cardManagement";
+import type { CardInstance, Element, MonsterCard, Race } from "@/types/card";
+import { isFusionMonster, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { getLevel } from "./gameUtils";
 
 export class CardInstanceFilter<T extends (CardInstance | null)[]> {
@@ -58,6 +58,11 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(magicList);
     }
 
+    trap() {
+        const trapList = this.cardList.filter((e): e is CardInstance => e !== null && isTrapCard(e.card));
+        return new CardInstanceFilter<CardInstance[]>(trapList);
+    }
+
     equipSpell() {
         const magicList = this.cardList.filter(
             (e): e is CardInstance => e !== null && isMagicCard(e.card) && e.card.magic_type === "装備魔法"
@@ -89,6 +94,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<null[]>(nullList);
     }
 
+    element(element: Element) {
+        const list = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.element === element
+        );
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
     include(str: string) {
         const list = this.cardList.filter((e): e is CardInstance => e !== null && e.card.card_name.includes(str));
         return new CardInstanceFilter<CardInstance[]>(list);
@@ -96,6 +108,11 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
 
     excludeId(id: string) {
         const list = this.cardList.filter((e): e is CardInstance => e !== null && e.id !== id);
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    exclude(name: string) {
+        const list = this.cardList.filter((e): e is CardInstance => e !== null && !e.card.card_name.includes(name));
         return new CardInstanceFilter<CardInstance[]>(list);
     }
 

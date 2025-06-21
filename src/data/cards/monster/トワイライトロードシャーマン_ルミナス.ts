@@ -1,3 +1,7 @@
+import { CardSelector } from "@/utils/CardSelector";
+import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect, withUserSummon } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
+
 export default {
     card_name: "トワイライトロード・シャーマン ルミナス",
     card_type: "モンスター" as const,
@@ -14,4 +18,71 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onIgnition: {
+            condition: (state, card) => {
+                return withTurnAtOneceCondition(state, card, (state, card) => {
+                    const lightroadInHandGrave = [
+                        ...new CardSelector(state).hand().get(),
+                        ...new CardSelector(state).graveyard().get()
+                    ].filter(c => c.card.card_name.includes("ライトロード"));
+                    
+                    const banishedLightroad = new CardSelector(state).banished().get()
+                        .filter(c => c.card.card_name.includes("ライトロード") && c.card.card_name !== "トワイライトロード・シャーマン ルミナス");
+                    
+                    return lightroadInHandGrave.length > 0 && banishedLightroad.length > 0 && card.location === "MonsterField";
+                }, "TwilightLuminus_Ignition");
+            },
+            effect: (state, card) => {
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    const lightroadInHandGrave = [
+                        ...new CardSelector(state).hand().get(),
+                        ...new CardSelector(state).graveyard().get()
+                    ].filter(c => c.card.card_name.includes("ライトロード"));
+                    
+                    withUserSelectCard(
+                        state,
+                        card,
+                        () => lightroadInHandGrave,
+                        {
+                            select: "single",
+                            message: "除外する「ライトロード」モンスターを選択してください"
+                        },
+                        (state, card, selected) => {
+                            if (selected.length > 0) {
+                                sendCard(state, selected[0], "Exclusion");
+                                
+                                const banishedLightroad = new CardSelector(state).banished().get()
+                                    .filter(c => c.card.card_name.includes("ライトロード") && c.card.card_name !== "トワイライトロード・シャーマン ルミナス");
+                                
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    () => banishedLightroad,
+                                    {
+                                        select: "single",
+                                        message: "特殊召喚する除外されている「ライトロード」モンスターを選択してください"
+                                    },
+                                    (state, card, selected2) => {
+                                        if (selected2.length > 0) {
+                                            withUserSummon(
+                                                state,
+                                                card,
+                                                selected2[0],
+                                                {
+                                                    canSelectPosition: true,
+                                                    optionPosition: ["attack", "defense"]
+                                                },
+                                                () => {}
+                                            );
+                                        }
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }, "TwilightLuminus_Ignition");
+            }
+        }
+    },
 };

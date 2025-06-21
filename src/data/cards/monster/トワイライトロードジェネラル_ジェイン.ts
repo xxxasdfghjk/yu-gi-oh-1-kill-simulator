@@ -1,3 +1,8 @@
+import { CardSelector } from "@/utils/CardSelector";
+import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
+import { sendCard, addBuf } from "@/utils/cardMovement";
+import { hasLevelMonsterFilter } from "@/utils/cardManagement";
+
 export default {
     card_name: "トワイライトロード・ジェネラル ジェイン",
     card_type: "モンスター" as const,
@@ -14,4 +19,72 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onIgnition: {
+            condition: (state, card) => {
+                return withTurnAtOneceCondition(state, card, (state, card) => {
+                    const lightroadInHandGrave = [
+                        ...new CardSelector(state).hand().get(),
+                        ...new CardSelector(state).graveyard().get()
+                    ].filter(c => c.card.card_name.includes("ライトロード"));
+                    
+                    const faceUpMonsters = [
+                        ...new CardSelector(state).allMonster().filter().nonNull().get().filter(m => m.position === "attack" || m.position === "defense"),
+                        ...state.opponentField.monsterZones.filter(m => m !== null && (m.position === "attack" || m.position === "defense")),
+                        ...state.opponentField.extraMonsterZones.filter(m => m !== null && (m.position === "attack" || m.position === "defense"))
+                    ];
+                    
+                    return lightroadInHandGrave.length > 0 && faceUpMonsters.length > 0 && card.location === "MonsterField";
+                }, "TwilightJane_Ignition");
+            },
+            effect: (state, card) => {
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    const lightroadInHandGrave = [
+                        ...new CardSelector(state).hand().get(),
+                        ...new CardSelector(state).graveyard().get()
+                    ].filter(c => c.card.card_name.includes("ライトロード"));
+                    
+                    withUserSelectCard(
+                        state,
+                        card,
+                        () => lightroadInHandGrave,
+                        {
+                            select: "single",
+                            message: "除外する「ライトロード」モンスターを選択してください"
+                        },
+                        (state, card, selected) => {
+                            if (selected.length > 0) {
+                                const banishedCard = selected[0];
+                                const level = hasLevelMonsterFilter(banishedCard.card) ? banishedCard.card.level : 0;
+                                const debuff = level * 300;
+                                
+                                sendCard(state, banishedCard, "Exclusion");
+                                
+                                const faceUpMonsters = [
+                                    ...new CardSelector(state).allMonster().filter().nonNull().get().filter(m => m.position === "attack" || m.position === "defense"),
+                                    ...state.opponentField.monsterZones.filter(m => m !== null && (m.position === "attack" || m.position === "defense")),
+                                    ...state.opponentField.extraMonsterZones.filter(m => m !== null && (m.position === "attack" || m.position === "defense"))
+                                ];
+                                
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    () => faceUpMonsters,
+                                    {
+                                        select: "single",
+                                        message: "攻撃力・守備力をダウンさせるモンスターを選択してください"
+                                    },
+                                    (state, card, selected2) => {
+                                        if (selected2.length > 0) {
+                                            addBuf(state, selected2[0], { attack: -debuff, defense: -debuff, level: 0 });
+                                        }
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }, "TwilightJane_Ignition");
+            }
+        }
+    },
 };

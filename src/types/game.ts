@@ -37,7 +37,7 @@ export interface GameState {
     isOpponentTurn: boolean;
     gameOver: boolean;
     winner: "player" | "timeout" | null;
-    winReason?: "exodia" | "life_points" | "deck_out" | null;
+    winReason?: "exodia" | "life_points" | "deck_out" | "horakty" | null;
     turnRestrictions?: {
         cannotActivateEffects?: string[];
     };

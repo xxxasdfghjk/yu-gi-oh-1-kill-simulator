@@ -16,5 +16,7 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: true as const,
-    effect: {},
+    effect: {
+        // デッキと関係ないため効果未実装
+    },
 } satisfies LeveledMonsterCard;

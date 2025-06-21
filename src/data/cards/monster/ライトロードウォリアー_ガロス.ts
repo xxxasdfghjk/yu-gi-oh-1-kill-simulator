@@ -1,3 +1,6 @@
+import { withDelayRecursive, withDraw } from "@/utils/effectUtils";
+import { sendCard } from "@/utils/cardMovement";
+
 export default {
     card_name: "ライトロード・ウォリアー ガロス",
     card_type: "モンスター" as const,
@@ -14,4 +17,36 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    effect: {
+        onStandbyPhase: (state, card) => {
+            if (card.location === "MonsterField" && (card.position === "attack" || card.position === "defense")) {
+                // エンドフェイズでデッキの上から2枚墓地に送る効果（簡略化）
+                const sentCards: typeof state.deck = [];
+                
+                withDelayRecursive(
+                    state,
+                    card,
+                    { delay: 100 },
+                    2,
+                    (state, card, depth) => {
+                        if (state.deck.length > 0) {
+                            const topCard = state.deck[0];
+                            sentCards.push(topCard);
+                            sendCard(state, topCard, "Graveyard");
+                        }
+                    },
+                    (state, card) => {
+                        // 送ったカードの中のライトロードモンスターの数だけドロー
+                        const lightlordCount = sentCards.filter(c => 
+                            c.card.card_name.includes("ライトロード") && c.card.card_type === "モンスター"
+                        ).length;
+                        
+                        if (lightlordCount > 0) {
+                            withDraw(state, card, { count: lightlordCount });
+                        }
+                    }
+                );
+            }
+        }
+    },
 };
