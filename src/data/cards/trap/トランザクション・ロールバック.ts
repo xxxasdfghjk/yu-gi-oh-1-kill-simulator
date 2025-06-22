@@ -1,16 +1,7 @@
 import { CardSelector } from "@/utils/CardSelector";
-import {
-    withUserSelectCard,
-    withTurnAtOneceCondition,
-    withTurnAtOneceEffect,
-    withLifeChange,
-    withOption,
-} from "@/utils/effectUtils";
+import { withUserSelectCard, withTurnAtOneceEffect, withLifeChange } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 import type { TrapCard } from "@/types/card";
-import { isTrapCard } from "@/utils/cardManagement";
-import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
-import type { GameStore } from "@/store/gameStore";
 
 export default {
     card_name: "トランザクション・ロールバック",
@@ -19,108 +10,50 @@ export default {
     image: "card100354692_1.jpg",
     trap_type: "通常罠" as const,
     effect: {
-        onSpell: {
+        onIgnition: {
             condition: (state, card) => {
-                return withTurnAtOneceCondition(
-                    state,
-                    card,
-                    (state, card) => {
-                        // 自分の墓地の通常罠カード（トランザクション・ロールバック以外）
-                        const playerNormalTraps = new CardSelector(state)
-                            .graveyard()
-                            .getNonNull()
-                            .filter(
-                                (c) =>
-                                    isTrapCard(c.card) &&
-                                    c.card.trap_type === "通常罠" &&
-                                    c.card.card_name !== "トランザクション・ロールバック"
-                            );
-
-                        return card.location === "Graveyard" && playerNormalTraps.length > 0;
-                    },
-                    "TransactionRollback_Effect"
+                return (
+                    card.location === "Graveyard" &&
+                    new CardSelector(state).graveyard().filter().excludeId(card.id).trap().len() > 0
                 );
             },
-            effect: (state, card, _context, resolve) => {
-                withTurnAtOneceEffect(
-                    state,
-                    card,
-                    (state, card) => {
-                        const playerNormalTraps = new CardSelector(state)
-                            .graveyard()
-                            .getNonNull()
-                            .filter(
-                                (c) =>
-                                    isTrapCard(c.card) &&
-                                    c.card.card_type === "罠" &&
-                                    c.card.trap_type === "通常罠" &&
-                                    c.card.card_name !== "トランザクション・ロールバック"
-                            );
+            effect: (state, card) => {
+                withTurnAtOneceEffect(state, card, (state, card) => {
+                    sendCard(state, card, "Exclusion");
 
-                        const options = [];
-                        if (card.location === "Graveyard" && playerNormalTraps.length > 0) {
-                            options.push({
-                                name: "墓地のこのカードを除外して自分の墓地の通常罠カードを対象にする",
-                                condition: (state: GameStore) => {
-                                    return (
-                                        new CardInstanceFilter(state.graveyard)
-                                            .exclude("トランザクションロールバック")
-                                            .len() > 0
-                                    );
+                    withLifeChange(
+                        state,
+                        card,
+                        {
+                            target: "player",
+                            amount: Math.floor(state.lifePoints / 2),
+                            operation: "decrease",
+                        },
+                        (state, card) => {
+                            withUserSelectCard(
+                                state,
+                                card,
+                                (state) =>
+                                    new CardSelector(state)
+                                        .graveyard()
+                                        .filter()
+                                        .exclude("トランザクション・ロールバック")
+                                        .trap()
+                                        .get(),
+                                {
+                                    select: "single",
+                                    message: "対象とする自分の墓地の通常罠カードを選択してください",
                                 },
-                            });
-                        }
-
-                        if (options.length === 0) {
-                            if (resolve) resolve(state, card);
-                            return;
-                        }
-
-                        withOption(state, card, options, (state, card, selectedOption) => {
-                            if (selectedOption === "墓地のこのカードを除外して自分の墓地の通常罠カードを対象にする") {
-                                // (2)の効果：墓地のこのカードを除外
-                                sendCard(state, card, "Exclusion");
-
-                                withLifeChange(
-                                    state,
-                                    card,
-                                    {
-                                        target: "player",
-                                        amount: Math.floor(state.lifePoints / 2),
-                                        operation: "decrease",
-                                    },
-                                    (state, card) => {
-                                        withUserSelectCard(
-                                            state,
-                                            card,
-                                            (state) =>
-                                                new CardSelector(state)
-                                                    .graveyard()
-                                                    .filter()
-                                                    .exclude("トランザクション・ロールバック")
-                                                    .trap()
-                                                    .get(),
-                                            {
-                                                select: "single",
-                                                message: "対象とする自分の墓地の通常罠カードを選択してください",
-                                            },
-                                            (state, card, selected) => {
-                                                if (selected.length > 0) {
-                                                    const targetTrap = selected[0];
-                                                    // 効果をコピーして発動（簡略化：効果名を表示のみ）
-                                                    targetTrap.card.effect?.onSpell?.effect?.(state, card);
-                                                    // 実際の実装では完全な効果コピーが必要
-                                                }
-                                                if (resolve) resolve(state, card);
-                                            }
-                                        );
+                                (state, card, selected) => {
+                                    if (selected.length > 0) {
+                                        const targetTrap = selected[0];
+                                        targetTrap.card.effect?.onSpell?.effect?.(state, card);
                                     }
-                                );
-                            }
-                        });
-                    },
-                    "TransactionRollback_Effect"
-                );
+                                }
+                            );
+                        }
+                    );
+                });
             },
         },
     },

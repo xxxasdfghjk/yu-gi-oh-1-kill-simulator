@@ -4,6 +4,7 @@ import type { CardInstance, Location } from "@/types/card";
 import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
 import { isExtraDeckMonster, monsterFilter } from "./cardManagement";
 import { withDelay } from "./effectUtils";
+import { CardSelector } from "./CardSelector";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
@@ -59,6 +60,28 @@ export const triggerEffects = (
     if (from === "Graveyard" && to === "MonsterField" && effect?.onGraveyardToField) {
         withDelay(state, card, { order: 3000 }, (state, card) => {
             card.card?.effect?.onGraveyardToField?.(state, card, { equipCardId: context?.equipCardId ?? "" });
+        });
+    }
+
+    // onCardToGraveyard effects - trigger when any card goes to graveyard
+    if (to === "Graveyard") {
+        const fieldsToCheck = new CardSelector(state)
+            .allMonster()
+            .spellTrap()
+            .field()
+            .filter()
+            .nonNull()
+            .get();
+
+        fieldsToCheck.forEach((fieldCard) => {
+            if (fieldCard.card.effect?.onCardToGraveyard) {
+                withDelay(state, fieldCard, { order: 3100 }, (state, fieldCard) => {
+                    fieldCard.card.effect?.onCardToGraveyard?.(state, fieldCard, { 
+                        triggeredByCard: card,
+                        equipCardId: context?.equipCardId ?? "" 
+                    });
+                });
+            }
         });
     }
 };

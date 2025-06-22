@@ -90,6 +90,7 @@ export default {
         },
         onFieldToGraveyard: (state, card) => {
             // 効果で墓地に送られた場合の融合召喚効果（簡略化：デッキの上から3枚墓地に送るのみ）
+            // TODO
             withDelayRecursive(state, card, { delay: 100 }, 3, (state, card, depth) => {
                 if (state.deck.length > 0) {
                     sendCard(state, state.deck[0], "Graveyard");

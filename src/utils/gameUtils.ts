@@ -19,6 +19,15 @@ export const getAttack = (cardInstance: CardInstance) => {
     return cardInstance.buf.attack + attack + equip;
 };
 
+export const getDefense = (cardInstance: CardInstance) => {
+    const defense = (cardInstance.card as { defense?: number })?.defense ?? -9999;
+    const equip = (cardInstance.equipment ?? []).reduce((prev, cur) => {
+        return prev + (cur?.buf?.defense ?? 0);
+    }, 0);
+
+    return cardInstance.buf.defense + defense + equip;
+};
+
 export const hasEmptyMonsterZone = (state: GameStore) => {
     return state.field.monsterZones.filter((e) => e === null).length > 0;
 };

@@ -1,6 +1,15 @@
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withUserSummon, withDelayRecursive, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
+import {
+    withUserSelectCard,
+    withUserSummon,
+    withDelayRecursive,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withSendToGraveyardFromDeckTop,
+} from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import type { LeveledMonsterCard } from "@/types/card";
+import type { GameStore } from "@/store/gameStore";
 
 export default {
     card_name: "ティアラメンツ・シェイレーン",
@@ -10,7 +19,7 @@ export default {
     monster_type: "効果モンスター",
     level: 4,
     element: "闇" as const,
-    race: "水族" as const,
+    race: "水" as const,
     attack: 1800,
     defense: 1300,
     hasDefense: true as const,
@@ -21,71 +30,71 @@ export default {
     effect: {
         onIgnition: {
             condition: (state, card) => {
-                return withTurnAtOneceCondition(state, card, (state, card) => {
-                    const handMonsters = new CardSelector(state).hand().filter().monster().get()
-                        .filter(c => c.id !== card.id);
-                    return handMonsters.length > 0 && card.location === "Hand" && state.phase === "main1";
-                }, "TearlamentScheiren_HandEffect");
+                return withTurnAtOneceCondition(
+                    state,
+                    card,
+                    (state, card) => {
+                        const handMonsters = new CardSelector(state)
+                            .hand()
+                            .filter()
+                            .monster()
+                            .get()
+                            .filter((c) => c.id !== card.id);
+                        return handMonsters.length > 0 && card.location === "Hand" && state.phase === "main1";
+                    },
+                    "TearlamentScheiren_HandEffect"
+                );
             },
             effect: (state, card) => {
-                withTurnAtOneceEffect(state, card, (state, card) => {
-                    // 手札から特殊召喚
-                    withUserSummon(
-                        state,
-                        card,
-                        card,
-                        {
-                            canSelectPosition: true,
-                            optionPosition: ["attack", "defense"]
-                        },
-                        (state, card) => {
-                            const handMonsters = new CardSelector(state).hand().filter().monster().get();
-                            
-                            withUserSelectCard(
-                                state,
-                                card,
-                                () => handMonsters,
-                                {
-                                    select: "single",
-                                    message: "墓地に送るモンスターを選択してください"
-                                },
-                                (state, card, selected) => {
-                                    if (selected.length > 0) {
-                                        sendCard(state, selected[0], "Graveyard");
-                                        
-                                        // デッキの上から3枚墓地に送る
-                                        withDelayRecursive(
-                                            state,
-                                            card,
-                                            { delay: 100 },
-                                            3,
-                                            (state, card, depth) => {
-                                                if (state.deck.length > 0) {
-                                                    sendCard(state, state.deck[0], "Graveyard");
-                                                }
-                                            }
-                                        );
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        // 手札から特殊召喚
+                        withUserSummon(
+                            state,
+                            card,
+                            card,
+                            {
+                                canSelectPosition: true,
+                                optionPosition: ["attack", "defense"],
+                            },
+                            (state, card) => {
+                                const handMonsters = (state: GameStore) =>
+                                    new CardSelector(state).hand().filter().monster().get();
+
+                                withUserSelectCard(
+                                    state,
+                                    card,
+                                    handMonsters,
+                                    {
+                                        select: "single",
+                                        message: "墓地に送るモンスターを選択してください",
+                                    },
+                                    (state, card, selected) => {
+                                        if (selected.length > 0) {
+                                            sendCard(state, selected[0], "Graveyard");
+
+                                            // デッキの上から3枚墓地に送る
+                                            withSendToGraveyardFromDeckTop(state, card, 3, () => {});
+                                        }
                                     }
-                                }
-                            );
-                        }
-                    );
-                }, "TearlamentScheiren_HandEffect");
-            }
+                                );
+                            }
+                        );
+                    },
+                    "TearlamentScheiren_HandEffect"
+                );
+            },
         },
         onAnywhereToGraveyard: (state, card) => {
             // 効果で墓地に送られた場合の融合召喚効果（簡略化：デッキの上から3枚墓地に送るのみ）
-            withDelayRecursive(
-                state,
-                card,
-                { delay: 100 },
-                3,
-                (state, card, depth) => {
-                    if (state.deck.length > 0) {
-                        sendCard(state, state.deck[0], "Graveyard");
-                    }
+            // TODO
+            withDelayRecursive(state, card, { delay: 100 }, 3, (state, card, depth) => {
+                if (state.deck.length > 0) {
+                    sendCard(state, state.deck[0], "Graveyard");
                 }
-            );
-        }
+            });
+        },
     },
-};
+} satisfies LeveledMonsterCard;

@@ -65,6 +65,7 @@ export type EffectType = {
     };
     onStandbyPhase?: EffectCallback;
     onPayLifeCost?: OnPayLifeCostCallback;
+    onCardToGraveyard?: EffectCallback;
 };
 
 type CardTypeName = "モンスター" | "魔法" | "罠";
