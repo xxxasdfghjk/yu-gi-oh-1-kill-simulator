@@ -20,9 +20,9 @@ export default {
     effect: {
         onCardToGraveyard: (state, card, context) => {
             if (
-                String(context?.["effectBy"] ?? "")?.includes("ライトロード") &&
-                String(context?.["effectBy"] ?? "") !== "ライトロード・ウォリアー ガロス" &&
-                String(context?.["effectByField"] ?? "") === "MonsterZone"
+                String(context?.["effectedBy"] ?? "")?.includes("ライトロード") &&
+                String(context?.["effectedBy"] ?? "") !== "ライトロード・ウォリアー ガロス" &&
+                String(context?.["effectedByField"] ?? "") === "MonsterZone"
             ) {
                 withNotification(state, card, { message: "ガロスの効果発動" }, (state, card) => {
                     if (state.deck.length >= 2) {

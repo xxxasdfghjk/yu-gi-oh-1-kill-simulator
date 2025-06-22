@@ -1,88 +1,91 @@
-import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withDelayRecursive, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
+import {
+    withUserSelectCard,
+    withDraw,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withSendToGraveyardFromDeckTop,
+} from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import { getLevel } from "@/utils/gameUtils";
+import { monsterFilter } from "@/utils/cardManagement";
+import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
+import type { XyzMonsterCard } from "@/types/card";
 
 export default {
-    card_name: "ライトロード・セイントミネルバ",
+    card_name: "ライトロード・セイント ミネルバ",
     card_type: "モンスター" as const,
-    text: "「ライトロード」モンスター２体以上 このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。①：このカードがリンク召喚に成功した場合に発動する。自分のデッキの上からカードを３枚墓地へ送る。②：自分のメインフェイズに発動できる。自分の墓地の「ライトロード」カード３枚を除外して発動する。自分のデッキからカード１枚を手札に加える。",
-    image: "card100230018_1.jpg",
-    monster_type: "リンク・効果モンスター",
-    link: 3,
+    text: "レベル４モンスター×２\nこのカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。①：このカードのX素材を１つ取り除いて発動できる。自分のデッキの上からカードを３枚墓地へ送る。その中に「ライトロード」カードがあった場合、さらにその数だけ自分はドローする。②：このカードが戦闘または相手の効果で破壊された場合に発動できる。自分のデッキの上からカードを３枚墓地へ送る。その中に「ライトロード」カードがあった場合、さらにその数までフィールドのカードを破壊できる。",
+    image: "card100022987_1.jpg",
+    monster_type: "エクシーズモンスター",
     element: "光" as const,
-    race: "天使族" as const,
-    attack: 2600,
-    hasDefense: false as const,
+    race: "天使" as const,
+    attack: 2000,
+    defense: 800,
+    hasDefense: true as const,
     hasLevel: false as const,
-    hasRank: false as const,
-    hasLink: true as const,
+    hasRank: true as const,
+    hasLink: false as const,
     canNormalSummon: false as const,
+    rank: 4,
     effect: {
-        onSummon: (state, card) => {
-            withTurnAtOneceEffect(state, card, (state, card) => {
-                // デッキの上から3枚墓地に送る
-                withDelayRecursive(
-                    state,
-                    card,
-                    { delay: 100 },
-                    3,
-                    (state, card, depth) => {
-                        if (state.deck.length > 0) {
-                            sendCard(state, state.deck[0], "Graveyard");
-                        }
-                    }
-                );
-            }, "LightlordSaintMinerva_LinkSummon");
-        },
+        // ①の効果：X素材を1つ取り除いて発動
         onIgnition: {
             condition: (state, card) => {
-                return withTurnAtOneceCondition(state, card, (state, card) => {
-                    const lightlordInGraveyard = new CardSelector(state).graveyard().get()
-                        .filter(c => c.card.card_name.includes("ライトロード"));
-                    return (state.phase === "main1" || state.phase === "main2") && lightlordInGraveyard.length >= 3;
-                }, "LightlordSaintMinerva_Ignition");
+                return withTurnAtOneceCondition(
+                    state,
+                    card,
+                    (_state, card) => {
+                        return card.materials.length > 0 && card.location === "MonsterField";
+                    },
+                    "LightlordSaintMinerva_Effect1"
+                );
             },
             effect: (state, card) => {
-                withTurnAtOneceEffect(state, card, (state, card) => {
-                    const lightlordInGraveyard = new CardSelector(state).graveyard().get()
-                        .filter(c => c.card.card_name.includes("ライトロード"));
-                    
-                    withUserSelectCard(
-                        state,
-                        card,
-                        () => lightlordInGraveyard,
-                        {
-                            select: "multi",
-                            selectCount: 3,
-                            message: "除外する「ライトロード」カード3枚を選択してください"
-                        },
-                        (state, card, selected) => {
-                            if (selected.length === 3) {
-                                // 3枚除外
-                                selected.forEach(c => sendCard(state, c, "Exclusion"));
-                                
-                                // デッキから1枚手札に加える
-                                if (state.deck.length > 0) {
-                                    withUserSelectCard(
-                                        state,
-                                        card,
-                                        () => state.deck,
-                                        {
-                                            select: "single",
-                                            message: "手札に加えるカードを選択してください"
-                                        },
-                                        (state, card, selected) => {
-                                            if (selected.length > 0) {
-                                                sendCard(state, selected[0], "Hand");
-                                            }
-                                        }
-                                    );
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        // X素材を選択して取り除く
+                        if (card.materials.length > 0) {
+                            withUserSelectCard(
+                                state,
+                                card,
+                                () => card.materials,
+                                {
+                                    select: "single",
+                                    message: "墓地に送るX素材を1つ選択してください",
+                                },
+                                (state, card, selected) => {
+                                    if (selected.length > 0) {
+                                        // 選択した素材を取り除く
+                                        const selectedMaterial = selected[0];
+                                        card.materials = card.materials.filter((m) => m.id !== selectedMaterial.id);
+                                        sendCard(state, selectedMaterial, "Graveyard");
+
+                                        // デッキの上から3枚墓地に送り、「ライトロード」カードをカウント
+                                        const cardsToMill = Math.min(3, state.deck.length);
+                                        const lightLoadCount = state.deck
+                                            .slice(0, cardsToMill)
+                                            .filter((e) => e.card.card_name.includes("ライトロード")).length;
+                                        withSendToGraveyardFromDeckTop(state, card, cardsToMill, (state, card) => {
+                                            withDraw(state, card, { count: lightLoadCount });
+                                        });
+                                    }
                                 }
-                            }
+                            );
                         }
-                    );
-                }, "LightlordSaintMinerva_Ignition");
-            }
-        }
+                    },
+                    "LightlordSaintMinerva_Effect1"
+                );
+            },
+        },
+
+        // ②の効果は破壊時トリガーのため実装しない
     },
-};
+    filterAvailableMaterials: (card) => {
+        return monsterFilter(card.card) && card.card.hasLevel && getLevel(card) === 4;
+    },
+    materialCondition: (cards) => {
+        return cards.length === 2 && new CardInstanceFilter(cards).level(4).len() === 2;
+    },
+} satisfies XyzMonsterCard;

@@ -123,6 +123,12 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(list);
     }
 
+    unique() {
+        const nonNull = this.cardList.filter((e) => e !== null);
+        const unique = Array.from(new Map(nonNull.map((e) => [e?.card.card_name, e])).values());
+        return new CardInstanceFilter<CardInstance[]>(unique);
+    }
+
     len() {
         return this.cardList.length;
     }

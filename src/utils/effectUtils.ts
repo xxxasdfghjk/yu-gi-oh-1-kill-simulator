@@ -1,5 +1,5 @@
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance, MagicCard } from "@/types/card";
+import type { CardInstance, MagicCard, SummonedBy } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
 import { getSpellTrapZoneIndex, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
@@ -165,11 +165,13 @@ export const withUserSummon = (
         optionPosition,
         order,
         needRelease,
+        summonType,
     }: {
         order?: number;
         canSelectPosition?: boolean;
         optionPosition?: Exclude<Position, undefined>[];
         needRelease?: number;
+        summonType?: SummonedBy;
     },
     callback: (state: GameStore, card: CardInstance, monster: CardInstance) => void
 ) => {
@@ -244,7 +246,9 @@ export const withUserSummon = (
                                 cardInstance: CardInstance,
                                 result: { zone: number; position: Position }
                             ) => {
-                                const summonResult = summon(state, cardInstance, result.zone, result.position);
+                                const summonResult = summon(state, cardInstance, result.zone, result.position, {
+                                    summonedBy: summonType,
+                                });
                                 callback(state, cardInstance, summonResult);
                             },
                         });
@@ -274,7 +278,9 @@ export const withUserSummon = (
             canSelectPosition: canSelectPosition ?? true,
             optionPosition: optionPosition ?? ["attack", "defense"],
             callback: (state: GameStore, cardInstance: CardInstance, result: { zone: number; position: Position }) => {
-                const summonResult = summon(state, cardInstance, result.zone, result.position);
+                const summonResult = summon(state, cardInstance, result.zone, result.position, {
+                    summonedBy: summonType,
+                });
                 callback(state, cardInstance, summonResult);
             },
         });
@@ -353,8 +359,8 @@ export const withSendToGraveyardFromDeckTop = (
         card,
         {},
         count,
-        (state) => {
-            sendCard(state, state.deck[0], "Graveyard");
+        (state, card) => {
+            sendCard(state, state.deck[0], "Graveyard", { effectedBy: card });
         },
         (state, card) => {
             if (callback) {
@@ -799,6 +805,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 canSelectPosition: true,
                 optionPosition: ["attack", "back_defense"],
                 needRelease: needRelease,
+                summonType: "Normal",
             },
             (state) => {
                 state.hasNormalSummoned = true;

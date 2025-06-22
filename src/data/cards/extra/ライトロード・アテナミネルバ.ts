@@ -1,76 +1,145 @@
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withDelayRecursive, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
+import {
+    withUserSelectCard,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withSendToGraveyardFromDeckTop,
+} from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import type { SynchroMonsterCard } from "@/types/card";
+import type { GameStore } from "@/store/gameStore";
+import { monsterFilter } from "@/utils/cardManagement";
+import { sumLevel } from "@/utils/cardManagement";
 
 export default {
-    card_name: "ライトロード・アテナミネルバ",
+    card_name: "ライトロード・アテナ ミネルバ",
     card_type: "モンスター" as const,
-    text: "レベル３モンスター×３ このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。①：このカードがＸ召喚に成功した場合に発動する。自分のデッキの上からカードを３枚墓地へ送る。②：このカードのＸ素材を１つ取り除いて発動できる。自分の墓地の「ライトロード」モンスター１体を手札に加える。",
-    image: "card100230017_1.jpg",
-    monster_type: "エクシーズ・効果モンスター",
-    rank: 3,
+    text: "チューナー＋チューナー以外のモンスター１体以上\nこのカード名の①③の効果はそれぞれ１ターンに１度しか使用できない。①：このカードがS召喚した場合に発動できる。そのS素材とした「ライトロード」モンスターの数まで、デッキから「ライトロード」モンスターを墓地へ送る（同じ種族は１体まで）。②：自分フィールドの「ライトロード」モンスターは効果では除外できない。③：自分の墓地から「ライトロード」モンスターを４体まで除外して発動できる。除外した数だけ自分のデッキの上からカードを墓地へ送る。",
+    image: "card100325742_1.jpg",
+    monster_type: "シンクロモンスター",
     element: "光" as const,
-    race: "天使族" as const,
-    attack: 1000,
-    defense: 2000,
+    race: "天使" as const,
+    attack: 2800,
+    defense: 1800,
+    level: 8,
     hasDefense: true as const,
-    hasLevel: false as const,
-    hasRank: true as const,
+    hasLevel: true as const,
+    hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
     effect: {
+        // ①の効果：S召喚時効果
         onSummon: (state, card) => {
-            withTurnAtOneceEffect(state, card, (state, card) => {
-                // デッキの上から3枚墓地に送る
-                withDelayRecursive(
+            if (card.summonedBy === "Special") {
+                withTurnAtOneceEffect(
                     state,
                     card,
-                    { delay: 100 },
-                    3,
-                    (state, card, depth) => {
-                        if (state.deck.length > 0) {
-                            sendCard(state, state.deck[0], "Graveyard");
+                    (state, card) => {
+                        // S素材とした「ライトロード」モンスターの数を計算（簡略化：materials配列から推定）
+                        const lightlordMaterialCount =
+                            card.summonedByMaterials?.filter((m) => m.card_name.includes("ライトロード")).length ?? 0;
+
+                        if (lightlordMaterialCount > 0) {
+                            // デッキから「ライトロード」モンスターを墓地へ送る（同じ種族は1体まで）
+                            const lightlordMonstersInDeck = (state: GameStore) =>
+                                new CardSelector(state)
+                                    .deck()
+                                    .filter()
+                                    .monster()
+                                    .include("ライトロード")
+                                    .unique()
+                                    .get();
+
+                            withUserSelectCard(
+                                state,
+                                card,
+                                lightlordMonstersInDeck,
+                                {
+                                    select: "multi",
+                                    message: `デッキから「ライトロード」モンスターを${lightlordMaterialCount}体まで選択して墓地に送る（同じ種族は1体まで）`,
+                                    condition: (cards) => cards.length <= lightlordMaterialCount,
+                                },
+                                (state, _card, selected) => {
+                                    selected.forEach((monster) => {
+                                        sendCard(state, monster, "Graveyard");
+                                    });
+                                }
+                            );
                         }
-                    }
+                    },
+                    "LightlordAthenaMinerva_SynchroSummon"
                 );
-            }, "LightlordMinerva_XyzSummon");
+            }
         },
+
+        // ③の効果：起動効果
         onIgnition: {
             condition: (state, card) => {
-                return withTurnAtOneceCondition(state, card, (state, card) => {
-                    const lightlordInGraveyard = new CardSelector(state).graveyard().filter().monster().get()
-                        .filter(c => c.card.card_name.includes("ライトロード"));
-                    return card.materials.length > 0 && lightlordInGraveyard.length > 0;
-                }, "LightlordMinerva_Ignition");
+                return withTurnAtOneceCondition(
+                    state,
+                    card,
+                    (state) => {
+                        const lightlordInGraveyard = new CardSelector(state)
+                            .graveyard()
+                            .filter()
+                            .monster()
+                            .include("ライトロード")
+                            .get();
+                        return lightlordInGraveyard.length > 0 && card.location === "MonsterField";
+                    },
+                    "LightlordAthenaMinerva_Ignition"
+                );
             },
             effect: (state, card) => {
-                withTurnAtOneceEffect(state, card, (state, card) => {
-                    // X素材を1つ取り除く
-                    if (card.materials.length > 0) {
-                        const material = card.materials[0];
-                        card.materials = card.materials.slice(1);
-                        sendCard(state, material, "Graveyard");
-                        
-                        const lightlordInGraveyard = new CardSelector(state).graveyard().filter().monster().get()
-                            .filter(c => c.card.card_name.includes("ライトロード"));
-                        
-                        withUserSelectCard(
-                            state,
-                            card,
-                            () => lightlordInGraveyard,
-                            {
-                                select: "single",
-                                message: "手札に加える「ライトロード」モンスターを選択してください"
-                            },
-                            (state, card, selected) => {
-                                if (selected.length > 0) {
-                                    sendCard(state, selected[0], "Hand");
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        const lightlordInGraveyard = (state: GameStore) =>
+                            new CardSelector(state).graveyard().filter().monster().include("ライトロード").get();
+
+                        const availableMonsters = lightlordInGraveyard(state);
+
+                        if (availableMonsters.length > 0) {
+                            const maxExclude = Math.min(4, Math.min(availableMonsters.length, state.deck.length));
+
+                            withUserSelectCard(
+                                state,
+                                card,
+                                lightlordInGraveyard,
+                                {
+                                    select: "multi",
+                                    message: `墓地から「ライトロード」モンスターを最大4体まで選択して除外`,
+                                    condition: (cards) => cards.length <= maxExclude,
+                                },
+                                (state, card, selected) => {
+                                    if (selected.length > 0) {
+                                        // 選択したモンスターを除外
+                                        selected.forEach((monster) => {
+                                            sendCard(state, monster, "Exclusion");
+                                        });
+
+                                        // 除外した数だけデッキの上からカードを墓地へ送る
+                                        const millCount = selected.length;
+                                        withSendToGraveyardFromDeckTop(state, card, millCount, () => {});
+                                    }
                                 }
-                            }
-                        );
-                    }
-                }, "LightlordMinerva_Ignition");
-            }
-        }
+                            );
+                        }
+                    },
+                    "LightlordAthenaMinerva_Ignition"
+                );
+            },
+        },
+        // TODO
+        // ②の効果は常在効果のため、実装は省略（継続的効果システムが必要）
     },
-};
+    filterAvailableMaterials: (card) => {
+        return monsterFilter(card.card);
+    },
+    materialCondition: (cards) => {
+        const hasTuner = cards.some((c) => monsterFilter(c.card) && c.card.hasTuner);
+        const hasNonTuner = cards.some((c) => monsterFilter(c.card) && !c.card.hasTuner);
+        return hasTuner && hasNonTuner && sumLevel(cards) === 8;
+    },
+} satisfies SynchroMonsterCard;

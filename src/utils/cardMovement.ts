@@ -1,6 +1,6 @@
 import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance, Location } from "@/types/card";
+import type { CardInstance, Location, SummonedBy } from "@/types/card";
 import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
 import { isExtraDeckMonster, monsterFilter } from "./cardManagement";
 import { withDelay } from "./effectUtils";
@@ -14,7 +14,7 @@ export const triggerEffects = (
     card: CardInstance,
     from: Location,
     to: Location,
-    context?: { equipCardId: string }
+    context?: { equipCardId?: string; effectedBy?: CardInstance }
 ) => {
     const effect = card.card.effect;
 
@@ -65,20 +65,14 @@ export const triggerEffects = (
 
     // onCardToGraveyard effects - trigger when any card goes to graveyard
     if (to === "Graveyard") {
-        const fieldsToCheck = new CardSelector(state)
-            .allMonster()
-            .spellTrap()
-            .field()
-            .filter()
-            .nonNull()
-            .get();
+        const fieldsToCheck = new CardSelector(state).allMonster().spellTrap().field().filter().nonNull().get();
 
         fieldsToCheck.forEach((fieldCard) => {
             if (fieldCard.card.effect?.onCardToGraveyard) {
                 withDelay(state, fieldCard, { order: 3100 }, (state, fieldCard) => {
-                    fieldCard.card.effect?.onCardToGraveyard?.(state, fieldCard, { 
-                        triggeredByCard: card,
-                        equipCardId: context?.equipCardId ?? "" 
+                    fieldCard.card.effect?.onCardToGraveyard?.(state, fieldCard, {
+                        effectedBy: context?.effectedBy?.card?.card_name ?? "",
+                        effectedByField: context?.effectedBy?.location ?? "",
                     });
                 });
             }
@@ -219,6 +213,7 @@ export const sendCard = (
         position?: Position;
         zone?: number;
         deckTop?: boolean;
+        effectedBy?: CardInstance;
     }
 ) => {
     const originalLocation = card.location;
@@ -313,7 +308,6 @@ export const sendCard = (
                 state.currentTo = { location: "MonsterField", index: option!.zone, position: option!.position! };
                 state.field.extraMonsterZones[option!.zone - 5] = { ...updatedCard, position: option!.position };
             }
-
             // This should be handled by summon function
             break;
         case "SpellField": {
@@ -367,7 +361,10 @@ export const sendCard = (
         }
     }
     // Trigger effects after the card has been moved
-    triggerEffects(state, updatedCard, originalLocation, to, { equipCardId: from?.equipCard?.id ?? "" });
+    triggerEffects(state, updatedCard, originalLocation, to, {
+        equipCardId: from?.equipCard?.id ?? "",
+        effectedBy: option?.effectedBy,
+    });
 };
 
 // Remove card from any location and return where it was
@@ -557,22 +554,31 @@ export const getHandIndex = (state: GameStore, card: CardInstance) => {
     }
 };
 
-export const summon = (state: GameStore, monster: CardInstance, zone: number, position: Position) => {
+export const summon = (
+    state: GameStore,
+    monster: CardInstance,
+    zone: number,
+    position: Position,
+    option?: { summonedBy?: SummonedBy }
+) => {
     // Remove from current location
 
-    sendCard(state, monster, "MonsterField", { position, zone });
+    sendCard(state, { ...monster, ...(option?.summonedBy ? { summonedBy: option.summonedBy } : {}) }, "MonsterField", {
+        position,
+        zone,
+    });
     // Create summoned monster instance with extensible arrays
     const summonedMonster = {
         ...monster,
         position,
         location: "MonsterField" as const,
-        summonedBy: "Special" as const,
+        summonedBy: option?.summonedBy ?? ("Special" as const),
         equipment: [...(monster.equipment || [])],
         materials: [...(monster.materials || [])],
     };
 
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {
-        withDelay(state, monster, { order: 2000, delay: 100 }, (state, monster) => {
+        withDelay(state, summonedMonster, { order: 2000, delay: 100 }, (state, monster) => {
             monster.card.effect?.onSummon?.(state, monster);
         });
     }

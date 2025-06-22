@@ -34,8 +34,9 @@ export default {
                     (state) =>
                         new CardSelector(state).hand().allMonster().graveyard().filter().excludeId(card.id).get(),
                     {
-                        select: "single",
-                        message: "除外するモンスターを7体選択してください",
+                        select: "multi",
+                        condition: (selected) => selected.length === 7,
+                        message: "除外するカードを7枚選択してください",
                     },
                     (state, card, selected) => {
                         withExclusionMonsters(state, card, { cardIdList: selected.map((e) => e.id) }, (state, card) => {

@@ -176,6 +176,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                                       state.field.extraMonsterZones,
                                       state.field.monsterZones
                                   );
+                        console.log(effect.targetMonster.card);
                         return (
                             (effect.targetMonster.card as LinkMonsterCard).materialCondition(selectedCards) && canSummon
                         );

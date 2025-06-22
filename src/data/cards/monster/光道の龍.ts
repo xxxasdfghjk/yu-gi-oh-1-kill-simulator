@@ -6,7 +6,7 @@ import {
     withTurnAtOneceEffect,
 } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { getAttack, getDefense } from "@/utils/gameUtils";
+import { getAttack, getDefense, hasEmptyMonsterZone } from "@/utils/gameUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 
@@ -25,7 +25,7 @@ export default {
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
-    canNormalSummon: false as const,
+    canNormalSummon: true as const,
     effect: {
         // ①の効果：墓地にライトロードモンスターが存在する場合、手札から特殊召喚
         onIgnition: {
@@ -41,7 +41,9 @@ export default {
                             .get()
                             .filter((c) => c.card.card_name.includes("ライトロード"));
 
-                        return card.location === "Hand" && lightlordInGraveyard.length > 0;
+                        return (
+                            card.location === "Hand" && lightlordInGraveyard.length > 0 && hasEmptyMonsterZone(state)
+                        );
                     },
                     "KoudouDragon_Effect1"
                 );
@@ -58,6 +60,7 @@ export default {
                             {
                                 canSelectPosition: true,
                                 optionPosition: ["attack", "defense"],
+                                summonType: "Special",
                             },
                             () => {}
                         );
@@ -69,6 +72,7 @@ export default {
 
         // ②の効果：特殊召喚した場合、デッキから「光道の龍」以外のライトロードカードを墓地に送る
         onSummon: (state, card) => {
+            console.log(card.summonedBy);
             if (card.summonedBy === "Special") {
                 withTurnAtOneceEffect(
                     state,

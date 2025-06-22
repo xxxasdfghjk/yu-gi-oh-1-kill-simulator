@@ -1,6 +1,19 @@
-import { withDelayRecursive } from "@/utils/effectUtils";
-import { sendCard } from "@/utils/cardMovement";
+import { CardSelector } from "@/utils/CardSelector";
+import {
+    withUserSelectCard,
+    withUserSummon,
+    withDraw,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withOption,
+    withSendToGraveyard,
+} from "@/utils/effectUtils";
+import { sendCard, addBuf } from "@/utils/cardMovement";
+import { getAttack, getLevel } from "@/utils/gameUtils";
+import { monsterFilter } from "@/utils/cardManagement";
+import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
 import type { XyzMonsterCard } from "@/types/card";
+import type { GameStore } from "@/store/gameStore";
 
 export default {
     card_name: "No.60 刻不知のデュガレス",
@@ -19,29 +32,182 @@ export default {
     hasLink: false as const,
     canNormalSummon: false as const,
     effect: {
-        onSummon: (state, card) => {
-            // デッキの上から2枚墓地に送る
-            withDelayRecursive(state, card, { delay: 100 }, 2, (state, card, depth) => {
-                if (state.deck.length > 0) {
-                    sendCard(state, state.deck[0], "Graveyard");
-                }
-            });
-        },
         onIgnition: {
             condition: (state, card) => {
-                return card.materials.length > 0;
+                return withTurnAtOneceCondition(
+                    state,
+                    card,
+                    (state, card) => {
+                        return card.materials.length >= 2;
+                    },
+                    "Dugares_Effect"
+                );
             },
             effect: (state, card) => {
-                // X素材を1つ取り除く
-                if (card.materials.length > 0) {
-                    const material = card.materials[0];
-                    card.materials = card.materials.slice(1);
-                    sendCard(state, material, "Graveyard");
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        // X素材を2つ取り除く
+                        if (card.materials.length >= 2) {
+                            // ユーザーに2つの素材を選択させる
+                            withUserSelectCard(
+                                state,
+                                card,
+                                () => card.materials,
+                                {
+                                    select: "multi",
+                                    message: "墓地に送るX素材を2つ選択してください",
+                                    condition: (selected) => selected.length === 2,
+                                },
+                                (state, card, selected) => {
+                                    if (selected.length === 2) {
+                                        // 選択した素材を取り除く
+                                        const selectedIds = selected.map((m) => m.id);
+                                        card.materials = card.materials.filter((m) => !selectedIds.includes(m.id));
 
-                    // 相手フィールドのカードを破壊（省略 - 相手フィールド情報が不完全）
-                    // 実装時は相手フィールドから選択して破壊処理
-                }
+                                        withSendToGraveyard(state, card, selected, (state, card) => {
+                                            withOption(
+                                                state,
+                                                card,
+                                                [
+                                                    {
+                                                        name: "デッキから2枚ドロー、手札1枚捨てる（次のドローフェイズスキップ）",
+                                                        condition: () => true,
+                                                    },
+                                                    {
+                                                        name: "墓地からモンスター1体を守備表示で特殊召喚（次のメインフェイズ1スキップ）",
+                                                        condition: (state) =>
+                                                            new CardSelector(state)
+                                                                .graveyard()
+                                                                .filter()
+                                                                .monster()
+                                                                .len() > 0,
+                                                    },
+                                                    {
+                                                        name: "フィールドのモンスター1体の攻撃力を倍にする（次のバトルフェイズスキップ）",
+                                                        condition: (state) =>
+                                                            new CardSelector(state)
+                                                                .allMonster()
+                                                                .filter()
+                                                                .nonNull()
+                                                                .len() > 0,
+                                                    },
+                                                ],
+                                                (state, card, option) => {
+                                                    if (
+                                                        option ===
+                                                        "デッキから2枚ドロー、手札1枚捨てる（次のドローフェイズスキップ）"
+                                                    ) {
+                                                        // ドロー効果
+                                                        withDraw(state, card, { count: 2 }, (state, card) => {
+                                                            const handCards = (state: GameStore) =>
+                                                                new CardSelector(state).hand().getNonNull();
+
+                                                            withUserSelectCard(
+                                                                state,
+                                                                card,
+                                                                handCards,
+                                                                {
+                                                                    select: "single",
+                                                                    message: "捨てる手札を1枚選択してください",
+                                                                },
+                                                                (state, card, selected) => {
+                                                                    if (selected.length > 0) {
+                                                                        sendCard(state, selected[0], "Graveyard");
+                                                                    }
+                                                                    // 次のドローフェイズスキップ（フラグ設定は省略）
+                                                                }
+                                                            );
+                                                        });
+                                                    } else if (
+                                                        option ===
+                                                        "墓地からモンスター1体を守備表示で特殊召喚（次のメインフェイズ1スキップ）"
+                                                    ) {
+                                                        // 蘇生効果
+                                                        const graveyardMonsters = (state: GameStore) =>
+                                                            new CardSelector(state)
+                                                                .graveyard()
+                                                                .filter()
+                                                                .monster()
+                                                                .get();
+
+                                                        withUserSelectCard(
+                                                            state,
+                                                            card,
+                                                            graveyardMonsters,
+                                                            {
+                                                                select: "single",
+                                                                message: "特殊召喚するモンスターを選択してください",
+                                                            },
+                                                            (state, card, selected) => {
+                                                                if (selected.length > 0) {
+                                                                    withUserSummon(
+                                                                        state,
+                                                                        card,
+                                                                        selected[0],
+                                                                        {
+                                                                            canSelectPosition: false,
+                                                                            optionPosition: ["defense"],
+                                                                        },
+                                                                        () => {}
+                                                                    );
+                                                                }
+                                                                // 次のメインフェイズ1スキップ（フラグ設定は省略）
+                                                            }
+                                                        );
+                                                    } else if (
+                                                        option ===
+                                                        "フィールドのモンスター1体の攻撃力を倍にする（次のバトルフェイズスキップ）"
+                                                    ) {
+                                                        // 攻撃力倍化効果
+                                                        const fieldMonsters = (state: GameStore) =>
+                                                            new CardSelector(state)
+                                                                .allMonster()
+                                                                .filter()
+                                                                .nonNull()
+                                                                .get();
+
+                                                        withUserSelectCard(
+                                                            state,
+                                                            card,
+                                                            fieldMonsters,
+                                                            {
+                                                                select: "single",
+                                                                message: "攻撃力を倍にするモンスターを選択してください",
+                                                            },
+                                                            (state, _card, selected) => {
+                                                                if (selected.length > 0) {
+                                                                    const targetMonster = selected[0];
+                                                                    const currentAttack = getAttack(targetMonster);
+                                                                    // 攻撃力を倍にする（ターン終了時まで）
+                                                                    addBuf(state, targetMonster, {
+                                                                        attack: currentAttack,
+                                                                        defense: 0,
+                                                                        level: 0,
+                                                                    });
+                                                                }
+                                                                // 次のバトルフェイズスキップ（フラグ設定は省略）
+                                                            }
+                                                        );
+                                                    }
+                                                }
+                                            );
+                                        });
+                                    }
+                                }
+                            );
+                        }
+                    },
+                    "Dugares_Effect"
+                );
             },
         },
+    },
+    filterAvailableMaterials: (card) => {
+        return monsterFilter(card.card) && card.card.hasLevel && getLevel(card) === 4;
+    },
+    materialCondition: (cards) => {
+        return cards.length === 2 && new CardInstanceFilter(cards).level(4).len() === 2;
     },
 } satisfies XyzMonsterCard;

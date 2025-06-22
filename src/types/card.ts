@@ -78,7 +78,7 @@ export interface Card {
     effect: EffectType;
 }
 
-export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;
+export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | "Synchro" | undefined;
 export type Element = "闇" | "光" | "風" | "炎" | "地" | "水" | "火" | "神";
 export type Race =
     | "魔法使い"
@@ -219,6 +219,7 @@ export interface CardInstance {
         defense: number;
     };
     materials: CardInstance[];
+    summonedByMaterials?: Card[];
     isToken?: boolean;
     setTurn?: number;
     isDummy?: true;

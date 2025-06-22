@@ -487,7 +487,6 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 pushQueue(state, {
                     order: 0,
-
                     id: linkMonster.id + "_material_select",
                     type: "material_select",
                     cardInstance: linkMonster,
@@ -510,11 +509,12 @@ export const useGameStore = create<GameStore>()(
                                 sendCard(state, selected[i], "Graveyard");
                             });
                         }
+                        card.summonedByMaterials = selected.map((e) => e.card);
                         withUserSummon(
                             state,
                             card,
                             card,
-                            { canSelectPosition: false, optionPosition: ["attack"], order: 5 },
+                            { canSelectPosition: false, optionPosition: ["attack"], order: 5, summonType: "Link" },
                             () => {}
                         );
                     },
@@ -546,13 +546,17 @@ export const useGameStore = create<GameStore>()(
                     summonType: "xyz",
                     callback: (state, card, selected) => {
                         const newMaterials = selected.map((e) => ({ ...e, location: "Material" as const }));
-                        const newInstance = { ...card, materials: [...newMaterials], equipment: [...(card.equipment || [])] };
+                        const newInstance = {
+                            ...card,
+                            materials: [...newMaterials],
+                            equipment: [...(card.equipment || [])],
+                        };
                         for (const card of selected) {
                             const from = excludeFromAnywhere(state, card);
                             state.currentFrom = from;
                             state.currentTo = { location: "ExtraDeck" };
                         }
-                        withUserSummon(state, newInstance, newInstance, {}, () => {});
+                        withUserSummon(state, newInstance, newInstance, { summonType: "Xyz" }, () => {});
                     },
                 });
             });
@@ -575,7 +579,9 @@ export const useGameStore = create<GameStore>()(
                                     e !== null && (e.position === "attack" || e.position === "defense")
                             )
                             .filter(
-                                (e) => isSynchroMonster(synchroMonster.card) && synchroMonster.card.filterAvailableMaterials(e)
+                                (e) =>
+                                    isSynchroMonster(synchroMonster.card) &&
+                                    synchroMonster.card?.filterAvailableMaterials?.(e)
                             );
                     },
                     callback: (state, card, selected) => {
@@ -584,11 +590,12 @@ export const useGameStore = create<GameStore>()(
                                 sendCard(state, selected[i], "Graveyard");
                             });
                         }
+                        card.summonedByMaterials = selected.map((e) => e.card);
                         withUserSummon(
                             state,
                             card,
                             card,
-                            { canSelectPosition: false, optionPosition: ["attack"], order: 5 },
+                            { canSelectPosition: false, optionPosition: ["attack"], order: 5, summonType: "Synchro" },
                             () => {}
                         );
                     },

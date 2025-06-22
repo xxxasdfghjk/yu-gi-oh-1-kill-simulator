@@ -19,6 +19,7 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    summonLimited: true,
     effect: {
         onSummon: (state) => {
             // ホルアクティが召喚されたらプレイヤーの勝利

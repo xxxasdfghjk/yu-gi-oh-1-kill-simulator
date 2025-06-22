@@ -9,6 +9,7 @@ import type {
     MagicCard,
     TrapCard,
     FusionMonsterCard,
+    SynchroMonsterCard,
 } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
 
@@ -49,7 +50,7 @@ export const isXyzMonster = (card: Card): card is XyzMonsterCard => {
     return monsterFilter(card) && card.monster_type === "エクシーズモンスター";
 };
 
-export const isSynchroMonster = (card: Card) => {
+export const isSynchroMonster = (card: Card): card is SynchroMonsterCard => {
     return monsterFilter(card) && card.monster_type === "シンクロモンスター";
 };
 

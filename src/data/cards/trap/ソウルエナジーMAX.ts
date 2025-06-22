@@ -136,10 +136,10 @@ export default {
                                         state,
                                         card,
                                         [{ name: "オベリスクの巨神兵を召喚", condition: () => true }],
-                                        (state, card, option) => {
+                                        (state, _card, option) => {
                                             if (option === "オベリスクの巨神兵を召喚") {
                                                 const god = getCardInstanceFromId(state, cardId)!;
-                                                withUserSummon(state, card, god, { needRelease: 3 }, () => {});
+                                                withUserSummon(state, god, god, { needRelease: 3 }, () => {});
                                             }
                                         },
                                         true
