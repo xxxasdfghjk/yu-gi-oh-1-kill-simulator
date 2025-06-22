@@ -23,38 +23,14 @@ export default {
     rank: 4,
     effect: {
         onSummon: (state, card) => {
+            console.log(card.summonedBy);
             if (card.summonedBy === "Xyz") {
-                // デッキの上から5枚墓地に送り、「武神」カードの数をカウント
-                let bushinCount = 0;
-
-                withDelayRecursive(
-                    state,
-                    card,
-                    { delay: 100 },
-                    5,
-                    (state) => {
-                        if (state.deck.length > 0) {
-                            const topCard = state.deck[0];
-                            sendCard(state, topCard, "Graveyard");
-
-                            // 「武神」カードかチェック
-                            if (topCard.card.card_name.includes("武神")) {
-                                bushinCount++;
-                            }
-                        }
-                    },
-                    (state, card) => {
-                        // 最終的に攻撃力を上げる
-                        if (bushinCount > 0) {
-                            const attackBoost = bushinCount * 100;
-                            addBuf(state, card, {
-                                attack: attackBoost,
-                                defense: 0,
-                                level: 0,
-                            });
-                        }
+                withDelayRecursive(state, card, { delay: 100 }, 5, (state) => {
+                    if (state.deck.length > 0) {
+                        const topCard = state.deck[0];
+                        sendCard(state, topCard, "Graveyard");
                     }
-                );
+                });
             }
         },
     },

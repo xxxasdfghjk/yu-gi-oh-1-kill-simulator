@@ -1,6 +1,5 @@
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSummon } from "@/utils/effectUtils";
-import { sendCard } from "@/utils/cardMovement";
+import { withSendToGraveyard, withUserSummon } from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 
 export default {
@@ -43,21 +42,18 @@ export default {
 
                 if (osiris && obelisk && ra) {
                     // 三幻神をリリース
-                    sendCard(state, osiris, "Graveyard");
-                    sendCard(state, obelisk, "Graveyard");
-                    sendCard(state, ra, "Graveyard");
-
-                    // ホルアクティを特殊召喚
-                    withUserSummon(
-                        state,
-                        card,
-                        card,
-                        {
-                            canSelectPosition: false,
-                            optionPosition: ["attack"],
-                        },
-                        () => {}
-                    );
+                    withSendToGraveyard(state, card, [osiris, obelisk, ra], () => {
+                        withUserSummon(
+                            state,
+                            card,
+                            card,
+                            {
+                                canSelectPosition: false,
+                                optionPosition: ["attack"],
+                            },
+                            () => {}
+                        );
+                    });
                 }
             },
         },

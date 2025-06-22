@@ -1,6 +1,6 @@
 import type { LeveledMonsterCard } from "@/types/card";
 import { withTurnAtOneceCondition, withTurnAtOneceEffect, withDelayRecursive } from "@/utils/effectUtils";
-import { sendCard, addBuf } from "@/utils/cardMovement";
+import { addBuf, sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 
 export default {
     card_name: "ライトロード・アサシン ライデン",
@@ -44,10 +44,10 @@ export default {
                             card,
                             { delay: 100 },
                             2,
-                            (state) => {
+                            (state, card) => {
                                 if (state.deck.length > 0) {
                                     const topCard = state.deck[0];
-                                    sendCard(state, topCard, "Graveyard");
+                                    sendCardToGraveyardByEffect(state, topCard, card);
                                 }
                             },
                             (state, card) => {

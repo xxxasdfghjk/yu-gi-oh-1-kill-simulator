@@ -2,7 +2,7 @@ import type { GameStore } from "@/store/gameStore";
 import type { Card, CardInstance, TrapCard } from "@/types/card";
 import type { GameState } from "@/types/game";
 import { getLinkMonsterSummonalble, placementPriority } from "@/components/SummonSelector";
-import { isLinkMonster, isXyzMonster } from "./cardManagement";
+import { isLinkMonster, isXyzMonster, isSynchroMonster } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
 
 export const getLevel = (cardInstance: CardInstance) => {
@@ -284,6 +284,83 @@ export const canXyzSummonAfterRelease = (
     return hasAvailableMonsterZone || hasAvailableExtraZone;
 };
 
+export const searchCombinationSynchroSummon = (
+    synchroCard: CardInstance,
+    extraMonsterZones: (CardInstance | null)[],
+    monsterZones: (CardInstance | null)[]
+): boolean => {
+    if (!isSynchroMonster(synchroCard.card)) {
+        return false;
+    }
+    const availableMaterials = [
+        ...monsterZones.filter((zone) => zone !== null),
+        ...extraMonsterZones.filter((zone) => zone !== null),
+    ].filter((e) => e?.position === "attack" || e?.position === "defense") as CardInstance[];
+
+    if (availableMaterials.length === 0) return false;
+
+    const generateCombinations = (arr: CardInstance[], size: number): CardInstance[][] => {
+        if (size === 0) return [[]];
+        if (arr.length === 0) return [];
+
+        const result: CardInstance[][] = [];
+        for (let i = 0; i < arr.length; i++) {
+            const rest = arr.slice(i + 1);
+            const combos = generateCombinations(rest, size - 1);
+            for (const combo of combos) {
+                result.push([arr[i], ...combo]);
+            }
+        }
+        return result;
+    };
+
+    // Check all possible combinations from 2 to all available materials
+    for (let materialCount = 2; materialCount <= availableMaterials.length; materialCount++) {
+        const combinations = generateCombinations(availableMaterials, materialCount);
+
+        for (const materials of combinations) {
+            // Use the card's own materialCondition
+            const materialCondition = synchroCard.card.materialCondition;
+            if (materialCondition && materialCondition(materials)) {
+                // Check if there's an available zone after using these materials
+                if (canSynchroSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+};
+
+export const canSynchroSummonAfterRelease = (
+    materials: CardInstance[],
+    extraMonsterZones: (CardInstance | null)[],
+    monsterZones: (CardInstance | null)[]
+): boolean => {
+    const tempMonsterZones = [...monsterZones];
+    const tempExtraMonsterZones = [...extraMonsterZones];
+
+    // Remove materials from temporary zones
+    for (const material of materials) {
+        const monsterIndex = tempMonsterZones.findIndex((zone) => zone?.id === material.id);
+        if (monsterIndex !== -1) {
+            tempMonsterZones[monsterIndex] = null;
+        } else {
+            const extraIndex = tempExtraMonsterZones.findIndex((zone) => zone?.id === material.id);
+            if (extraIndex !== -1) {
+                tempExtraMonsterZones[extraIndex] = null;
+            }
+        }
+    }
+
+    // For Synchro monsters, check if there's any available monster zone
+    const hasAvailableMonsterZone = tempMonsterZones.some((zone) => zone === null);
+    const hasAvailableExtraZone = tempExtraMonsterZones.some((zone) => zone === null);
+
+    return hasAvailableMonsterZone || hasAvailableExtraZone;
+};
+
 export const calcCanSummonLink = (cards: CardInstance[]) => {
     let availableSummonLink: number[] = [0];
     for (const card of cards) {
@@ -315,6 +392,7 @@ export const getCardInstanceFromId = (state: GameStore, id: string) => {
         .extraDeck()
         .hand()
         .graveyard()
+        .materials()
         .get()
         .find((e) => e !== null && e.id === id);
 };

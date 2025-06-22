@@ -33,9 +33,9 @@ export default {
                     card,
                     (state, card) => {
                         const graveyard = (state: GameStore) =>
-                            new CardSelector(state).graveyard().filter().include("ライトロード").get();
+                            new CardSelector(state).graveyard().filter().include("ライトロード").underLevel(4).get();
 
-                        return state.hand.length > 0 && graveyard.length > 0 && card.location === "MonsterField";
+                        return state.hand.length > 0 && graveyard(state).length > 0 && card.location === "MonsterField";
                     },
                     "LighlordLuminus_Ignition"
                 );

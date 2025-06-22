@@ -27,11 +27,8 @@ export default {
     hasLink: false as const,
     canNormalSummon: true as const,
     effect: {
-        onAnywhereToGraveyard: (state, card, context) => {
+        onAnywhereToGraveyardByEffect: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true, "kushatorila_1")) {
-                return;
-            }
-            if (context?.["byEffect"] === undefined) {
                 return;
             }
             withOption(
@@ -50,7 +47,7 @@ export default {
                         state,
                         card,
                         (state, card) => {
-                            withSendToGraveyardFromDeckTop(state, card, 2, () => {});
+                            withSendToGraveyardFromDeckTop(state, card, 2, () => {}, { byEffect: true });
                         },
                         "kushatorila_1"
                     );

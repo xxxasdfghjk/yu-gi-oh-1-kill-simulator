@@ -2,7 +2,7 @@ import type { DisplayField } from "@/const/card";
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, Location, SummonedBy } from "@/types/card";
 import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
-import { isExtraDeckMonster, monsterFilter } from "./cardManagement";
+import { isExtraDeckMonster, isLinkMonster, monsterFilter } from "./cardManagement";
 import { withDelay } from "./effectUtils";
 import { CardSelector } from "./CardSelector";
 
@@ -124,6 +124,40 @@ export const releaseCard = (state: GameStore, card: CardInstance) => {
     card.card.effect?.onRelease?.(state, card);
 };
 
+type EffectTarget = "onCardToGraveyardByEffect";
+export const notifyFieldCard = (
+    state: GameStore,
+    card: CardInstance,
+    effectTarget: EffectTarget,
+    effectedByCard: CardInstance
+) => {
+    for (let i = 0; i < 5; i++) {
+        state.field.monsterZones[i]?.card.effect?.[effectTarget]?.(state, card, {
+            effectedBy: effectedByCard.card.card_name,
+            effectedByField: effectedByCard.location,
+        });
+    }
+    for (let i = 0; i < 2; i++) {
+        state.field.extraMonsterZones[i]?.card.effect?.[effectTarget]?.(state, card, {
+            effectedBy: effectedByCard.card.card_name,
+            effectedByField: effectedByCard.location,
+        });
+    }
+};
+
+export const sendCardToGraveyardByEffect = (state: GameStore, card: CardInstance, effectedBy: CardInstance) => {
+    sendCard(state, card, "Graveyard");
+    card.card.effect?.onAnywhereToGraveyardByEffect?.(state, card, {
+        effectedBy: effectedBy.card.card_name,
+        effectedByField: effectedBy.location,
+    });
+
+    card.card.effect?.onCardToGraveyardByEffect?.(state, card, {
+        effectedBy: effectedBy.card.card_name,
+        effectedByField: effectedBy.location,
+    });
+};
+
 export const equipCardById = (state: GameStore, equipMonster: CardInstance, equippedCardId: string) => {
     const equippedCard = getCardInstanceFromId(state, equippedCardId);
     if (equippedCard === null || equippedCard === undefined) {
@@ -222,6 +256,10 @@ export const sendCard = (
         (card.location === "MonsterField" || card.location === "SpellField") &&
         to !== "MonsterField" &&
         to !== "SpellField";
+    if (isExtraDeckMonster(card.card) && (to === "Deck" || to === "Hand")) {
+        sendCard(state, { ...card, equipment: [], materials: [] }, "ExtraDeck");
+        return;
+    }
 
     if (isLeavingField) {
         // Send all equipped cards to graveyard using sendCard recursively
@@ -237,10 +275,6 @@ export const sendCard = (
                 sendCard(state, card, "Graveyard");
             });
         });
-        if (isExtraDeckMonster(card.card) && (to === "Deck" || to === "Hand")) {
-            sendCard(state, { ...card, equipment: [], materials: [] }, "ExtraDeck");
-            return;
-        }
         if (card.card?.effect?.onLeaveFieldInstead && option?.ignoreLeavingInstead !== true) {
             card.card.effect?.onLeaveFieldInstead(state, card);
             return;
@@ -576,11 +610,64 @@ export const summon = (
         equipment: [...(monster.equipment || [])],
         materials: [...(monster.materials || [])],
     };
-
+    console.log(option);
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {
         withDelay(state, summonedMonster, { order: 2000, delay: 100 }, (state, monster) => {
             monster.card.effect?.onSummon?.(state, monster);
         });
     }
     return summonedMonster;
+};
+
+export const putMagicCounter = (state: GameStore, card: CardInstance, counterNum: number) => {
+    for (let i = 0; i < state.field.monsterZones.length; i++) {
+        if (state.field.monsterZones[i]?.id === card.id) {
+            state.field.monsterZones[i]!.magicCounter = (state.field.monsterZones[i]?.magicCounter ?? 0) + counterNum;
+            return;
+        }
+    }
+
+    for (let i = 0; i < state.field.extraMonsterZones.length; i++) {
+        if (state.field.extraMonsterZones[i]?.id === card.id) {
+            state.field.extraMonsterZones[i]!.magicCounter =
+                (state.field.extraMonsterZones[i]?.magicCounter ?? 0) + counterNum;
+            return;
+        }
+    }
+
+    // Remove from spell/trap zones
+    for (let i = 0; i < state.field.spellTrapZones.length; i++) {
+        if (state.field.spellTrapZones[i]?.id === card.id && state.field.spellTrapZones[i]?.position !== "back") {
+            state.field.spellTrapZones[i]!.magicCounter =
+                (state.field.spellTrapZones[i]!.magicCounter ?? 0) + counterNum;
+            return;
+        }
+    }
+
+    // Remove from field zone
+    if (state.field.fieldZone?.id === card.id && state.field.fieldZone.position !== "back") {
+        state.field.fieldZone.magicCounter = (state.field.fieldZone?.magicCounter ?? 0) + counterNum;
+        return;
+    }
+};
+
+const getAvailableLink = (state: GameStore, card: CardInstance) => {
+    if (!isLinkMonster(card.card)) {
+        return [];
+    }
+
+    for (let i = 0; i < state.field.monsterZones.length; i++) {
+        if (state.field.monsterZones[i]?.id === card.id) {
+            state.field.monsterZones[i]!.magicCounter = (state.field.monsterZones[i]?.magicCounter ?? 0) + counterNum;
+            return;
+        }
+    }
+
+    for (let i = 0; i < state.field.extraMonsterZones.length; i++) {
+        if (state.field.extraMonsterZones[i]?.id === card.id) {
+            state.field.extraMonsterZones[i]!.magicCounter =
+                (state.field.extraMonsterZones[i]?.magicCounter ?? 0) + counterNum;
+            return;
+        }
+    }
 };

@@ -18,7 +18,8 @@ export default {
     hasLink: false as const,
     canNormalSummon: true as const,
     effect: {
-        onCardToGraveyard: (state, card, context) => {
+        onCardToGraveyardByEffect: (state, card, context) => {
+            console.log(context);
             if (
                 String(context?.["effectedBy"] ?? "")?.includes("ライトロード") &&
                 String(context?.["effectedBy"] ?? "") !== "ライトロード・ウォリアー ガロス" &&
@@ -30,17 +31,29 @@ export default {
                             .slice(0, 2)
                             .map((e) => e.card.card_name)
                             .filter((e) => e.includes("ライトロード")).length;
-                        withSendToGraveyardFromDeckTop(state, card, 2, (state, card) => {
-                            withDraw(state, card, { count: drawNum }, () => {});
-                        });
+                        withSendToGraveyardFromDeckTop(
+                            state,
+                            card,
+                            2,
+                            (state, card) => {
+                                withDraw(state, card, { count: drawNum }, () => {});
+                            },
+                            { byEffect: true }
+                        );
                     } else if (state.deck.length === 1) {
                         const drawNum = state.deck
                             .slice(0, 1)
                             .map((e) => e.card.card_name)
                             .filter((e) => e.includes("ライトロード")).length;
-                        withSendToGraveyardFromDeckTop(state, card, 1, (state, card) => {
-                            withDraw(state, card, { count: drawNum }, () => {});
-                        });
+                        withSendToGraveyardFromDeckTop(
+                            state,
+                            card,
+                            1,
+                            (state, card) => {
+                                withDraw(state, card, { count: drawNum }, () => {});
+                            },
+                            { byEffect: true }
+                        );
                     }
                 });
             }

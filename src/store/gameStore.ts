@@ -71,6 +71,7 @@ export type EffectQueueItem =
                 effectType: string;
                 canSelectPosition: boolean;
                 optionPosition: Exclude<Position, undefined>[];
+                placementMask?: number[];
                 callback?: (
                     state: GameStore,
                     cardInstance: CardInstance,

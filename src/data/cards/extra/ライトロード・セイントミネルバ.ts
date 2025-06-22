@@ -67,9 +67,15 @@ export default {
                                         const lightLoadCount = state.deck
                                             .slice(0, cardsToMill)
                                             .filter((e) => e.card.card_name.includes("ライトロード")).length;
-                                        withSendToGraveyardFromDeckTop(state, card, cardsToMill, (state, card) => {
-                                            withDraw(state, card, { count: lightLoadCount });
-                                        });
+                                        withSendToGraveyardFromDeckTop(
+                                            state,
+                                            card,
+                                            cardsToMill,
+                                            (state, card) => {
+                                                withDraw(state, card, { count: lightLoadCount });
+                                            },
+                                            { byEffect: true }
+                                        );
                                     }
                                 }
                             );

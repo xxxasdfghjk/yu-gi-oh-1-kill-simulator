@@ -1,13 +1,15 @@
 import {
-    withDelayRecursive,
     withOption,
+    withSendToDeckBottom,
     withSendToGraveyardFromDeckTop,
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
+    withUserSelectCard,
+    withUserSummon,
 } from "@/utils/effectUtils";
-import { sendCard } from "@/utils/cardMovement";
-import type { LeveledMonsterCard } from "@/types/card";
+import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
+import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・メイルゥ",
@@ -54,8 +56,69 @@ export default {
                 true
             );
         },
-        onAnywhereToGraveyard: (state, card, context) => {
-            // TODO:
+        onAnywhereToGraveyardByEffect: (state, card) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, "mailue_1")) {
+                return;
+            }
+            withOption(
+                state,
+                card,
+                [
+                    {
+                        name: "融合モンスターカードによって決められた、墓地のこのカードを含む融合素材モンスターを自分の手札・フィールド・墓地から好きな順番で持ち主のデッキの下に戻し、その融合モンスター１体をEXデッキから融合召喚する。",
+                        condition: () => true,
+                    },
+                ],
+                (state, card) => {
+                    withUserSelectCard(
+                        state,
+                        card,
+                        (state) => new CardSelector(state).extraDeck().filter().fusionMonster().get(),
+                        { select: "single", canCancel: true },
+                        (state, card, selected) => {
+                            const selectedFusionCard = selected[0];
+                            const fusionId = selectedFusionCard.id;
+                            const cardId = card.id;
+                            withUserSelectCard(
+                                state,
+                                card,
+                                (state) => {
+                                    return new CardSelector(state).hand().allMonster().graveyard().getNonNull();
+                                },
+                                {
+                                    select: "multi",
+                                    condition: (cardList) =>
+                                        (selectedFusionCard.card as FusionMonsterCard).materialCondition(cardList) &&
+                                        !!cardList.find((e) => e.id === cardId),
+                                    canCancel: true,
+                                },
+                                (state, card, selected) => {
+                                    const id = selected.map((e) => e.id);
+                                    withTurnAtOneceEffect(
+                                        state,
+                                        card,
+                                        (state, card) => {
+                                            const instanceList = id.map((e) => getCardInstanceFromId(state, e)!);
+                                            withSendToDeckBottom(state, card, instanceList, (state) => {
+                                                const instance = getCardInstanceFromId(state, fusionId)!;
+                                                withUserSummon(
+                                                    state,
+                                                    instance,
+                                                    instance,
+                                                    { summonType: "Fusion" },
+                                                    () => {}
+                                                );
+                                            });
+                                        },
+                                        "mailue_1"
+                                    );
+                                }
+                            );
+                        }
+                    );
+                },
+                true
+            );
         },
     },
 } satisfies LeveledMonsterCard;

@@ -4,8 +4,9 @@ import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
     withSendToGraveyardFromDeckTop,
+    withSendToGraveyard,
+    withExclusionMonsters,
 } from "@/utils/effectUtils";
-import { sendCard } from "@/utils/cardMovement";
 import type { SynchroMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { monsterFilter } from "@/utils/cardManagement";
@@ -30,7 +31,7 @@ export default {
     effect: {
         // ①の効果：S召喚時効果
         onSummon: (state, card) => {
-            if (card.summonedBy === "Special") {
+            if (card.summonedBy === "Synchro") {
                 withTurnAtOneceEffect(
                     state,
                     card,
@@ -60,9 +61,7 @@ export default {
                                     condition: (cards) => cards.length <= lightlordMaterialCount,
                                 },
                                 (state, _card, selected) => {
-                                    selected.forEach((monster) => {
-                                        sendCard(state, monster, "Graveyard");
-                                    });
+                                    withSendToGraveyard(state, _card, selected, () => {}, { byEffect: true });
                                 }
                             );
                         }
@@ -113,15 +112,19 @@ export default {
                                     condition: (cards) => cards.length <= maxExclude,
                                 },
                                 (state, card, selected) => {
+                                    const selectedCount = selected.length;
                                     if (selected.length > 0) {
                                         // 選択したモンスターを除外
-                                        selected.forEach((monster) => {
-                                            sendCard(state, monster, "Exclusion");
-                                        });
-
-                                        // 除外した数だけデッキの上からカードを墓地へ送る
-                                        const millCount = selected.length;
-                                        withSendToGraveyardFromDeckTop(state, card, millCount, () => {});
+                                        withExclusionMonsters(
+                                            state,
+                                            card,
+                                            { cardIdList: selected.map((e) => e.id) },
+                                            (state, card) => {
+                                                withSendToGraveyardFromDeckTop(state, card, selectedCount, () => {}, {
+                                                    byEffect: true,
+                                                });
+                                            }
+                                        );
                                     }
                                 }
                             );

@@ -49,6 +49,7 @@ export type EffectType = {
     onRelease?: EffectCallback;
     onFieldToGraveyard?: EffectCallback;
     onAnywhereToGraveyard?: EffectCallback;
+    onAnywhereToGraveyardByEffect?: EffectCallback;
     onDeckToGraveyard?: EffectCallback;
     onHandToGraveyard?: EffectCallback;
     onGraveyardToField?: EffectCallback;
@@ -66,6 +67,7 @@ export type EffectType = {
     onStandbyPhase?: EffectCallback;
     onPayLifeCost?: OnPayLifeCostCallback;
     onCardToGraveyard?: EffectCallback;
+    onCardToGraveyardByEffect?: EffectCallback;
 };
 
 type CardTypeName = "モンスター" | "魔法" | "罠";
@@ -78,7 +80,7 @@ export interface Card {
     effect: EffectType;
 }
 
-export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | "Synchro" | undefined;
+export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | "Synchro" | "Fusion" | undefined;
 export type Element = "闇" | "光" | "風" | "炎" | "地" | "水" | "火" | "神";
 export type Race =
     | "魔法使い"
@@ -96,7 +98,8 @@ export type Race =
     | "サイキック"
     | "獣戦士"
     | "創造神"
-    | "昆虫";
+    | "昆虫"
+    | "幻竜";
 
 type MonsterType =
     | "通常モンスター"
@@ -146,7 +149,7 @@ export interface XyzMonsterCard extends DefensableMonsterCard, NeedMaterialMonst
     canNormalSummon: false;
 }
 
-type Direction = "左" | "左下" | "下" | "右下" | "右" | "右上" | "上" | "左上";
+export type Direction = "左" | "左下" | "下" | "右下" | "右" | "右上" | "上" | "左上";
 
 interface NeedMaterialMonster {
     materialCondition: MaterialCondition;
@@ -223,4 +226,5 @@ export interface CardInstance {
     isToken?: boolean;
     setTurn?: number;
     isDummy?: true;
+    magicCounter?: number;
 }

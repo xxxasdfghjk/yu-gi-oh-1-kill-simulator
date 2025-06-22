@@ -124,6 +124,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     }
                     state={gameState}
                     isOpen={!isClosing}
+                    placementMask={currentEffect.placementMask}
                 />
             );
 

@@ -9,17 +9,17 @@ export default {
     monster_type: "効果モンスター",
     level: 4,
     element: "光" as const,
-    race: "獣戦士族" as const,
+    race: "獣戦士" as const,
     attack: 1100,
     defense: 2000,
     hasDefense: true as const,
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
+    hasTuner: true,
     canNormalSummon: false as const,
     effect: {
         onDeckToGraveyard: (state, card) => {
-            // TODO
             withUserSummon(
                 state,
                 card,

@@ -73,9 +73,14 @@ export default {
                         const materialCount = card.summonedByMaterials?.length || 0;
                         const isMainPhase = state.phase === "main1" || state.phase === "main2";
                         const handMonsters = new CardSelector(state).hand().filter().monster().get();
-                        return materialCount >= 3 && isMainPhase && handMonsters.length > 0;
+                        return (
+                            materialCount >= 3 &&
+                            isMainPhase &&
+                            handMonsters.length > 0 &&
+                            card.location === "MonsterField"
+                        );
                     },
-                    "Skulldeat_SpecialSummon"
+                    card.id
                 );
             },
             effect: (state, card) => {
@@ -110,7 +115,7 @@ export default {
                             }
                         );
                     },
-                    "Skulldeat_SpecialSummon"
+                    card.id
                 );
             },
         },

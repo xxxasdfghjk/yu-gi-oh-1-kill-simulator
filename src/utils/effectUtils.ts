@@ -1,13 +1,21 @@
 import type { GameStore } from "@/store/gameStore";
 import type { CardInstance, MagicCard, SummonedBy } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
-import { getSpellTrapZoneIndex, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
+import {
+    getSpellTrapZoneIndex,
+    releaseCardById,
+    sendCard,
+    sendCardById,
+    sendCardToGraveyardByEffect,
+    summon,
+} from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
 import { canNormalSummon, getNeedReleaseCount } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
 import { placementPriority, getLinkMonsterSummonalble } from "@/components/SummonSelector";
 import { isLinkMonster } from "./cardManagement";
+import { getCardInstanceFromId } from "./gameUtils";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
@@ -166,12 +174,14 @@ export const withUserSummon = (
         order,
         needRelease,
         summonType,
+        placementMask,
     }: {
         order?: number;
         canSelectPosition?: boolean;
         optionPosition?: Exclude<Position, undefined>[];
         needRelease?: number;
         summonType?: SummonedBy;
+        placementMask?: number[];
     },
     callback: (state: GameStore, card: CardInstance, monster: CardInstance) => void
 ) => {
@@ -277,6 +287,7 @@ export const withUserSummon = (
             effectType: "with_user_summon_callback",
             canSelectPosition: canSelectPosition ?? true,
             optionPosition: optionPosition ?? ["attack", "defense"],
+            placementMask: placementMask,
             callback: (state: GameStore, cardInstance: CardInstance, result: { zone: number; position: Position }) => {
                 const summonResult = summon(state, cardInstance, result.zone, result.position, {
                     summonedBy: summonType,
@@ -352,7 +363,8 @@ export const withSendToGraveyardFromDeckTop = (
     state: GameStore,
     card: CardInstance,
     count: number,
-    callback?: (state: GameStore, cardInstance: CardInstance) => void
+    callback?: (state: GameStore, cardInstance: CardInstance) => void,
+    option?: { byEffect?: boolean }
 ) => {
     withDelayRecursive(
         state,
@@ -360,7 +372,36 @@ export const withSendToGraveyardFromDeckTop = (
         {},
         count,
         (state, card) => {
-            sendCard(state, state.deck[0], "Graveyard", { effectedBy: card });
+            if (option?.byEffect) {
+                sendCardToGraveyardByEffect(state, state.deck[0], card);
+            } else {
+                sendCard(state, state.deck[0], "Graveyard");
+            }
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
+export const withSendToDeckBottom = (
+    state: GameStore,
+    card: CardInstance,
+    cardList: CardInstance[],
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    const cardIds = cardList.map((e) => e.id);
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        cardList.length,
+        (state, card, depth) => {
+            const instance = getCardInstanceFromId(state, cardIds[depth - 1])!;
+            sendCard(state, instance, "Deck", { effectedBy: card });
         },
         (state, card) => {
             if (callback) {
@@ -375,7 +416,8 @@ export const withSendToGraveyard = (
     state: GameStore,
     card: CardInstance,
     cardList: CardInstance[],
-    callback?: (state: GameStore, cardInstance: CardInstance) => void
+    callback?: (state: GameStore, cardInstance: CardInstance) => void,
+    option?: { byEffect?: boolean }
 ) => {
     const idList = cardList.map((c) => c.id);
     withDelayRecursive(
@@ -383,8 +425,13 @@ export const withSendToGraveyard = (
         card,
         {},
         cardList.length,
-        (state, _, depth) => {
-            sendCardById(state, idList[depth - 1], "Graveyard");
+        (state, card, depth) => {
+            const instance = getCardInstanceFromId(state, idList[depth - 1])!;
+            if (option?.byEffect) {
+                sendCardToGraveyardByEffect(state, instance, card);
+            } else {
+                sendCard(state, instance, "Graveyard");
+            }
         },
         (state, card) => {
             if (callback) {

@@ -8,7 +8,7 @@ import {
     withOption,
     withSendToGraveyard,
 } from "@/utils/effectUtils";
-import { sendCard, addBuf } from "@/utils/cardMovement";
+import { addBuf, sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import { getAttack, getLevel } from "@/utils/gameUtils";
 import { monsterFilter } from "@/utils/cardManagement";
 import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
@@ -63,9 +63,7 @@ export default {
                                 (state, card, selected) => {
                                     if (selected.length === 2) {
                                         // 選択した素材を取り除く
-                                        const selectedIds = selected.map((m) => m.id);
-                                        card.materials = card.materials.filter((m) => !selectedIds.includes(m.id));
-
+                                        console.log(selected);
                                         withSendToGraveyard(state, card, selected, (state, card) => {
                                             withOption(
                                                 state,
@@ -114,7 +112,11 @@ export default {
                                                                 },
                                                                 (state, card, selected) => {
                                                                     if (selected.length > 0) {
-                                                                        sendCard(state, selected[0], "Graveyard");
+                                                                        sendCardToGraveyardByEffect(
+                                                                            state,
+                                                                            selected[0],
+                                                                            card
+                                                                        );
                                                                     }
                                                                     // 次のドローフェイズスキップ（フラグ設定は省略）
                                                                 }

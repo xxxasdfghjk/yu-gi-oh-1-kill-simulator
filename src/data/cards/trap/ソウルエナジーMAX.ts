@@ -134,7 +134,7 @@ export default {
                                 if (new CardSelector(state).allMonster().len() >= 3) {
                                     withOption(
                                         state,
-                                        card,
+                                        _card,
                                         [{ name: "オベリスクの巨神兵を召喚", condition: () => true }],
                                         (state, _card, option) => {
                                             if (option === "オベリスクの巨神兵を召喚") {

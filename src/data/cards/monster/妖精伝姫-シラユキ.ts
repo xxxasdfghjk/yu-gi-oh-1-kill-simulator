@@ -22,8 +22,14 @@ export default {
         onIgnition: {
             condition: (state, card) => {
                 return (
-                    new CardSelector(state).hand().allMonster().graveyard().filter().excludeId(card.id).len() >= 7 &&
-                    card.location === "Graveyard"
+                    new CardSelector(state)
+                        .hand()
+                        .allMonster()
+                        .graveyard()
+                        .allFieldSpellTrap()
+                        .filter()
+                        .excludeId(card.id)
+                        .len() >= 7 && card.location === "Graveyard"
                 );
             },
 
@@ -32,7 +38,14 @@ export default {
                     state,
                     card,
                     (state) =>
-                        new CardSelector(state).hand().allMonster().graveyard().filter().excludeId(card.id).get(),
+                        new CardSelector(state)
+                            .hand()
+                            .allMonster()
+                            .allFieldSpellTrap()
+                            .graveyard()
+                            .filter()
+                            .excludeId(card.id)
+                            .get(),
                     {
                         select: "multi",
                         condition: (selected) => selected.length === 7,

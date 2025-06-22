@@ -10,11 +10,8 @@ export default {
     image: "card100260561_1.jpg",
     trap_type: "通常罠" as const,
     effect: {
-        onAnywhereToGraveyard: (state, card, context) => {
+        onAnywhereToGraveyardByEffect: (state, card, context) => {
             if (!withTurnAtOneceCondition(state, card, () => true)) {
-                return;
-            }
-            if (context?.["byEffect"] === undefined) {
                 return;
             }
             if (new CardSelector(state).graveyard().filter().monster().include("ティアラメンツ").len() === 0) {

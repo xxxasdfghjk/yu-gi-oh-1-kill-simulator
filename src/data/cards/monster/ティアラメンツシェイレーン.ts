@@ -2,19 +2,20 @@ import { CardSelector } from "@/utils/CardSelector";
 import {
     withUserSelectCard,
     withUserSummon,
-    withDelayRecursive,
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
     withSendToGraveyardFromDeckTop,
+    withOption,
+    withSendToDeckBottom,
+    withSendToGraveyard,
 } from "@/utils/effectUtils";
-import { sendCard } from "@/utils/cardMovement";
-import type { LeveledMonsterCard } from "@/types/card";
-import type { GameStore } from "@/store/gameStore";
+import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
+import { getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・シェイレーン",
     card_type: "モンスター" as const,
-    text: "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 ①：自分メインフェイズに発動できる。 このカードを手札から特殊召喚し、自分の手札からモンスター１体を選んで墓地へ送る。 その後、自分のデッキの上からカードを３枚墓地へ送る。 ②：このカードが効果で墓地へ送られた場合に発動できる。 融合モンスターカードによって決められた、墓地のこのカードを含む融合素材モンスターを自分の手札・フィールド・墓地から好きな順番で持ち主のデッキの下に戻し、その融合モンスター１体をＥＸデッキから融合召喚する。",
+    text: "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。①：自分メインフェイズに発動できる。このカードを手札から特殊召喚し、自分の手札からモンスター１体を選んで墓地へ送る。その後、自分のデッキの上からカードを３枚墓地へ送る。②：このカードが効果で墓地へ送られた場合に発動できる。融合モンスターカードによって決められた、墓地のこのカードを含む融合素材モンスターを自分の手札・フィールド・墓地から好きな順番で持ち主のデッキの下に戻し、その融合モンスター１体をEXデッキから融合召喚する。",
     image: "card100260390_1.jpg",
     monster_type: "効果モンスター",
     level: 4,
@@ -30,71 +31,116 @@ export default {
     effect: {
         onIgnition: {
             condition: (state, card) => {
-                return withTurnAtOneceCondition(
-                    state,
-                    card,
-                    (state, card) => {
-                        const handMonsters = new CardSelector(state)
-                            .hand()
-                            .filter()
-                            .monster()
-                            .get()
-                            .filter((c) => c.id !== card.id);
-                        return handMonsters.length > 0 && card.location === "Hand" && state.phase === "main1";
-                    },
-                    "TearlamentScheiren_HandEffect"
+                return (
+                    card.location === "Hand" &&
+                    new CardSelector(state).hand().filter().monster().excludeId(card.id).len() > 0
                 );
             },
             effect: (state, card) => {
+                if (!withTurnAtOneceCondition(state, card, () => true, "sheilane_2")) {
+                    return;
+                }
+                if (state.deck.length <= 2) {
+                    return;
+                }
                 withTurnAtOneceEffect(
                     state,
                     card,
                     (state, card) => {
-                        // 手札から特殊召喚
-                        withUserSummon(
-                            state,
-                            card,
-                            card,
-                            {
-                                canSelectPosition: true,
-                                optionPosition: ["attack", "defense"],
-                            },
-                            (state, card) => {
-                                const handMonsters = (state: GameStore) =>
-                                    new CardSelector(state).hand().filter().monster().get();
-
-                                withUserSelectCard(
-                                    state,
-                                    card,
-                                    handMonsters,
-                                    {
-                                        select: "single",
-                                        message: "墓地に送るモンスターを選択してください",
-                                    },
-                                    (state, card, selected) => {
-                                        if (selected.length > 0) {
-                                            sendCard(state, selected[0], "Graveyard");
-
-                                            // デッキの上から3枚墓地に送る
-                                            withSendToGraveyardFromDeckTop(state, card, 3, () => {});
-                                        }
-                                    }
-                                );
-                            }
-                        );
+                        withUserSummon(state, card, card, { summonType: "Special" }, (state, card) => {
+                            const id = card.id;
+                            withUserSelectCard(
+                                state,
+                                card,
+                                (state) => new CardSelector(state).hand().filter().monster().excludeId(id).get(),
+                                { select: "single" },
+                                (state, card, selected) => {
+                                    withSendToGraveyard(
+                                        state,
+                                        card,
+                                        selected,
+                                        (state, card) => {
+                                            withSendToGraveyardFromDeckTop(
+                                                state,
+                                                card,
+                                                Math.min(3, state.deck.length),
+                                                () => {},
+                                                { byEffect: true }
+                                            );
+                                        },
+                                        { byEffect: true }
+                                    );
+                                }
+                            );
+                        });
                     },
-                    "TearlamentScheiren_HandEffect"
+                    "sheilane_2"
                 );
             },
         },
-        onAnywhereToGraveyard: (state, card) => {
-            // 効果で墓地に送られた場合の融合召喚効果（簡略化：デッキの上から3枚墓地に送るのみ）
-            // TODO
-            withDelayRecursive(state, card, { delay: 100 }, 3, (state, card, depth) => {
-                if (state.deck.length > 0) {
-                    sendCard(state, state.deck[0], "Graveyard");
-                }
-            });
+        onAnywhereToGraveyardByEffect: (state, card) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, "sheilane_1")) {
+                return;
+            }
+            withOption(
+                state,
+                card,
+                [
+                    {
+                        name: "融合モンスターカードによって決められた、墓地のこのカードを含む融合素材モンスターを自分の手札・フィールド・墓地から好きな順番で持ち主のデッキの下に戻し、その融合モンスター１体をEXデッキから融合召喚する。",
+                        condition: () => true,
+                    },
+                ],
+                (state, card) => {
+                    withUserSelectCard(
+                        state,
+                        card,
+                        (state) => new CardSelector(state).extraDeck().filter().fusionMonster().get(),
+                        { select: "single", canCancel: true },
+                        (state, card, selected) => {
+                            const selectedFusionCard = selected[0];
+                            const fusionId = selectedFusionCard.id;
+                            const cardId = card.id;
+                            withUserSelectCard(
+                                state,
+                                card,
+                                (state) => {
+                                    return new CardSelector(state).hand().allMonster().graveyard().getNonNull();
+                                },
+                                {
+                                    select: "multi",
+                                    condition: (cardList) =>
+                                        (selectedFusionCard.card as FusionMonsterCard).materialCondition(cardList) &&
+                                        !!cardList.find((e) => e.id === cardId),
+                                    canCancel: true,
+                                },
+                                (state, card, selected) => {
+                                    const id = selected.map((e) => e.id);
+                                    withTurnAtOneceEffect(
+                                        state,
+                                        card,
+                                        (state, card) => {
+                                            const instanceList = id.map((e) => getCardInstanceFromId(state, e)!);
+                                            withSendToDeckBottom(state, card, instanceList, (state) => {
+                                                const instance = getCardInstanceFromId(state, fusionId)!;
+                                                withUserSummon(
+                                                    state,
+                                                    instance,
+                                                    instance,
+                                                    { summonType: "Fusion" },
+                                                    () => {}
+                                                );
+                                            });
+                                        },
+                                        "sheilane_1"
+                                    );
+                                }
+                            );
+                        }
+                    );
+                },
+                true
+            );
         },
     },
 } satisfies LeveledMonsterCard;

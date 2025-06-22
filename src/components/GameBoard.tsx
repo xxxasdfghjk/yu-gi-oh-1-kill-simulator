@@ -6,7 +6,7 @@ import { HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
-import { searchCombinationLinkSummon, searchCombinationXyzSummon } from "@/utils/gameUtils";
+import { searchCombinationLinkSummon, searchCombinationXyzSummon, searchCombinationSynchroSummon } from "@/utils/gameUtils";
 import type { CardInstance } from "@/types/card";
 import type { Deck } from "@/data/deckUtils";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
@@ -14,7 +14,7 @@ import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
 import { DeckSelectionModal } from "./DeckSelectionModal";
-import { isXyzMonster } from "@/utils/cardManagement";
+import { isXyzMonster, isSynchroMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
@@ -122,6 +122,8 @@ export const GameBoard: React.FC = () => {
             gameState.startLinkSummon(monster);
         } else if (summonType === "xyz" && gameState.startXyzSummon) {
             gameState.startXyzSummon(monster);
+        } else if (summonType === "synchro" && gameState.startSynchroSummon) {
+            gameState.startSynchroSummon(monster);
         }
     };
 
@@ -148,6 +150,15 @@ export const GameBoard: React.FC = () => {
         }
 
         return searchCombinationXyzSummon(xyzMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
+    };
+
+    const canPerformSynchroSummon = (synchroMonster: CardInstance): boolean => {
+        if (!isSynchroMonster(synchroMonster.card)) return false;
+        if (gameState.phase !== "main1") {
+            return false;
+        }
+
+        return searchCombinationSynchroSummon(synchroMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
     };
     useEffect(() => {
         const func = async () => {
@@ -298,8 +309,10 @@ export const GameBoard: React.FC = () => {
                     extraDeck={extraDeck}
                     canPerformLinkSummon={canPerformLinkSummon}
                     canPerformXyzSummon={canPerformXyzSummon}
+                    canPerformSynchroSummon={canPerformSynchroSummon}
                     startLinkSummon={(monster) => startSpecialSummon(monster, "link")}
                     startXyzSummon={(monster) => startSpecialSummon(monster, "xyz")}
+                    startSynchroSummon={(monster) => startSpecialSummon(monster, "synchro")}
                 />
 
                 <CardListModal
