@@ -10,7 +10,7 @@ export default {
     image: "card100260561_1.jpg",
     trap_type: "通常罠" as const,
     effect: {
-        onAnywhereToGraveyardByEffect: (state, card, context) => {
+        onAnywhereToGraveyardByEffect: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true)) {
                 return;
             }
@@ -24,7 +24,7 @@ export default {
                     return new CardSelector(state).graveyard().filter().monster().include("ティアラメンツ").get();
                 },
                 { select: "single" },
-                (state, _card, selected) => {
+                (state, card, selected) => {
                     const selectedId = selected[0].id;
                     withTurnAtOneceEffect(state, card, (state) => {
                         sendCardById(state, selectedId, "Hand");

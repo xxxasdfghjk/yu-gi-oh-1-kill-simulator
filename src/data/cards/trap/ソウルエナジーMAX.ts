@@ -128,18 +128,21 @@ export default {
                                 select: "single",
                                 message: "手札に加える「オベリスクの巨神兵」を選択してください",
                             },
-                            (state, _card, selected) => {
+                            (state, card, selected) => {
                                 sendCard(state, selected[0], "Hand");
                                 const cardId = selected[0].id;
                                 if (new CardSelector(state).allMonster().len() >= 3) {
                                     withOption(
                                         state,
-                                        _card,
+                                        card,
                                         [{ name: "オベリスクの巨神兵を召喚", condition: () => true }],
-                                        (state, _card, option) => {
+                                        (state, card, option) => {
                                             if (option === "オベリスクの巨神兵を召喚") {
-                                                const god = getCardInstanceFromId(state, cardId)!;
-                                                withUserSummon(state, god, god, { needRelease: 3 }, () => {});
+                                                const god = getCardInstanceFromId(state, cardId);
+                                                if (god) {
+                                                    // カード自体ではなく、効果発動元のカードを使用
+                                                    withUserSummon(state, card, god, { needRelease: 3 }, () => {});
+                                                }
                                             }
                                         },
                                         true

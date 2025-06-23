@@ -8,7 +8,7 @@ import {
     withDelay,
     withNotification,
 } from "@/utils/effectUtils";
-import { sendCard, sendCardById } from "@/utils/cardMovement";
+import { sendCard, sendCardById, sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { getCardInstanceFromId } from "@/utils/gameUtils";
@@ -123,7 +123,7 @@ export default {
                                 },
                                 (state, _card, selected) => {
                                     if (selected.length > 0) {
-                                        sendCard(state, selected[0], "Graveyard");
+                                        sendCardToGraveyardByEffect(state, selected[0], _card);
                                     }
                                 }
                             );

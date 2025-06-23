@@ -36,6 +36,15 @@ export default {
                 );
             },
             effect: (state, card, _context, resolve) => {
+                const osirisInGraveyard = new CardSelector(state)
+                    .graveyard()
+                    .filter()
+                    .include("オシリスの天空竜")
+                    .get();
+                if (osirisInGraveyard.length === 0) {
+                    resolve?.(state, card);
+                    return;
+                }
                 withTurnAtOneceEffect(
                     state,
                     card,

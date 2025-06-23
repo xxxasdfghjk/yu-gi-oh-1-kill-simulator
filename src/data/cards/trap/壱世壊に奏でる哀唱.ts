@@ -25,7 +25,7 @@ export default {
                     return new CardSelector(state).deck().filter().monster().include("ティアラメンツ").get();
                 },
                 { select: "single" },
-                (state, _card, selected) => {
+                (state, card, selected) => {
                     const selectedId = selected[0].id;
                     withTurnAtOneceEffect(state, card, (state) => {
                         sendCardById(state, selectedId, "Hand");

@@ -4,6 +4,7 @@ import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
     withSendToGraveyardFromDeckTop,
+    withOption,
 } from "@/utils/effectUtils";
 import { sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import type { LinkMonsterCard } from "@/types/card";
@@ -27,6 +28,36 @@ export default {
     hasLink: true as const,
     canNormalSummon: false as const,
     effect: {
+        onCardDeckToGraveyard: (state, card) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, "dominion_3")) {
+                return;
+            }
+            if (state.deck.length >= 3) {
+                withOption(
+                    state,
+                    card,
+                    [
+                        {
+                            name: "自分のデッキの上からカードを３枚墓地へ送る",
+                            condition: (state, card) => {
+                                return withTurnAtOneceCondition(state, card, () => true, "dominion_3");
+                            },
+                        },
+                    ],
+                    (state, card) => {
+                        withTurnAtOneceEffect(
+                            state,
+                            card,
+                            (state, card) => {
+                                withSendToGraveyardFromDeckTop(state, card, 3, () => {}, { byEffect: true });
+                            },
+                            "dominion_3"
+                        );
+                    },
+                    true
+                );
+            }
+        },
         onSummon: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true, "dominion_1")) {
                 return;
@@ -47,9 +78,6 @@ export default {
                         (state, card) => {
                             const instance = getCardInstanceFromId(state, id)!;
                             sendCardToGraveyardByEffect(state, instance, card);
-                            if (state.deck.length >= 3) {
-                                withSendToGraveyardFromDeckTop(state, card, 3, () => {}, { byEffect: true });
-                            }
                         },
                         "dominion_1"
                     );

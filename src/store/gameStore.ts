@@ -5,9 +5,16 @@ import type { Deck } from "@/data/deckUtils";
 import deckList from "@/data/deck/deckList";
 
 import { createCardInstance, isLinkMonster, isMagicCard, isXyzMonster, isSynchroMonster } from "@/utils/cardManagement";
-import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
+import { excludeFromAnywhere, notifyCardEffect, sendCard } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
-import { withDelay, withUserSummon, type Position, playCardInternal, withDelayRecursive } from "@/utils/effectUtils";
+import {
+    withDelay,
+    withUserSummon,
+    type Position,
+    playCardInternal,
+    withDelayRecursive,
+    withSendToGraveyardFromDeckTop,
+} from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { placementPriority } from "@/components/SummonSelector";
 import type { DeckEffect } from "@/components/DeckEffectSelectorModal";
@@ -171,6 +178,7 @@ export interface GameStore extends GameState {
     setGameOver: (winner: "player" | "timeout") => void;
     animationExodiaWin: () => void;
     activateDeckEffect: (callback: DeckEffect) => void;
+    deckTopToGraveyard: () => void;
 }
 
 // Fisher-Yates (Knuth) シャッフルアルゴリズム
@@ -307,7 +315,12 @@ export const useGameStore = create<GameStore>()(
         activateEffect: (card: CardInstance) => {
             set((state) => {
                 state.isProcessing = true;
+
                 card.card.effect.onIgnition?.effect(state, card);
+                withDelay(state, card, {}, (state, card) => {
+                    notifyCardEffect(state, card, "onCardEffect");
+                });
+
                 state.isProcessing = false;
             });
         },
@@ -696,6 +709,12 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 state.gameOver = true;
                 state.winner = winner;
+            });
+        },
+
+        deckTopToGraveyard: () => {
+            set((state) => {
+                withSendToGraveyardFromDeckTop(state, { card: { card_name: "" } } as CardInstance, 1, () => {});
             });
         },
     }))

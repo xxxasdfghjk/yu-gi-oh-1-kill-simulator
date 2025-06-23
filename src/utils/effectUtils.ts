@@ -29,6 +29,28 @@ const markTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
     gameStore.turnOnceUsedEffectMemo = { ...gameStore.turnOnceUsedEffectMemo, [effectId]: true };
 };
 
+const markCardTurnOnceUsedEffect = (gameStore: GameStore, card: CardInstance, effectId: string) => {
+    for (let i = 0; i < 5; i++) {
+        if (gameStore.field.monsterZones[i]?.id === card.id) {
+            if (gameStore.field.monsterZones[i]?.effectUse) {
+                gameStore.field.monsterZones[i]?.effectUse?.push(effectId);
+            } else {
+                gameStore.field.monsterZones[i]!.effectUse = [effectId];
+            }
+        }
+    }
+
+    for (let i = 0; i < 2; i++) {
+        if (gameStore.field.extraMonsterZones[i]?.id === card.id) {
+            if (gameStore.field.extraMonsterZones[i]?.effectUse) {
+                gameStore.field.extraMonsterZones[i]?.effectUse?.push(effectId);
+            } else {
+                gameStore.field.extraMonsterZones[i]!.effectUse = [effectId];
+            }
+        }
+    }
+};
+
 const checkTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
     return gameStore.turnOnceUsedEffectMemo?.[effectId] === true;
 };
@@ -65,14 +87,15 @@ export const withTurnAtOneceCondition = (
     state: GameStore,
     cardInstance: CardInstance,
     callback: ConditionCallback,
-    effectId: string | undefined = undefined
+    effectId: string | undefined = undefined,
+    cardOneceEffect: boolean = false
 ) => {
     const id = effectId ?? cardInstance.card.card_name;
     const alreadyUsed = checkTurnOnceUsedEffect(state, id);
-    if (alreadyUsed) {
-        return false;
+    if (cardOneceEffect) {
+        return cardInstance.effectUse?.includes(id) ? false : callback(state, cardInstance);
     } else {
-        return callback(state, cardInstance);
+        return alreadyUsed ? false : callback(state, cardInstance);
     }
 };
 
@@ -80,11 +103,17 @@ export const withTurnAtOneceEffect = (
     state: GameStore,
     cardInstance: CardInstance,
     callback: EffectCallback,
-    effectId: string | undefined = undefined
+    effectId: string | undefined = undefined,
+    cardOneceEffect: boolean = false
 ) => {
     const id = effectId ?? cardInstance.card.card_name;
-    markTurnOnceUsedEffect(state, id);
-    return callback(state, cardInstance);
+    if (cardOneceEffect) {
+        markCardTurnOnceUsedEffect(state, cardInstance, id);
+        return callback(state, cardInstance);
+    } else {
+        markTurnOnceUsedEffect(state, id);
+        return callback(state, cardInstance);
+    }
 };
 
 // Effect queue utilities
@@ -372,6 +401,9 @@ export const withSendToGraveyardFromDeckTop = (
         {},
         count,
         (state, card) => {
+            if (state.deck.length === 0) {
+                return;
+            }
             if (option?.byEffect) {
                 sendCardToGraveyardByEffect(state, state.deck[0], card);
             } else {

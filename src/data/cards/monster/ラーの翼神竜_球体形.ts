@@ -19,16 +19,17 @@ export default {
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
-    canNormalSummon: false as const,
+    canNormalSummon: true as const,
+    summonLimited: true as const,
     effect: {
         onIgnition: {
             condition: (state, card) => {
-                const raInHandOrDeck = new CardSelector(state).hand().deck().filter().include("ラーの翼神龍").get();
+                const raInHandOrDeck = new CardSelector(state).hand().deck().filter().include("ラーの翼神竜").get();
                 return raInHandOrDeck.length > 0 && card.location === "MonsterField";
             },
             effect: (state, card) => {
                 const raInHandOrDeck = (state: GameStore) =>
-                    new CardSelector(state).hand().deck().filter().include("ラーの翼神龍").get();
+                    new CardSelector(state).hand().deck().filter().include("ラーの翼神竜").get();
                 if (raInHandOrDeck(state).length > 0) {
                     // 球体形をリリース
                     releaseCard(state, card);

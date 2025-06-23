@@ -9,6 +9,7 @@ import {
     withUserSelectCard,
     withUserSummon,
 } from "@/utils/effectUtils";
+import { calcCanSummonLink } from "@/utils/gameUtils";
 
 export default {
     card_name: "神聖魔皇后セレーネ",
@@ -31,7 +32,9 @@ export default {
         if (selected.length < 2) {
             return false;
         }
-        return !!selected.find((e) => monsterFilter(e.card) && e.card.race === "魔法使い");
+        return !!selected.find(
+            (e) => monsterFilter(e.card) && e.card.race === "魔法使い" && calcCanSummonLink(selected).includes(3)
+        );
     },
     effect: {
         onSummon: (state, card) => {
@@ -47,81 +50,93 @@ export default {
         },
         onIgnition: {
             condition: (state, card) =>
-                withTurnAtOneceCondition(state, card, (state, card) => {
-                    const direction = (card.card as LinkMonsterCard).linkDirection;
-                    let zone = -1;
-                    for (let i = 0; i < 2; i++) {
-                        if (state.field.extraMonsterZones[i]?.id === card.id) {
-                            zone = i === 0 ? 6 : 8;
-                        }
-                    }
-                    for (let i = 0; i < 5; i++) {
-                        if (state.field.monsterZones[i]?.id === card.id) {
-                            zone = i;
-                        }
-                    }
-                    const index = getSummonableIndexLink(direction, zone)
-                        .filter((e) => e === 6 || e === 8 || (e <= 4 && e >= 0))
-                        .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
-                    let summonable = false;
-                    for (let i = 0; i < index.length; i++) {
-                        if (index[i] <= 4) {
-                            if (state.field.monsterZones[index[i]] === null) {
-                                summonable = true;
-                            }
-                        } else {
-                            if (state.field.extraMonsterZones[index[i] - 5] === null) {
-                                summonable = true;
+                withTurnAtOneceCondition(
+                    state,
+                    card,
+                    (state, card) => {
+                        const direction = (card.card as LinkMonsterCard).linkDirection;
+                        let zone = -1;
+                        for (let i = 0; i < 2; i++) {
+                            if (state.field.extraMonsterZones[i]?.id === card.id) {
+                                zone = i === 0 ? 6 : 8;
                             }
                         }
-                    }
+                        for (let i = 0; i < 5; i++) {
+                            if (state.field.monsterZones[i]?.id === card.id) {
+                                zone = i;
+                            }
+                        }
+                        const index = getSummonableIndexLink(direction, zone)
+                            .filter((e) => e === 6 || e === 8 || (e <= 4 && e >= 0))
+                            .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
+                        let summonable = false;
+                        for (let i = 0; i < index.length; i++) {
+                            if (index[i] <= 4) {
+                                if (state.field.monsterZones[index[i]] === null) {
+                                    summonable = true;
+                                }
+                            } else {
+                                if (state.field.extraMonsterZones[index[i] - 5] === null) {
+                                    summonable = true;
+                                }
+                            }
+                        }
 
-                    return (
-                        (card?.magicCounter ?? 0) >= 3 &&
-                        card.location === "MonsterField" &&
-                        new CardSelector(state).hand().graveyard().filter().race("魔法使い").len() > 0 &&
-                        summonable
-                    );
-                }),
+                        return (
+                            (card?.magicCounter ?? 0) >= 3 &&
+                            card.location === "MonsterField" &&
+                            new CardSelector(state).hand().graveyard().filter().race("魔法使い").len() > 0 &&
+                            summonable
+                        );
+                    },
+                    card.id,
+                    true
+                ),
             effect: (state, card) => {
-                withTurnAtOneceEffect(state, card, (state, card) => {
-                    const direction = (card.card as LinkMonsterCard).linkDirection;
-                    let zone = -1;
-                    for (let i = 0; i < 2; i++) {
-                        if (state.field.extraMonsterZones[i]?.id === card.id) {
-                            zone = i === 0 ? 6 : 8;
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        const direction = (card.card as LinkMonsterCard).linkDirection;
+                        let zone = -1;
+                        for (let i = 0; i < 2; i++) {
+                            if (state.field.extraMonsterZones[i]?.id === card.id) {
+                                zone = i === 0 ? 6 : 8;
+                            }
                         }
-                    }
-                    for (let i = 0; i < 5; i++) {
-                        if (state.field.monsterZones[i]?.id === card.id) {
-                            zone = i;
+                        for (let i = 0; i < 5; i++) {
+                            if (state.field.monsterZones[i]?.id === card.id) {
+                                zone = i;
+                            }
                         }
-                    }
-                    const index = getSummonableIndexLink(direction, zone)
-                        .filter((e) => e === 6 || e === 8 || (e <= 4 && e >= 0))
-                        .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
-                    putMagicCounter(state, card, -3);
-                    withUserSelectCard(
-                        state,
-                        card,
-                        (state) => new CardSelector(state).hand().graveyard().filter().race("魔法使い").get(),
-                        { select: "single" },
-                        (state, card, selected) => {
-                            withUserSummon(
-                                state,
-                                card,
-                                selected[0],
-                                {
-                                    optionPosition: ["defense"],
-                                    canSelectPosition: false,
-                                    summonType: "Special",
-                                    placementMask: index,
-                                },
-                                () => {}
-                            );
-                        }
-                    );
-                });
+                        const index = getSummonableIndexLink(direction, zone)
+                            .filter((e) => e === 6 || e === 8 || (e <= 4 && e >= 0))
+                            .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
+                        putMagicCounter(state, card, -3);
+                        withUserSelectCard(
+                            state,
+                            card,
+                            (state) => new CardSelector(state).hand().graveyard().filter().race("魔法使い").get(),
+                            { select: "single" },
+                            (state, card, selected) => {
+                                withUserSummon(
+                                    state,
+                                    card,
+                                    selected[0],
+                                    {
+                                        optionPosition: ["defense"],
+                                        canSelectPosition: false,
+                                        summonType: "Special",
+                                        placementMask: index,
+                                    },
+                                    () => {}
+                                );
+                            }
+                        );
+                    },
+                    card.id,
+                    true
+                );
             },
         },
     },

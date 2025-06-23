@@ -6,7 +6,11 @@ import { HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
-import { searchCombinationLinkSummon, searchCombinationXyzSummon, searchCombinationSynchroSummon } from "@/utils/gameUtils";
+import {
+    searchCombinationLinkSummon,
+    searchCombinationXyzSummon,
+    searchCombinationSynchroSummon,
+} from "@/utils/gameUtils";
 import type { CardInstance } from "@/types/card";
 import type { Deck } from "@/data/deckUtils";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
@@ -158,7 +162,11 @@ export const GameBoard: React.FC = () => {
             return false;
         }
 
-        return searchCombinationSynchroSummon(synchroMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
+        return searchCombinationSynchroSummon(
+            synchroMonster,
+            gameState.field.extraMonsterZones,
+            gameState.field.monsterZones
+        );
     };
     useEffect(() => {
         const func = async () => {
@@ -271,7 +279,7 @@ export const GameBoard: React.FC = () => {
                                     tooltipText="あなたのライフポイント"
                                     color="blue"
                                 />
-                                
+
                                 {/* 自動召喚設定 */}
                                 <div className="mt-4 flex items-center justify-center gap-2">
                                     <label className="flex items-center cursor-pointer">
@@ -384,6 +392,8 @@ export const GameBoard: React.FC = () => {
                                     >
                                         {winReason === "exodia"
                                             ? "エクゾディアの5つのパーツが揃いました！"
+                                            : winReason === "horakty"
+                                            ? "ホルアクティが降臨しました！"
                                             : "相手のライフポイントを0にしました！"}
                                     </motion.p>
                                     <motion.button

@@ -4,6 +4,8 @@ import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
     withUserSummon,
+    withSendToGraveyardFromDeckTop,
+    withNotification,
 } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
@@ -26,6 +28,35 @@ export default {
     hasLink: false as const,
     canNormalSummon: true as const,
     effect: {
+        onCardEffect: (state, card, context) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, card.id, true)) {
+                return;
+            }
+            if (card.id === context?.["effectedById"]) {
+                return;
+            }
+            if (!String(context?.["effectedByName"] ?? "").includes("ライトロード")) {
+                return;
+            }
+
+            withNotification(
+                state,
+                card,
+                { message: "自分のデッキの上からカードを３枚墓地へ送る効果" },
+                (state, card) => {
+                    withTurnAtOneceEffect(
+                        state,
+                        card,
+                        (state, card) => {
+                            withSendToGraveyardFromDeckTop(state, card, 3, () => {});
+                        },
+                        card.id,
+                        true
+                    );
+                }
+            );
+        },
+
         onIgnition: {
             condition: (state, card) => {
                 return withTurnAtOneceCondition(
@@ -52,7 +83,8 @@ export default {
                             card.location === "MonsterField"
                         );
                     },
-                    "TwilightLuminus_Ignition"
+                    "TwilightLuminus_Ignition",
+                    true
                 );
             },
             effect: (state, card) => {
@@ -109,7 +141,8 @@ export default {
                             }
                         );
                     },
-                    "TwilightLuminus_Ignition"
+                    "TwilightLuminus_Ignition",
+                    true
                 );
             },
         },

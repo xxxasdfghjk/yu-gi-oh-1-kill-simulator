@@ -1,7 +1,42 @@
 import { CardSelector } from "@/utils/CardSelector";
 import { withUserSelectCard } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
+import type { CardInstance, LeveledMonsterCard } from "@/types/card";
+import type { GameStore } from "@/store/gameStore";
+const effect = {
+    onSummon: (state: GameStore, card: CardInstance) => {
+        const monstersInGraveyard = (state: GameStore) => new CardSelector(state).graveyard().filter().monster().get();
 
+        if (monstersInGraveyard.length > 0) {
+            withUserSelectCard(
+                state,
+                card,
+                monstersInGraveyard,
+                {
+                    select: "single",
+                    message: "コピーするモンスターを選択してください",
+                },
+                (state, card, selected) => {
+                    if (selected.length > 0) {
+                        const targetMonster = selected[0];
+                        console.log("fire");
+                        console.log(card.id);
+                        sendCard(state, targetMonster, "Exclusion");
+                        for (let i = 0; i < 5; i++) {
+                            if (state.field.monsterZones[i]?.id === card.id) {
+                                console.log("copied!");
+                                state.field.monsterZones[i] = {
+                                    ...state.field.monsterZones[i]!,
+                                    card: { ...state.field.monsterZones[i]!.card, effect: targetMonster?.card.effect },
+                                };
+                            }
+                        }
+                    }
+                }
+            );
+        }
+    },
+};
 export default {
     card_name: "ファントム・オブ・カオス",
     card_type: "モンスター" as const,
@@ -10,48 +45,14 @@ export default {
     monster_type: "効果モンスター",
     level: 4,
     element: "闇" as const,
-    race: "悪魔族" as const,
+    race: "悪魔" as const,
     attack: 0,
     defense: 0,
     hasDefense: true as const,
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
-    canNormalSummon: false as const,
-    effect: {
-        onSummon: (state, card) => {
-            const monstersInGraveyard = new CardSelector(state).graveyard().filter().monster().get();
-
-            if (monstersInGraveyard.length > 0) {
-                withUserSelectCard(
-                    state,
-                    card,
-                    () => monstersInGraveyard,
-                    {
-                        select: "single",
-                        message: "コピーするモンスターを選択してください",
-                    },
-                    (state, card, selected) => {
-                        if (selected.length > 0) {
-                            const targetMonster = selected[0];
-
-                            // モンスターを除外
-                            sendCard(state, targetMonster, "Exclusion");
-
-                            // 攻撃力・守備力をコピー
-                            if (targetMonster.card.hasDefense) {
-                                card.buf.attack = targetMonster.card.attack;
-                                card.buf.defense = targetMonster.card.defense;
-                            } else {
-                                card.buf.attack = targetMonster.card.attack;
-                            }
-
-                            // 効果をコピー（簡略化：元々の効果を保持）
-                            // 実際の実装では完全な効果コピーが必要
-                        }
-                    }
-                );
-            }
-        },
-    },
-};
+    canNormalSummon: true as const,
+    originEffect: effect,
+    effect,
+} satisfies LeveledMonsterCard;

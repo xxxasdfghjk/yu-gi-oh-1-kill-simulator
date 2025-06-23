@@ -37,7 +37,8 @@ export default {
 
                         return state.hand.length > 0 && graveyard(state).length > 0 && card.location === "MonsterField";
                     },
-                    "LighlordLuminus_Ignition"
+                    "LighlordLuminus_Ignition",
+                    true
                 );
             },
             effect: (state, card) => {
@@ -89,7 +90,8 @@ export default {
                             }
                         );
                     },
-                    "LighlordLuminus_Ignition"
+                    "LighlordLuminus_Ignition",
+                    true
                 );
             },
         },

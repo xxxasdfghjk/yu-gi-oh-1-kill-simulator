@@ -1,5 +1,6 @@
-import type { FusionMonsterCard } from "@/types/card";
+import type { Element, FusionMonsterCard, MonsterCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
+import { withOption, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
 
 export default {
     card_name: "沼地のドロゴン",
@@ -30,5 +31,55 @@ export default {
         return elementNum === 1 && raceNum === 2;
     },
     filterAvailableMaterials: () => true,
-    effect: {},
+    effect: {
+        onIgnition: {
+            condition: (state, card) =>
+                withTurnAtOneceCondition(
+                    state,
+                    card,
+                    (_state, card) => {
+                        return card.location === "MonsterField";
+                    },
+                    card.id,
+                    true
+                ),
+            effect: (state, card) => {
+                const options = ["地", "水", "炎", "風", "闇", "光"] as Element[];
+                withOption(
+                    state,
+                    card,
+                    options.map((e) => ({ name: e, condition: () => true })),
+                    (state, card, selected) => {
+                        withTurnAtOneceEffect(
+                            state,
+                            card,
+                            (state, card) => {
+                                for (let i = 0; i < 5; i++) {
+                                    if (
+                                        state.field.monsterZones[i]?.id === card.id &&
+                                        monsterFilter(state.field.monsterZones[i]!.card)
+                                    ) {
+                                        (state.field.monsterZones[i]!.card! as MonsterCard).element =
+                                            selected[0] as Element;
+                                    }
+                                }
+                                for (let i = 0; i < 2; i++) {
+                                    if (
+                                        state.field.extraMonsterZones[i]?.id === card.id &&
+                                        monsterFilter(state.field.extraMonsterZones[i]!.card)
+                                    ) {
+                                        (state.field.extraMonsterZones[i]!.card! as MonsterCard).element =
+                                            selected[0] as Element;
+                                    }
+                                }
+                            },
+                            card.id,
+                            true
+                        );
+                    },
+                    true
+                );
+            },
+        },
+    },
 } satisfies FusionMonsterCard;

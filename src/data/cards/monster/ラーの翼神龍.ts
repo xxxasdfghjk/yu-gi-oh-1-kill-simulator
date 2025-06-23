@@ -20,6 +20,7 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: true as const,
+    summonLimited: true as const,
     effect: {
         onSummon: (state, card) => {
             // 召喚成功時、100LPになるようにLPを払って攻撃力・守備力をアップする効果を選択可能

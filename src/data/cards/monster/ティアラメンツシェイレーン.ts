@@ -105,7 +105,13 @@ export default {
                                 state,
                                 card,
                                 (state) => {
-                                    return new CardSelector(state).hand().allMonster().graveyard().getNonNull();
+                                    return new CardSelector(state)
+                                        .hand()
+                                        .allMonster()
+                                        .graveyard()
+                                        .filter()
+                                        .monster()
+                                        .get();
                                 },
                                 {
                                     select: "multi",

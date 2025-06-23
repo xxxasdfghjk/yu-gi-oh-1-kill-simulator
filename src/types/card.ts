@@ -66,6 +66,8 @@ export type EffectType = {
     };
     onStandbyPhase?: EffectCallback;
     onPayLifeCost?: OnPayLifeCostCallback;
+    onCardEffect?: EffectCallback;
+    onCardDeckToGraveyard?: EffectCallback;
     onCardToGraveyard?: EffectCallback;
     onCardToGraveyardByEffect?: EffectCallback;
 };
@@ -78,6 +80,7 @@ export interface Card {
     text: string;
     image: string;
     effect: EffectType;
+    originEffect?: EffectType;
 }
 
 export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | "Synchro" | "Fusion" | undefined;
@@ -99,7 +102,8 @@ export type Race =
     | "獣戦士"
     | "創造神"
     | "昆虫"
-    | "幻竜";
+    | "幻竜"
+    | "鳥獣";
 
 type MonsterType =
     | "通常モンスター"
@@ -227,4 +231,5 @@ export interface CardInstance {
     setTurn?: number;
     isDummy?: true;
     magicCounter?: number;
+    effectUse?: string[];
 }

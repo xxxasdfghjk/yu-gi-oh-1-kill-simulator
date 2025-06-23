@@ -10,6 +10,7 @@ import {
 import { monsterFilter } from "@/utils/cardManagement";
 import type { LinkMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
+import { calcCanSummonLink } from "@/utils/gameUtils";
 
 export default {
     card_name: "鎖龍蛇-スカルデット",
@@ -80,7 +81,8 @@ export default {
                             card.location === "MonsterField"
                         );
                     },
-                    card.id
+                    card.id,
+                    true
                 );
             },
             effect: (state, card) => {
@@ -115,7 +117,8 @@ export default {
                             }
                         );
                     },
-                    card.id
+                    card.id,
+                    true
                 );
             },
         },
@@ -126,6 +129,7 @@ export default {
     materialCondition: (cards) => {
         // カード名が異なるモンスター2体以上
         const uniqueNames = new Set(cards.map((c) => c.card.card_name));
-        return uniqueNames.size === cards.length && cards.length >= 2;
+
+        return uniqueNames.size === cards.length && cards.length >= 2 && calcCanSummonLink(cards).includes(4);
     },
 } satisfies LinkMonsterCard;

@@ -42,7 +42,7 @@ export default {
 
                 if (osiris && obelisk && ra) {
                     // 三幻神をリリース
-                    withSendToGraveyard(state, card, [osiris, obelisk, ra], () => {
+                    withSendToGraveyard(state, card, [osiris, obelisk, ra], (state, card) => {
                         withUserSummon(
                             state,
                             card,

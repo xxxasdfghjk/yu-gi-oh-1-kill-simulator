@@ -1,5 +1,12 @@
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
+import {
+    withUserSelectCard,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withOption,
+    withSendToGraveyardFromDeckTop,
+    withNotification,
+} from "@/utils/effectUtils";
 import { addBuf, sendCard } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
@@ -22,6 +29,37 @@ export default {
     hasLink: false as const,
     canNormalSummon: true as const,
     effect: {
+        onCardEffect: (state, card, context) => {
+            console.log("called!", context);
+
+            if (!withTurnAtOneceCondition(state, card, () => true, card.id, true)) {
+                return;
+            }
+            if (card.id === context?.["effectedById"]) {
+                return;
+            }
+            if (!String(context?.["effectedByName"] ?? "").includes("ライトロード")) {
+                return;
+            }
+
+            withNotification(
+                state,
+                card,
+                { message: "自分のデッキの上からカードを２枚墓地へ送る効果" },
+                (state, card) => {
+                    withTurnAtOneceEffect(
+                        state,
+                        card,
+                        (state, card) => {
+                            withSendToGraveyardFromDeckTop(state, card, 2, () => {});
+                        },
+                        card.id,
+                        true
+                    );
+                }
+            );
+        },
+
         onIgnition: {
             condition: (state, card) => {
                 return withTurnAtOneceCondition(
@@ -47,7 +85,8 @@ export default {
                             card.location === "MonsterField"
                         );
                     },
-                    "TwilightGeneral_Ignition"
+                    "TwilightGeneral_Ignition",
+                    true
                 );
             },
             effect: (state, card) => {
@@ -92,7 +131,8 @@ export default {
                             }
                         );
                     },
-                    "TwilightGeneral_Ignition"
+                    "TwilightGeneral_Ignition",
+                    true
                 );
             },
         },

@@ -9,7 +9,7 @@ import {
     withTurnAtOneceCondition,
 } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { getLevel, shuffleDeck } from "@/utils/gameUtils";
+import { getCardInstanceFromId, getLevel, shuffleDeck } from "@/utils/gameUtils";
 import type { XyzMonsterCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
@@ -43,7 +43,8 @@ export default {
                                 new CardSelector(state).graveyard().filter().monster().len() > 0)
                         ); // TODO
                     },
-                    card.id
+                    card.id,
+                    true
                 ),
             effect: (state, card) => {
                 withTurnAtOneceEffect(
@@ -70,7 +71,16 @@ export default {
                                             {
                                                 name: "効果モンスター以外の自分の墓地のモンスター１体を対象として発動できる。そのモンスターを特殊召喚する。",
                                                 condition: (state) =>
-                                                    new CardSelector(state).graveyard().filter().monster().len() > 0, // TODO
+                                                    new CardSelector(state)
+                                                        .graveyard()
+                                                        .filter()
+                                                        .monster()
+                                                        .get()
+                                                        .filter(
+                                                            (e) =>
+                                                                monsterFilter(e.card) &&
+                                                                e.card.monster_type === "通常モンスター"
+                                                        ).length > 0, // TODO
                                             },
                                         ],
                                         (state, card, option) => {
@@ -82,7 +92,16 @@ export default {
                                                     state,
                                                     card,
                                                     (state) =>
-                                                        new CardSelector(state).graveyard().filter().monster().get(),
+                                                        new CardSelector(state)
+                                                            .graveyard()
+                                                            .filter()
+                                                            .monster()
+                                                            .get()
+                                                            .filter(
+                                                                (e) =>
+                                                                    monsterFilter(e.card) &&
+                                                                    e.card.monster_type === "通常モンスター"
+                                                            ),
                                                     { select: "single" },
                                                     (state, card, selected) => {
                                                         withUserSummon(state, card, selected[0], {}, () => {});
@@ -114,7 +133,8 @@ export default {
                             );
                         }
                     },
-                    card.id
+                    card.id,
+                    true
                 );
             },
         },
