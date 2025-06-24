@@ -219,7 +219,7 @@ export const withUserSummon = (
         const defaultZone = placementPriority(summonable);
         if (defaultZone >= 0) {
             state.isProcessing = false;
-            const summonResult = summon(state, monster, defaultZone, defaultPositon);
+            const summonResult = summon(state, monster, defaultZone, defaultPositon, { summonedBy: summonType });
             callback(state, card, summonResult);
             return;
         }
