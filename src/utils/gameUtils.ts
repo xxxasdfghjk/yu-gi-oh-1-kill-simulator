@@ -4,6 +4,7 @@ import type { GameState } from "@/types/game";
 import { getLinkMonsterSummonalble, placementPriority } from "@/components/SummonSelector";
 import { isLinkMonster, isXyzMonster, isSynchroMonster } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
+import { CardInstanceFilter } from "./CardInstanceFilter";
 
 export const getLevel = (cardInstance: CardInstance) => {
     const level = (cardInstance.card as { level?: number })?.level ?? -9999;
@@ -292,10 +293,13 @@ export const searchCombinationSynchroSummon = (
     if (!isSynchroMonster(synchroCard.card)) {
         return false;
     }
-    const availableMaterials = [
+    const availableMaterials = new CardInstanceFilter([
         ...monsterZones.filter((zone) => zone !== null),
         ...extraMonsterZones.filter((zone) => zone !== null),
-    ].filter((e) => e?.position === "attack" || e?.position === "defense") as CardInstance[];
+    ])
+        .hasLevel()
+        .faceup()
+        .get();
 
     if (availableMaterials.length === 0) return false;
 
@@ -324,6 +328,7 @@ export const searchCombinationSynchroSummon = (
             if (materialCondition && materialCondition(materials)) {
                 // Check if there's an available zone after using these materials
                 if (canSynchroSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
+                    console.log(materials);
                     return true;
                 }
             }

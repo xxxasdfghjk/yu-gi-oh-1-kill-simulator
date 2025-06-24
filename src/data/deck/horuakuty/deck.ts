@@ -70,5 +70,5 @@ export default {
     main_deck: expandDeckList(DECK_CONFIG.main_deck, cardMap),
     extra_deck: expandDeckList(DECK_CONFIG.extra_deck, cardMap),
     token: expandDeckList(DECK_CONFIG.token, cardMap),
-    rules: ["start_six_hand"],
+    rules: [],
 } satisfies Deck;

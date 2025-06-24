@@ -1,5 +1,6 @@
 import { withUserSummon } from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ライトロード・アーチャー フェリス",
@@ -20,6 +21,10 @@ export default {
     canNormalSummon: false as const,
     effect: {
         onDeckToGraveyard: (state, card) => {
+            if (!hasEmptyMonsterZone(state)) {
+                return;
+            }
+
             withUserSummon(
                 state,
                 card,

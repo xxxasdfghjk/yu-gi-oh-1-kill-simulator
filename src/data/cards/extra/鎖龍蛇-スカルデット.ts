@@ -6,6 +6,7 @@ import {
     withSendDeckBottom,
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
+    withOption,
 } from "@/utils/effectUtils";
 import { monsterFilter } from "@/utils/cardManagement";
 import type { LinkMonsterCard } from "@/types/card";
@@ -35,31 +36,40 @@ export default {
                 const materialCount = card.summonedByMaterials?.length || 0;
 
                 if (materialCount >= 4) {
-                    // 4体以上でリンク召喚した場合の効果
-                    withDraw(state, card, { count: 4 }, (state, card) => {
-                        const handCards = (state: GameStore) => new CardSelector(state).hand().getNonNull();
-                        const currentHand = handCards(state);
+                    if (state.deck.length < 4) {
+                        return;
+                    }
+                    withOption(
+                        state,
+                        card,
+                        [{ name: "自分は４枚ドローする", condition: () => true }],
+                        (state, card) => {
+                            withDraw(state, card, { count: 4 }, (state, card) => {
+                                const handCards = (state: GameStore) => new CardSelector(state).hand().getNonNull();
+                                const currentHand = handCards(state);
 
-                        if (currentHand.length >= 3) {
-                            withUserSelectCard(
-                                state,
-                                card,
-                                handCards,
-                                {
-                                    select: "multi",
-                                    condition: (select) => select.length === 3,
-                                    message: "デッキの下に戻す手札を3枚選択してください",
-                                },
-                                (state, card, selected) => {
-                                    if (selected.length === 3) {
-                                        // 選択した3枚のIDを取得
-                                        const selectedIds = selected.map((c) => c.id);
-                                        withSendDeckBottom(state, card, selectedIds);
-                                    }
+                                if (currentHand.length >= 3) {
+                                    withUserSelectCard(
+                                        state,
+                                        card,
+                                        handCards,
+                                        {
+                                            select: "multi",
+                                            condition: (select) => select.length === 3,
+                                            message: "デッキの下に戻す手札を3枚選択してください",
+                                        },
+                                        (state, card, selected) => {
+                                            if (selected.length === 3) {
+                                                // 選択した3枚のIDを取得
+                                                const selectedIds = selected.map((c) => c.id);
+                                                withSendDeckBottom(state, card, selectedIds);
+                                            }
+                                        }
+                                    );
                                 }
-                            );
+                            });
                         }
-                    });
+                    );
                 }
             }
         },

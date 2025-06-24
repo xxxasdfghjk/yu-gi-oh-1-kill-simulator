@@ -1,4 +1,4 @@
-import type { CardInstance, Element, MonsterCard, Race } from "@/types/card";
+import type { CardInstance, Element, Race } from "@/types/card";
 import { isFusionMonster, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { getLevel } from "./gameUtils";
 
@@ -23,6 +23,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
     level(level: number) {
         const leveledMonterList = this.cardList.filter(
             (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) === level
+        );
+        return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
+    }
+
+    hasLevel() {
+        const leveledMonterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.hasLevel
         );
         return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
     }
@@ -113,6 +120,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
 
     exclude(name: string) {
         const list = this.cardList.filter((e): e is CardInstance => e !== null && !e.card.card_name.includes(name));
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    faceup() {
+        const list = this.cardList.filter(
+            (e): e is CardInstance => e !== null && (e.position === "attack" || e.position === "defense")
+        );
         return new CardInstanceFilter<CardInstance[]>(list);
     }
 

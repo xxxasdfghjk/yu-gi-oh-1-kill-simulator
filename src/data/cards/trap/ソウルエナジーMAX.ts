@@ -136,14 +136,9 @@ export default {
                                         state,
                                         card,
                                         [{ name: "オベリスクの巨神兵を召喚", condition: () => true }],
-                                        (state, card, option) => {
-                                            if (option === "オベリスクの巨神兵を召喚") {
-                                                const god = getCardInstanceFromId(state, cardId);
-                                                if (god) {
-                                                    // カード自体ではなく、効果発動元のカードを使用
-                                                    withUserSummon(state, card, god, { needRelease: 3 }, () => {});
-                                                }
-                                            }
+                                        (state) => {
+                                            const god = getCardInstanceFromId(state, cardId)!;
+                                            withUserSummon(state, god, god, { needRelease: 3 }, () => {});
                                         },
                                         true
                                     );

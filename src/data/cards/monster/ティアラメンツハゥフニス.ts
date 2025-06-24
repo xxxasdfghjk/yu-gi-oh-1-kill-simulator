@@ -6,8 +6,7 @@ import {
     withUserSelectCard,
     withOption,
 } from "@/utils/effectUtils";
-import type { CardInstance, FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
-import type { GameStore } from "@/store/gameStore";
+import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import { getCardInstanceFromId } from "@/utils/gameUtils";
 

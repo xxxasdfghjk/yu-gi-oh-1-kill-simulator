@@ -9,6 +9,7 @@ import {
 import { sendCard } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ライトロード・デーモン ヴァイス",
@@ -89,6 +90,10 @@ export default {
             },
         },
         onDeckToGraveyard: (state, card) => {
+            if (!hasEmptyMonsterZone(state)) {
+                return;
+            }
+
             const lightlordInGrave = (state: GameStore) =>
                 new CardSelector(state)
                     .graveyard()

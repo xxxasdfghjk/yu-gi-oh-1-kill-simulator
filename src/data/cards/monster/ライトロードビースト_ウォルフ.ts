@@ -1,5 +1,6 @@
 import type { LeveledMonsterCard } from "@/types/card";
 import { withUserSummon } from "@/utils/effectUtils";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ライトロード・ビースト ウォルフ",
@@ -20,6 +21,9 @@ export default {
     effect: {
         onDeckToGraveyard: (state, card) => {
             // デッキから墓地に送られた時、特殊召喚する
+            if (!hasEmptyMonsterZone(state)) {
+                return;
+            }
             withUserSummon(
                 state,
                 card,

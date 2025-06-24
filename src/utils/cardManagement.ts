@@ -99,7 +99,7 @@ export const createCardInstance = (card: Card, location: CardInstance["location"
 
 // Level and link calculation utilities
 export const sumLevel = (cardList: CardInstance[]) =>
-    cardList.map((e) => (hasLevelMonsterFilter(e.card) ? e.card.level : 0)).reduce((prev, cur) => cur + prev, 0);
+    cardList.map((e) => (hasLevelMonsterFilter(e.card) ? e.card.level : -999)).reduce((prev, cur) => cur + prev, 0);
 
 export const sumLink = (cardList: CardInstance[]) =>
     cardList.map((e) => (hasLinkMonsterFilter(e.card) ? e.card.link : 1)).reduce((prev, cur) => cur + prev, 0);

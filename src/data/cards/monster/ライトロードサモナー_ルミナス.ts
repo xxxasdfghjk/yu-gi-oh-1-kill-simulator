@@ -8,6 +8,7 @@ import {
 import { sendCard } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ライトロード・サモナー ルミナス",
@@ -35,7 +36,12 @@ export default {
                         const graveyard = (state: GameStore) =>
                             new CardSelector(state).graveyard().filter().include("ライトロード").underLevel(4).get();
 
-                        return state.hand.length > 0 && graveyard(state).length > 0 && card.location === "MonsterField";
+                        return (
+                            state.hand.length > 0 &&
+                            graveyard(state).length > 0 &&
+                            card.location === "MonsterField" &&
+                            hasEmptyMonsterZone(state)
+                        );
                     },
                     "LighlordLuminus_Ignition",
                     true
@@ -61,7 +67,12 @@ export default {
                                     sendCard(state, selected[0], "Graveyard");
 
                                     const lightlordInGrave = (state: GameStore) =>
-                                        new CardSelector(state).graveyard().filter().include("ライトロード").get();
+                                        new CardSelector(state)
+                                            .graveyard()
+                                            .filter()
+                                            .include("ライトロード")
+                                            .underLevel(4)
+                                            .get();
 
                                     withUserSelectCard(
                                         state,

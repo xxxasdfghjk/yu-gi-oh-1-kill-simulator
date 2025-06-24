@@ -4,11 +4,10 @@ import {
     withUserSummon,
     withDraw,
     withTurnAtOneceEffect,
-    withUserConfirm,
     withDelay,
     withNotification,
 } from "@/utils/effectUtils";
-import { sendCard, sendCardById, sendCardToGraveyardByEffect } from "@/utils/cardMovement";
+import { sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { getCardInstanceFromId } from "@/utils/gameUtils";
@@ -53,7 +52,7 @@ export default {
                     (state, card) => {
                         const selected = getCardInstanceFromId(state, selectedCardId)!;
                         // 選ばれたカードを捨てる
-                        sendCard(state, selected, "Graveyard");
+                        sendCardToGraveyardByEffect(state, selected, card);
 
                         // 選ばれたカードが「未界域のモスマン」以外だった場合
                         if (selected.card.card_name !== "未界域のモスマン") {

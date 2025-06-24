@@ -65,11 +65,13 @@ const getSummonableZones = (state: GameStore, monster: CardInstance): number[] =
         monsterFilter(monster.card) &&
         (monster.card.monster_type === "エクシーズモンスター" || monster.card.monster_type === "シンクロモンスター")
     ) {
+        const isEmptyExtra =
+            state.field.extraMonsterZones
+                .map((e, index) => ({ elem: e, index: index + 5 }))
+                .filter(({ elem }) => elem === null).length === 2;
         return [
             ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
-            ...state.field.extraMonsterZones
-                .map((e, index) => ({ elem: e, index: index + 5 }))
-                .filter(({ elem }) => elem === null),
+            ...(isEmptyExtra ? [{ index: 5 }, { index: 6 }] : []),
         ].map((e) => e.index);
     } else {
         return [
@@ -238,7 +240,7 @@ export const withUserSummon = (
         // If auto summon fails (no available zone), fall back to manual selection
         // This happens mainly with Link monsters when no suitable zones exist
     }
-
+    const monsterId = monster.id;
     if ((needRelease ?? 0) > 0) {
         // Add summon selection to effect queue
         withUserSelectCard(
@@ -252,16 +254,18 @@ export const withUserSummon = (
                 message: "リリース対象を選んでください",
             },
             (state, _card, selected) => {
+                const idList = selected.map((e) => e.id);
                 withDelayRecursive(
                     state,
                     _card,
                     { delay: 100 },
                     selected.length,
-                    (state, _card, depth) => {
-                        sendCard(state, selected[depth - 1], "Graveyard");
+                    (state, _, depth) => {
+                        releaseCardById(state, idList[depth - 1]);
                     },
                     (state) => {
                         // Check auto summon after release
+                        const monster = getCardInstanceFromId(state, monsterId)!;
                         if (state.autoSummon) {
                             const summonable = getSummonableZones(state, monster);
                             const defaultZone = placementPriority(summonable);
@@ -818,7 +822,9 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
             };
             if (card.card.effect.onSpell?.payCost) {
                 card.card.effect.onSpell.payCost(state, card, (state, card, context) => {
-                    handler(state, card, context);
+                    withDelay(state, card, {}, (state, card) => {
+                        handler(state, card, context);
+                    });
                 });
             } else {
                 handler(state, card, undefined);
@@ -848,7 +854,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 sendCard(state, state.field.fieldZone, "Graveyard");
                 withDelay(state, card, { order: -1 }, (state, card) => {
                     sendCard(state, card, "FieldZone");
-                    card.card.effect.onSpell?.effect(state, card, undefined, () => {
+                    card.card.effect.onSpell?.effect(state, card, undefined, (state) => {
                         state.isProcessing = false;
                     });
                 });

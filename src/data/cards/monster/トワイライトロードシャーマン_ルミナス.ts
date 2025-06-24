@@ -10,6 +10,7 @@ import {
 import { sendCard } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "トワイライトロード・シャーマン ルミナス",
@@ -80,7 +81,8 @@ export default {
                         return (
                             lightroadInHandGrave.length > 0 &&
                             banishedLightroad.length > 0 &&
-                            card.location === "MonsterField"
+                            card.location === "MonsterField" &&
+                            hasEmptyMonsterZone(state)
                         );
                     },
                     "TwilightLuminus_Ignition",
