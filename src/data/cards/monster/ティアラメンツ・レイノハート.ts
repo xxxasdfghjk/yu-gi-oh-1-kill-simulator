@@ -8,7 +8,7 @@ import {
 } from "@/utils/effectUtils";
 import { sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
-import { getCardInstanceFromId } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・レイノハート",
@@ -84,6 +84,9 @@ export default {
             if (!withTurnAtOneceCondition(state, card, () => true, "laynoheart_2")) {
                 return;
             }
+            if (!hasEmptyMonsterZone(state)) {
+                return;
+            }
             withOption(
                 state,
                 card,
@@ -115,7 +118,8 @@ export default {
                         },
                         "laynoheart_2"
                     );
-                }
+                },
+                true
             );
         },
     },

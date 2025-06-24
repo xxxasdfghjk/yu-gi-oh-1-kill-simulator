@@ -72,6 +72,9 @@ export default {
 
         // ②の効果：特殊召喚した場合、デッキから「光道の龍」以外のライトロードカードを墓地に送る
         onSummon: (state, card) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, "KoudouDragon_Effect2")) {
+                return;
+            }
             if (card.summonedBy === "Special") {
                 withTurnAtOneceEffect(
                     state,
@@ -113,6 +116,10 @@ export default {
 
         // ③の効果：墓地に送られた場合、攻撃力3000/守備力2600のドラゴン族モンスターを手札に加える
         onAnywhereToGraveyard: (state, card) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, "KoudouDragon_Effect3")) {
+                return;
+            }
+
             withTurnAtOneceEffect(
                 state,
                 card,
