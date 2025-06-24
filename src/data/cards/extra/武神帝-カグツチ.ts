@@ -1,5 +1,4 @@
-import { withDelayRecursive } from "@/utils/effectUtils";
-import { sendCard, addBuf } from "@/utils/cardMovement";
+import { withSendToGraveyardFromDeckTop } from "@/utils/effectUtils";
 import { getLevel } from "@/utils/gameUtils";
 import { monsterFilter } from "@/utils/cardManagement";
 import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
@@ -23,14 +22,8 @@ export default {
     rank: 4,
     effect: {
         onSummon: (state, card) => {
-            console.log(card.summonedBy);
             if (card.summonedBy === "Xyz") {
-                withDelayRecursive(state, card, { delay: 100 }, 5, (state) => {
-                    if (state.deck.length > 0) {
-                        const topCard = state.deck[0];
-                        sendCard(state, topCard, "Graveyard");
-                    }
-                });
+                withSendToGraveyardFromDeckTop(state, card, 5, () => {}, { byEffect: true });
             }
         },
     },

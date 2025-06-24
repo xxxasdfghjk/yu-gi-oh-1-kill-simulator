@@ -15,10 +15,12 @@ type NotifyType = Extract<
 export const notifyCardEffect = (state: GameStore, card: CardInstance, key: NotifyType) => {
     for (let i = 0; i < 5; i++) {
         if (state.field.monsterZones[i]?.card.effect?.[key]) {
-            state.field.monsterZones[i]?.card.effect?.[key]?.(state, state.field.monsterZones[i]!, {
-                effectedByName: card.card.card_name,
-                effectedByField: card.location,
-                effectedById: card.id,
+            withDelay(state, card, { order: 3000 }, (state, card) => {
+                state.field.monsterZones[i]?.card.effect?.[key]?.(state, state.field.monsterZones[i]!, {
+                    effectedByName: card.card.card_name,
+                    effectedByField: card.location,
+                    effectedById: card.id,
+                });
             });
         }
     }
@@ -175,9 +177,15 @@ export const notifyFieldCard = (
 
 export const sendCardToGraveyardByEffect = (state: GameStore, card: CardInstance, effectedBy: CardInstance) => {
     sendCard(state, card, "Graveyard");
-    card.card.effect?.onAnywhereToGraveyardByEffect?.(state, card, {
-        effectedBy: effectedBy.card.card_name,
-        effectedByField: effectedBy.location,
+    const effectedByName = effectedBy.card.card_name;
+    const effectedByField = effectedBy.location;
+    const effectedById = effectedBy.id;
+    withDelay(state, card, { order: 4000 }, (state, card) => {
+        card.card.effect?.onAnywhereToGraveyardByEffect?.(state, card, {
+            effectedByName,
+            effectedByField,
+            effectedById,
+        });
     });
     notifyCardEffect(state, effectedBy, "onCardToGraveyardByEffect");
 };

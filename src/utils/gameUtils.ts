@@ -328,7 +328,6 @@ export const searchCombinationSynchroSummon = (
             if (materialCondition && materialCondition(materials)) {
                 // Check if there's an available zone after using these materials
                 if (canSynchroSummonAfterRelease(materials, extraMonsterZones, monsterZones)) {
-                    console.log(materials);
                     return true;
                 }
             }

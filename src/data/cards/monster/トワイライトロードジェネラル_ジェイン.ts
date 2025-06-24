@@ -29,15 +29,16 @@ export default {
     canNormalSummon: true as const,
     effect: {
         onCardEffect: (state, card, context) => {
-            console.log("called!", context);
-
             if (!withTurnAtOneceCondition(state, card, () => true, card.id, true)) {
                 return;
             }
             if (card.id === context?.["effectedById"]) {
                 return;
             }
-            if (!String(context?.["effectedByName"] ?? "").includes("ライトロード")) {
+            if (
+                !String(context?.["effectedByName"] ?? "").includes("ライトロード") &&
+                !String(context?.["effectedByName"] ?? "").includes("光道の龍")
+            ) {
                 return;
             }
 
@@ -50,7 +51,7 @@ export default {
                         state,
                         card,
                         (state, card) => {
-                            withSendToGraveyardFromDeckTop(state, card, 2, () => {});
+                            withSendToGraveyardFromDeckTop(state, card, 2, () => {}, { byEffect: true });
                         },
                         card.id,
                         true
@@ -69,14 +70,10 @@ export default {
                             .hand()
                             .graveyard()
                             .filter()
-                            .include("ライトロード")
+                            .lightsworn()
                             .get();
 
-                        const banishedLightroad = new CardSelector(state)
-                            .banished()
-                            .filter()
-                            .include("ライトロード")
-                            .get();
+                        const banishedLightroad = new CardSelector(state).banished().filter().lightsworn().get();
 
                         return (
                             lightroadInHandGrave.length > 0 &&
@@ -94,13 +91,7 @@ export default {
                     card,
                     (state, card) => {
                         const lightroadInHandGrave = (state: GameStore) =>
-                            new CardSelector(state)
-                                .hand()
-                                .graveyard()
-                                .filter()
-                                .hasLevel()
-                                .include("ライトロード")
-                                .get();
+                            new CardSelector(state).hand().graveyard().filter().hasLevel().lightsworn().get();
 
                         withUserSelectCard(
                             state,

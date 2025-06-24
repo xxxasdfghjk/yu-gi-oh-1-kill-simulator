@@ -43,7 +43,7 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
 
     underLevel(level: number) {
         const leveledMonterList = this.cardList.filter(
-            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) <= level
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) <= level && 0 <= getLevel(e)
         );
         return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
     }
@@ -104,6 +104,14 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
     element(element: Element) {
         const list = this.cardList.filter(
             (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.element === element
+        );
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    lightsworn() {
+        const list = this.cardList.filter(
+            (e): e is CardInstance =>
+                e !== null && (e.card.card_name.includes("ライトロード") || e.card.card_name.includes("光道の龍"))
         );
         return new CardInstanceFilter<CardInstance[]>(list);
     }

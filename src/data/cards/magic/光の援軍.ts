@@ -1,7 +1,6 @@
 import { CardSelector } from "@/utils/CardSelector";
 import { withUserSelectCard, withDelayRecursive } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { hasLevelMonsterFilter } from "@/utils/cardManagement";
 import type { MagicCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 
@@ -16,14 +15,11 @@ export default {
             condition: (state) => {
                 const lightlordInDeck = new CardSelector(state)
                     .deck()
-                    .getNonNull()
-                    .filter(
-                        (c) =>
-                            c.card.card_name.includes("ライトロード") &&
-                            c.card.card_type === "モンスター" &&
-                            hasLevelMonsterFilter(c.card) &&
-                            c.card.level <= 4
-                    );
+                    .filter()
+                    .lightsworn()
+                    .monster()
+                    .underLevel(4)
+                    .get();
                 return state.deck.length >= 3 && lightlordInDeck.length > 0;
             },
             payCost: (state, card, after) => {
@@ -40,18 +36,9 @@ export default {
                     (state, card) => after(state, card)
                 );
             },
-            effect: (state, card, context, resolve) => {
+            effect: (state, card, _context, resolve) => {
                 const lightlordInDeck = (state: GameStore) =>
-                    new CardSelector(state)
-                        .deck()
-                        .getNonNull()
-                        .filter(
-                            (c) =>
-                                c.card.card_name.includes("ライトロード") &&
-                                c.card.card_type === "モンスター" &&
-                                hasLevelMonsterFilter(c.card) &&
-                                c.card.level <= 4
-                        );
+                    new CardSelector(state).deck().filter().lightsworn().monster().underLevel(4).get();
 
                 if (lightlordInDeck.length > 0) {
                     withUserSelectCard(

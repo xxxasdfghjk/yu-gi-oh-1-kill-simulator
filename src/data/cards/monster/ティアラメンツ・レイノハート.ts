@@ -102,7 +102,10 @@ export default {
                                 withUserSelectCard(
                                     state,
                                     card,
-                                    (state) => new CardSelector(state).hand().filter().include("ティアラメンツ").get(),
+                                    (state) => [
+                                        ...new CardSelector(state).hand().filter().include("ティアラメンツ").get(),
+                                        ...new CardSelector(state).hand().filter().include("壱世壊").get(),
+                                    ],
                                     { select: "single" },
                                     (state, card, selected) => {
                                         sendCardToGraveyardByEffect(state, selected[0], card);

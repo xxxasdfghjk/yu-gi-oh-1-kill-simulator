@@ -34,7 +34,7 @@ export default {
                     card,
                     (state, card) => {
                         const graveyard = (state: GameStore) =>
-                            new CardSelector(state).graveyard().filter().include("ライトロード").underLevel(4).get();
+                            new CardSelector(state).graveyard().filter().lightsworn().underLevel(4).get();
 
                         return (
                             state.hand.length > 0 &&
@@ -67,12 +67,7 @@ export default {
                                     sendCard(state, selected[0], "Graveyard");
 
                                     const lightlordInGrave = (state: GameStore) =>
-                                        new CardSelector(state)
-                                            .graveyard()
-                                            .filter()
-                                            .include("ライトロード")
-                                            .underLevel(4)
-                                            .get();
+                                        new CardSelector(state).graveyard().filter().lightsworn().underLevel(4).get();
 
                                     withUserSelectCard(
                                         state,

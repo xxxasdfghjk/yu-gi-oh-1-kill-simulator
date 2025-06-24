@@ -30,8 +30,8 @@ export default {
                         .graveyard()
                         .filter()
                         .monster()
-                        .get()
-                        .filter((c) => c.card.card_name.includes("ライトロード"));
+                        .lightsworn()
+                        .get();
 
                     // カード名の種類をカウント
                     const uniqueLightlordNames = new Set(graveyardLightlordMonsters.map((c) => c.card.card_name));

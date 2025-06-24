@@ -32,6 +32,13 @@ export default {
             if (!withTurnAtOneceCondition(state, card, () => true, "dominion_3")) {
                 return;
             }
+            if (
+                state.effectQueue.find(
+                    (e) => e.type === "option" && e.effectName === `${card.card.card_name}（選択肢）`
+                ) !== undefined
+            ) {
+                return;
+            }
             if (state.deck.length >= 3) {
                 withOption(
                     state,

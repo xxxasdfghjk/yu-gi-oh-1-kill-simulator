@@ -36,26 +36,24 @@ export default {
             if (card.id === context?.["effectedById"]) {
                 return;
             }
-            if (!String(context?.["effectedByName"] ?? "").includes("ライトロード")) {
+            if (
+                !String(context?.["effectedByName"] ?? "").includes("ライトロード") &&
+                !String(context?.["effectedByName"] ?? "").includes("光道の龍")
+            ) {
                 return;
             }
 
-            withNotification(
-                state,
-                card,
-                { message: "自分のデッキの上からカードを３枚墓地へ送る効果" },
-                (state, card) => {
-                    withTurnAtOneceEffect(
-                        state,
-                        card,
-                        (state, card) => {
-                            withSendToGraveyardFromDeckTop(state, card, 3, () => {});
-                        },
-                        card.id,
-                        true
-                    );
-                }
-            );
+            withNotification(state, card, { message: "自分のデッキの上からカードを３枚墓地へ送る" }, (state, card) => {
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        withSendToGraveyardFromDeckTop(state, card, 3, () => {}, { byEffect: true });
+                    },
+                    card.id,
+                    true
+                );
+            });
         },
 
         onIgnition: {
@@ -68,13 +66,13 @@ export default {
                             .hand()
                             .graveyard()
                             .filter()
-                            .include("ライトロード")
+                            .lightsworn()
                             .get();
 
                         const banishedLightroad = new CardSelector(state)
                             .banished()
                             .filter()
-                            .include("ライトロード")
+                            .lightsworn()
                             .exclude("トワイライトロード・シャーマン ルミナス")
                             .get();
 
@@ -95,7 +93,7 @@ export default {
                     card,
                     (state, card) => {
                         const lightroadInHandGrave = (state: GameStore) =>
-                            new CardSelector(state).hand().graveyard().filter().include("ライトロード").get();
+                            new CardSelector(state).hand().graveyard().filter().lightsworn().get();
 
                         withUserSelectCard(
                             state,
@@ -112,7 +110,7 @@ export default {
                                     new CardSelector(state)
                                         .banished()
                                         .filter()
-                                        .include("ライトロード")
+                                        .lightsworn()
                                         .exclude("トワイライトロード・シャーマン ルミナス")
                                         .get();
 

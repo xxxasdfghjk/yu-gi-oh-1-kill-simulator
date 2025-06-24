@@ -111,21 +111,27 @@ export default {
                     },
                     (state, card, selected) => {
                         const selectedId = selected[0].id;
-                        withTurnAtOneceEffect(state, card, (state, card) => {
-                            if (selected.length > 0) {
-                                const selected = getCardInstanceFromId(state, selectedId)!;
-                                withUserSummon(
-                                    state,
-                                    card,
-                                    selected,
-                                    {
-                                        canSelectPosition: true,
-                                        optionPosition: ["attack", "defense"],
-                                    },
-                                    () => {}
-                                );
-                            }
-                        });
+                        withTurnAtOneceEffect(
+                            state,
+                            card,
+                            (state, card) => {
+                                if (selected.length > 0) {
+                                    const selected = getCardInstanceFromId(state, selectedId)!;
+                                    withUserSummon(
+                                        state,
+                                        card,
+                                        selected,
+                                        {
+                                            canSelectPosition: true,
+                                            optionPosition: ["attack", "defense"],
+                                        },
+                                        () => {}
+                                    );
+                                }
+                            },
+                            card.id,
+                            true
+                        );
                     }
                 );
             },

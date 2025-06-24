@@ -2,10 +2,11 @@ import type { LeveledMonsterCard } from "@/types/card";
 import {
     withTurnAtOneceCondition,
     withTurnAtOneceEffect,
-    withDelayRecursive,
     withNotification,
+    withSendToGraveyardFromDeckTop,
 } from "@/utils/effectUtils";
-import { addBuf, sendCardToGraveyardByEffect } from "@/utils/cardMovement";
+import { addBuf } from "@/utils/cardMovement";
+import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
 
 export default {
     card_name: "ライトロード・アサシン ライデン",
@@ -47,25 +48,18 @@ export default {
                             card,
                             (state, card) => {
                                 const includeLightLoad =
-                                    state.deck.slice(0, 2).filter((e) => e.card.card_name.includes("ライトロード"))
-                                        .length > 0;
+                                    new CardInstanceFilter(state.deck.slice(0, 2)).lightsworn().len() > 0;
 
-                                withDelayRecursive(
+                                withSendToGraveyardFromDeckTop(
                                     state,
                                     card,
-                                    { delay: 100 },
                                     2,
-                                    (state, card) => {
-                                        if (state.deck.length > 0) {
-                                            const topCard = state.deck[0];
-                                            sendCardToGraveyardByEffect(state, topCard, card);
-                                        }
-                                    },
                                     (state, card) => {
                                         if (includeLightLoad) {
                                             addBuf(state, card, { attack: 200, defense: 0, level: 0 });
                                         }
-                                    }
+                                    },
+                                    { byEffect: true }
                                 );
                             },
                             "LightlordRaiden_Ignition"

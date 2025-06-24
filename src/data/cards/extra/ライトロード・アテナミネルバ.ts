@@ -39,18 +39,14 @@ export default {
                     (state, card) => {
                         // S素材とした「ライトロード」モンスターの数を計算（簡略化：materials配列から推定）
                         const lightlordMaterialCount =
-                            card.summonedByMaterials?.filter((m) => m.card_name.includes("ライトロード")).length ?? 0;
+                            card.summonedByMaterials?.filter(
+                                (m) => m.card_name.includes("ライトロード") || m.card_name.includes("光道の龍")
+                            ).length ?? 0;
 
                         if (lightlordMaterialCount > 0) {
                             // デッキから「ライトロード」モンスターを墓地へ送る（同じ種族は1体まで）
                             const lightlordMonstersInDeck = (state: GameStore) =>
-                                new CardSelector(state)
-                                    .deck()
-                                    .filter()
-                                    .monster()
-                                    .include("ライトロード")
-                                    .unique()
-                                    .get();
+                                new CardSelector(state).deck().filter().monster().lightsworn().unique().get();
 
                             withUserSelectCard(
                                 state,
@@ -91,7 +87,7 @@ export default {
                             .graveyard()
                             .filter()
                             .monster()
-                            .include("ライトロード")
+                            .lightsworn()
                             .get();
                         return lightlordInGraveyard.length > 0 && card.location === "MonsterField";
                     },
@@ -99,28 +95,28 @@ export default {
                 );
             },
             effect: (state, card) => {
-                withTurnAtOneceEffect(
-                    state,
-                    card,
-                    (state, card) => {
-                        const lightlordInGraveyard = (state: GameStore) =>
-                            new CardSelector(state).graveyard().filter().monster().include("ライトロード").get();
+                const lightlordInGraveyard = (state: GameStore) =>
+                    new CardSelector(state).graveyard().filter().monster().lightsworn().get();
 
-                        const availableMonsters = lightlordInGraveyard(state);
+                const availableMonsters = lightlordInGraveyard(state);
 
-                        if (availableMonsters.length > 0) {
-                            const maxExclude = Math.min(4, Math.min(availableMonsters.length, state.deck.length));
+                if (availableMonsters.length > 0) {
+                    const maxExclude = Math.min(4, Math.min(availableMonsters.length, state.deck.length));
 
-                            withUserSelectCard(
+                    withUserSelectCard(
+                        state,
+                        card,
+                        lightlordInGraveyard,
+                        {
+                            select: "multi",
+                            message: `墓地から「ライトロード」モンスターを最大4体まで選択して除外`,
+                            condition: (cards) => cards.length <= maxExclude,
+                        },
+                        (state, card, selected) => {
+                            withTurnAtOneceEffect(
                                 state,
                                 card,
-                                lightlordInGraveyard,
-                                {
-                                    select: "multi",
-                                    message: `墓地から「ライトロード」モンスターを最大4体まで選択して除外`,
-                                    condition: (cards) => cards.length <= maxExclude,
-                                },
-                                (state, card, selected) => {
+                                (state, card) => {
                                     const selectedCount = selected.length;
                                     if (selected.length > 0) {
                                         // 選択したモンスターを除外
@@ -135,12 +131,12 @@ export default {
                                             }
                                         );
                                     }
-                                }
+                                },
+                                "LightlordAthenaMinerva_Ignition"
                             );
                         }
-                    },
-                    "LightlordAthenaMinerva_Ignition"
-                );
+                    );
+                }
             },
         },
         // TODO

@@ -10,7 +10,7 @@ import {
     withSendToGraveyard,
 } from "@/utils/effectUtils";
 import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
-import { getCardInstanceFromId } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・シェイレーン",
@@ -82,6 +82,10 @@ export default {
             if (!withTurnAtOneceCondition(state, card, () => true, "sheilane_1")) {
                 return;
             }
+            if (!hasEmptyMonsterZone(state)) {
+                return;
+            }
+
             withOption(
                 state,
                 card,

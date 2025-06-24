@@ -6,7 +6,7 @@ import {
     withTurnAtOneceEffect,
 } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { getAttack, getDefense, hasEmptyMonsterZone } from "@/utils/gameUtils";
+import { getAttack, getDefense, hasEmptyMonsterZone, shuffleDeck } from "@/utils/gameUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 
@@ -38,8 +38,8 @@ export default {
                             .graveyard()
                             .filter()
                             .monster()
-                            .get()
-                            .filter((c) => c.card.card_name.includes("ライトロード"));
+                            .lightsworn()
+                            .get();
 
                         return (
                             card.location === "Hand" && lightlordInGraveyard.length > 0 && hasEmptyMonsterZone(state)
@@ -95,10 +95,12 @@ export default {
                                 {
                                     select: "single",
                                     message: "墓地に送る「ライトロード」カードを選択してください",
+                                    canCancel: true,
                                 },
                                 (state, _card, selected) => {
                                     if (selected.length > 0) {
                                         sendCard(state, selected[0], "Graveyard");
+                                        shuffleDeck(state);
                                     }
                                 }
                             );
@@ -134,10 +136,12 @@ export default {
                             {
                                 select: "single",
                                 message: "手札に加える攻撃力3000/守備力2600のドラゴン族モンスターを選択してください",
+                                canCancel: true,
                             },
                             (state, _card, selected) => {
                                 if (selected.length > 0) {
                                     sendCard(state, selected[0], "Hand");
+                                    shuffleDeck(state);
                                 }
                             }
                         );

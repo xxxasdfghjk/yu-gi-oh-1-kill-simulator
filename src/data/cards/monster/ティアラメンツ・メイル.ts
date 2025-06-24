@@ -9,7 +9,7 @@ import {
 } from "@/utils/effectUtils";
 import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
-import { getCardInstanceFromId } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・メイルゥ",
@@ -58,6 +58,9 @@ export default {
         },
         onAnywhereToGraveyardByEffect: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true, "mailue_1")) {
+                return;
+            }
+            if (!hasEmptyMonsterZone(state)) {
                 return;
             }
             withOption(

@@ -1,7 +1,13 @@
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSelectCard, withUserSummon, withTurnAtOneceEffect, withUserConfirm } from "@/utils/effectUtils";
+import {
+    withUserSelectCard,
+    withUserSummon,
+    withTurnAtOneceEffect,
+    withUserConfirm,
+    withTurnAtOneceCondition,
+} from "@/utils/effectUtils";
 import { sendCard, destroyByEffect } from "@/utils/cardMovement";
-import { getAttack } from "@/utils/gameUtils";
+import { getAttack, getCardInstanceFromId } from "@/utils/gameUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { monsterFilter } from "../../../utils/cardManagement";
@@ -24,100 +30,96 @@ export default {
     canNormalSummon: true as const,
     effect: {
         onAnywhereToGraveyard: (state, card) => {
-            withTurnAtOneceEffect(
-                state,
-                card,
-                (state, card) => {
-                    // デッキからレベル4の昆虫族モンスターを検索
-                    const level4InsectInDeck = (state: GameStore) =>
-                        new CardSelector(state).deck().filter().monster().level(4).race("昆虫").get();
+            if (!withTurnAtOneceCondition(state, card, () => true)) {
+                return;
+            }
+            // デッキからレベル4の昆虫族モンスターを検索
+            const level4InsectInDeck = (state: GameStore) =>
+                new CardSelector(state).deck().filter().monster().level(4).race("昆虫").get();
 
-                    const availableMonsters = level4InsectInDeck(state);
+            const availableMonsters = level4InsectInDeck(state);
 
-                    if (availableMonsters.length > 0) {
-                        withUserSelectCard(
-                            state,
-                            card,
-                            level4InsectInDeck,
-                            {
-                                select: "single",
-                                message: "手札に加えるレベル4の昆虫族モンスターを選択してください",
-                            },
-                            (state, card, selected) => {
-                                if (selected.length > 0) {
-                                    const selectedMonster = selected[0];
-                                    sendCard(state, selectedMonster, "Hand");
-
-                                    // 通常モンスターかチェック
-                                    if (
-                                        monsterFilter(selectedMonster.card) &&
-                                        selectedMonster.card.monster_type === "通常モンスター"
-                                    ) {
-                                        withUserConfirm(
+            if (availableMonsters.length > 0) {
+                withUserSelectCard(
+                    state,
+                    card,
+                    level4InsectInDeck,
+                    {
+                        select: "single",
+                        message: "手札に加えるレベル4の昆虫族モンスターを選択してください",
+                        canCancel: true,
+                    },
+                    (state, card, selected) => {
+                        const selectedId = selected[0].id;
+                        withTurnAtOneceEffect(state, card, (state, card) => {
+                            const selectedMonster = getCardInstanceFromId(state, selectedId)!;
+                            sendCard(state, selectedMonster, "Hand");
+                            // 通常モンスターかチェック
+                            if (
+                                monsterFilter(selectedMonster.card) &&
+                                selectedMonster.card.monster_type === "通常モンスター"
+                            ) {
+                                withUserConfirm(
+                                    state,
+                                    card,
+                                    {
+                                        message: `「${selectedMonster.card.card_name}」を特殊召喚しますか？`,
+                                    },
+                                    (state, card) => {
+                                        withUserSummon(
                                             state,
                                             card,
+                                            selectedMonster,
                                             {
-                                                message: `「${selectedMonster.card.card_name}」を特殊召喚しますか？`,
+                                                canSelectPosition: true,
+                                                optionPosition: ["attack", "defense"],
                                             },
                                             (state, card) => {
-                                                withUserSummon(
-                                                    state,
-                                                    card,
-                                                    selectedMonster,
-                                                    {
-                                                        canSelectPosition: true,
-                                                        optionPosition: ["attack", "defense"],
-                                                    },
-                                                    (state, card) => {
-                                                        // 特殊召喚したモンスターの攻撃力を取得
-                                                        const summonedAttack = getAttack(selectedMonster);
+                                                // 特殊召喚したモンスターの攻撃力を取得
+                                                const summonedAttack = getAttack(selectedMonster);
 
-                                                        // フィールドのモンスターで攻撃力が同じかそれ以上のものを検索
-                                                        const destroyableMonsters = new CardSelector(state)
-                                                            .allMonster()
-                                                            .filter()
-                                                            .nonNull()
-                                                            .get()
-                                                            .filter((m) => getAttack(m) >= summonedAttack);
+                                                // フィールドのモンスターで攻撃力が同じかそれ以上のものを検索
+                                                const destroyableMonsters = new CardSelector(state)
+                                                    .allMonster()
+                                                    .filter()
+                                                    .nonNull()
+                                                    .get()
+                                                    .filter((m) => getAttack(m) >= summonedAttack);
 
-                                                        if (destroyableMonsters.length > 0) {
-                                                            withUserConfirm(
+                                                if (destroyableMonsters.length > 0) {
+                                                    withUserConfirm(
+                                                        state,
+                                                        card,
+                                                        {
+                                                            message: "フィールドのモンスターを破壊しますか？",
+                                                        },
+                                                        (state, card) => {
+                                                            withUserSelectCard(
                                                                 state,
                                                                 card,
+                                                                () => destroyableMonsters,
                                                                 {
-                                                                    message: "フィールドのモンスターを破壊しますか？",
+                                                                    select: "single",
+                                                                    message: "破壊するモンスターを選択してください",
                                                                 },
-                                                                (state, card) => {
-                                                                    withUserSelectCard(
-                                                                        state,
-                                                                        card,
-                                                                        () => destroyableMonsters,
-                                                                        {
-                                                                            select: "single",
-                                                                            message:
-                                                                                "破壊するモンスターを選択してください",
-                                                                        },
-                                                                        (state, card, selected) => {
-                                                                            if (selected.length > 0) {
-                                                                                destroyByEffect(state, selected[0]);
-                                                                            }
-                                                                        }
-                                                                    );
+                                                                (state, _card, selected) => {
+                                                                    if (selected.length > 0) {
+                                                                        destroyByEffect(state, selected[0]);
+                                                                    }
                                                                 }
                                                             );
                                                         }
-                                                    }
-                                                );
+                                                    );
+                                                }
                                             }
                                         );
                                     }
-                                }
+                                );
                             }
-                        );
+                        });
                     }
-                },
-                "Gokipole_ToGraveyard"
-            );
+                );
+            }
         },
     },
 } satisfies LeveledMonsterCard;

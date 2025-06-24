@@ -19,12 +19,9 @@ const effect = {
                 (state, card, selected) => {
                     if (selected.length > 0) {
                         const targetMonster = selected[0];
-                        console.log("fire");
-                        console.log(card.id);
                         sendCard(state, targetMonster, "Exclusion");
                         for (let i = 0; i < 5; i++) {
                             if (state.field.monsterZones[i]?.id === card.id) {
-                                console.log("copied!");
                                 state.field.monsterZones[i] = {
                                     ...state.field.monsterZones[i]!,
                                     card: { ...state.field.monsterZones[i]!.card, effect: targetMonster?.card.effect },

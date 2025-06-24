@@ -5,10 +5,11 @@ import {
     withSendToDeckBottom,
     withUserSelectCard,
     withOption,
+    withDelay,
 } from "@/utils/effectUtils";
 import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
-import { getCardInstanceFromId } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・ハゥフニス",
@@ -31,6 +32,10 @@ export default {
             if (!withTurnAtOneceCondition(state, card, () => true, "haufnis_1")) {
                 return;
             }
+            if (!hasEmptyMonsterZone(state)) {
+                return;
+            }
+
             withOption(
                 state,
                 card,

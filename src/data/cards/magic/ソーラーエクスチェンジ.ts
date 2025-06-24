@@ -13,12 +13,12 @@ export default {
     effect: {
         onSpell: {
             condition: (state) => {
-                const lightlordInHand = new CardSelector(state).hand().filter().monster().include("ライトロード").get();
+                const lightlordInHand = new CardSelector(state).hand().filter().monster().lightsworn().get();
                 return lightlordInHand.length > 0 && state.deck.length >= 4;
             },
             payCost: (state, card, afterCallback) => {
                 const lightlordInHand = (state: GameStore) =>
-                    new CardSelector(state).hand().filter().monster().include("ライトロード").get();
+                    new CardSelector(state).hand().filter().monster().lightsworn().get();
 
                 withUserSelectCard(
                     state,

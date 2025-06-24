@@ -32,10 +32,6 @@ export default {
                         name: "LPを支払い、攻撃力・守備力をアップする",
                         condition: () => state.lifePoints > 100,
                     },
-                    {
-                        name: "何もしない",
-                        condition: () => true,
-                    },
                 ],
                 (state, card, option) => {
                     if (option === "LPを支払い、攻撃力・守備力をアップする" && state.lifePoints > 100) {

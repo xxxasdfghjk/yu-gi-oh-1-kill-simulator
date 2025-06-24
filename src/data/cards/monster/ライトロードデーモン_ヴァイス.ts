@@ -26,7 +26,7 @@ export default {
     hasLevel: true as const,
     hasRank: false as const,
     hasLink: false as const,
-    canNormalSummon: false as const,
+    canNormalSummon: true as const,
     hasTuner: true,
     effect: {
         onIgnition: {
@@ -38,7 +38,7 @@ export default {
                         const lightlordInHand = new CardSelector(state)
                             .hand()
                             .filter()
-                            .include("ライトロード")
+                            .lightsworn()
                             .excludeId(card.id)
                             .get();
 
@@ -53,7 +53,7 @@ export default {
                     card,
                     (state, card) => {
                         const lightlordInHand = (state: GameStore) =>
-                            new CardSelector(state).hand().filter().include("ライトロード").excludeId(card.id).get();
+                            new CardSelector(state).hand().filter().lightsworn().excludeId(card.id).get();
 
                         withUserSelectCard(
                             state,
@@ -99,7 +99,7 @@ export default {
                     .graveyard()
                     .filter()
                     .monster()
-                    .include("ライトロード")
+                    .lightsworn()
                     .exclude("ライトロード・デーモン ヴァイス")
                     .get();
 

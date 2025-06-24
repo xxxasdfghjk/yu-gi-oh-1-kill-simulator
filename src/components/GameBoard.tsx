@@ -182,7 +182,7 @@ export const GameBoard: React.FC = () => {
             } else if (currentEffect?.type === "notification") {
                 // Show notification banner
                 setCurrentNotification({
-                    message: currentEffect.message,
+                    message: currentEffect.cardInstance.card.card_name + " : " + currentEffect.message,
                     duration: currentEffect.duration ?? 2000,
                 });
 

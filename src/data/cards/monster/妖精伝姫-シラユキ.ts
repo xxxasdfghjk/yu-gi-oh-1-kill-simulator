@@ -53,6 +53,7 @@ export default {
                         select: "multi",
                         condition: (selected) => selected.length === 7,
                         message: "除外するカードを7枚選択してください",
+                        canCancel: true,
                     },
                     (state, card, selected) => {
                         withExclusionMonsters(state, card, { cardIdList: selected.map((e) => e.id) }, (state, card) => {

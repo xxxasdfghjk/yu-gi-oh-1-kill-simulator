@@ -1,6 +1,11 @@
 import { CardSelector } from "@/utils/CardSelector";
-import { withUserSummon } from "@/utils/effectUtils";
-import { monsterFilter } from "@/utils/cardManagement";
+import {
+    withNotification,
+    withSendToGraveyardFromDeckTop,
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withUserSummon,
+} from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
@@ -22,18 +27,39 @@ export default {
     canNormalSummon: false as const,
     summonLimited: true,
     effect: {
+        onCardEffect: (state, card, context) => {
+            if (!withTurnAtOneceCondition(state, card, () => true, card.id, true)) {
+                return;
+            }
+            if (card.id === context?.["effectedById"]) {
+                return;
+            }
+            if (
+                !String(context?.["effectedByName"] ?? "").includes("ライトロード") &&
+                !String(context?.["effectedByName"] ?? "").includes("光道の龍")
+            ) {
+                return;
+            }
+
+            withNotification(state, card, { message: "自分のデッキの上からカードを４枚墓地へ送る" }, (state, card) => {
+                withTurnAtOneceEffect(
+                    state,
+                    card,
+                    (state, card) => {
+                        withSendToGraveyardFromDeckTop(state, card, 4, () => {}, { byEffect: true });
+                    },
+                    card.id,
+                    true
+                );
+            });
+        },
         // 特殊召喚効果
         onIgnition: {
             condition: (state, card) => {
                 // 手札にあり、除外状態の「ライトロード」モンスターが4種類以上
                 if (card.location !== "Hand") return false;
 
-                const banishedLightlords = new CardSelector(state)
-                    .banished()
-                    .filter()
-                    .monster()
-                    .get()
-                    .filter((c) => c.card.card_name.includes("ライトロード"));
+                const banishedLightlords = new CardSelector(state).banished().filter().monster().lightsworn().get();
 
                 // カード名の種類をカウント
                 const uniqueLightlordNames = new Set(banishedLightlords.map((c) => c.card.card_name));

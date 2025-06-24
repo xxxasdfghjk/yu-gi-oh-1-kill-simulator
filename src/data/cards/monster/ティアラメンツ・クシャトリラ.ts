@@ -94,7 +94,9 @@ export default {
                         .filter()
                         .excludeId(card.id)
                         .include("ティアラメンツ")
-                        .len() > 0 &&
+                        .len() +
+                        new CardSelector(state).hand().graveyard().filter().excludeId(card.id).include("壱世壊").len() >
+                        0 &&
                     hasEmptyMonsterZone(state)
                 );
             },
@@ -111,12 +113,15 @@ export default {
                                 state,
                                 card,
                                 (state) => {
-                                    return new CardSelector(state)
-                                        .hand()
-                                        .graveyard()
-                                        .filter()
-                                        .include("ティアラメンツ")
-                                        .get();
+                                    return [
+                                        ...new CardSelector(state)
+                                            .hand()
+                                            .graveyard()
+                                            .filter()
+                                            .include("ティアラメンツ")
+                                            .get(),
+                                        ...new CardSelector(state).hand().graveyard().filter().include("壱世壊").get(),
+                                    ];
                                 },
                                 { select: "single" },
                                 (state, _card, selected) => {

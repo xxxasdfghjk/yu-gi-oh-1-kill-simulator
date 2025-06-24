@@ -1,5 +1,6 @@
 import { withDraw, withNotification, withSendToGraveyardFromDeckTop } from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
+import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
 
 export default {
     card_name: "ライトロード・ウォリアー ガロス",
@@ -19,7 +20,6 @@ export default {
     canNormalSummon: true as const,
     effect: {
         onCardToGraveyardByEffect: (state, card, context) => {
-            console.log(context);
             if (
                 (context?.["effectedByName"]?.toString() ?? "")?.includes("ライトロード") &&
                 (context?.["effectedByName"]?.toString() ?? "") !== "ライトロード・ウォリアー ガロス" &&
@@ -27,10 +27,7 @@ export default {
             ) {
                 withNotification(state, card, { message: "ガロスの効果発動" }, (state, card) => {
                     if (state.deck.length >= 2) {
-                        const drawNum = state.deck
-                            .slice(0, 2)
-                            .map((e) => e.card.card_name)
-                            .filter((e) => e.includes("ライトロード")).length;
+                        const drawNum = new CardInstanceFilter(state.deck.slice(0, 2)).monster().lightsworn().len();
                         withSendToGraveyardFromDeckTop(
                             state,
                             card,
@@ -41,10 +38,7 @@ export default {
                             { byEffect: true }
                         );
                     } else if (state.deck.length === 1) {
-                        const drawNum = state.deck
-                            .slice(0, 1)
-                            .map((e) => e.card.card_name)
-                            .filter((e) => e.includes("ライトロード")).length;
+                        const drawNum = new CardInstanceFilter(state.deck.slice(0, 1)).lightsworn().len();
                         withSendToGraveyardFromDeckTop(
                             state,
                             card,

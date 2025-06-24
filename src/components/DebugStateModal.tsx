@@ -92,7 +92,6 @@ export const DebugStateModal: React.FC<DebugStateModalProps> = ({ isOpen, onClos
                 </div>
 
                 <div className="mt-4 flex justify-end">
-                    <button onClick={() => deckTopToGraveyard()}>DeckTop Destroy</button>
                     <button onClick={onClose} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
                         閉じる
                     </button>

@@ -64,9 +64,9 @@ export default {
 
                                         // デッキの上から3枚墓地に送り、「ライトロード」カードをカウント
                                         const cardsToMill = Math.min(3, state.deck.length);
-                                        const lightLoadCount = state.deck
-                                            .slice(0, cardsToMill)
-                                            .filter((e) => e.card.card_name.includes("ライトロード")).length;
+                                        const lightLoadCount = new CardInstanceFilter(state.deck.slice(0, cardsToMill))
+                                            .lightsworn()
+                                            .len();
                                         withSendToGraveyardFromDeckTop(
                                             state,
                                             card,

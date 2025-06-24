@@ -9,7 +9,7 @@ import {
     withTurnAtOneceCondition,
 } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { getLevel, shuffleDeck } from "@/utils/gameUtils";
+import { getCardInstanceFromId, getLevel, shuffleDeck } from "@/utils/gameUtils";
 import type { XyzMonsterCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
@@ -47,18 +47,20 @@ export default {
                     true
                 ),
             effect: (state, card) => {
-                withTurnAtOneceEffect(
-                    state,
-                    card,
-                    (state, card) => {
-                        if (card.materials.length > 0) {
-                            withUserSelectCard(
+                if (card.materials.length > 0) {
+                    withUserSelectCard(
+                        state,
+                        card,
+                        () => card.materials,
+                        { select: "single", canCancel: true },
+                        (state, card, selected) => {
+                            const selectedId = selected[0].id;
+                            withTurnAtOneceEffect(
                                 state,
                                 card,
-                                () => card.materials,
-                                { select: "single" },
-                                (state, card, selected) => {
-                                    sendCard(state, selected[0], "Graveyard");
+                                (state, card) => {
+                                    const instance = getCardInstanceFromId(state, selectedId)!;
+                                    sendCard(state, instance, "Graveyard");
                                     withOption(
                                         state,
                                         card,
@@ -129,16 +131,17 @@ export default {
                                             }
                                         }
                                     );
-                                }
+                                },
+                                card.id,
+                                true
                             );
                         }
-                    },
-                    card.id,
-                    true
-                );
+                    );
+                }
             },
         },
     },
+
     filterAvailableMaterials: (card) => {
         return monsterFilter(card.card) && card.card.hasLevel && getLevel(card) === 4;
     },
