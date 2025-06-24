@@ -65,10 +65,7 @@ const getSummonableZones = (state: GameStore, monster: CardInstance): number[] =
         monsterFilter(monster.card) &&
         (monster.card.monster_type === "エクシーズモンスター" || monster.card.monster_type === "シンクロモンスター")
     ) {
-        const isEmptyExtra =
-            state.field.extraMonsterZones
-                .map((e, index) => ({ elem: e, index: index + 5 }))
-                .filter(({ elem }) => elem === null).length === 2;
+        const isEmptyExtra = state.field.extraMonsterZones.filter((elem) => elem === null).length === 2;
         return [
             ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
             ...(isEmptyExtra ? [{ index: 5 }, { index: 6 }] : []),
