@@ -19,7 +19,7 @@ export default {
     image: "card100314678_1.jpg",
     monster_type: "エクシーズモンスター",
     element: "風" as const,
-    race: "水族" as const,
+    race: "水" as const,
     attack: 1800,
     defense: 1600,
     hasDefense: true as const,
@@ -47,7 +47,8 @@ export default {
                             .get();
                         return exiledMonsters.length > 0;
                     },
-                    "Leviair_Effect"
+                    "Leviair_Effect",
+                    true
                 );
             },
             effect: (state, card) => {
@@ -102,7 +103,8 @@ export default {
                             }
                         );
                     },
-                    "Leviair_Effect"
+                    "Leviair_Effect",
+                    true
                 );
             },
         },

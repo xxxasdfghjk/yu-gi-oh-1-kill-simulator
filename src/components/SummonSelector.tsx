@@ -55,9 +55,7 @@ export const getLinkMonsterSummonalble = (
     extraMonsterZones: (CardInstance | null)[],
     monsterZones: (CardInstance | null)[]
 ) => {
-    const extraMonsters = extraMonsterZones
-        .map((e, index) => ({ elem: e, index: index + 5 }))
-        .filter(({ elem }) => elem !== null).length;
+    const extraMonsters = extraMonsterZones.filter((elem) => elem !== null).length;
     const existing = [...monsterZones, ...extraMonsterZones]
         .map((e, zone) => ({ elem: e, zone: zone === 5 ? 6 : zone === 6 ? 8 : zone }))
         .filter(({ elem }) => elem !== null)

@@ -1,6 +1,6 @@
 import React from "react";
 import ModalWrapper from "./ModalWrapper";
-import { useGameStore, type GameStore } from "@/store/gameStore";
+import { type GameStore } from "@/store/gameStore";
 
 interface DebugStateModalProps {
     isOpen: boolean;
@@ -9,7 +9,6 @@ interface DebugStateModalProps {
 }
 
 export const DebugStateModal: React.FC<DebugStateModalProps> = ({ isOpen, onClose, gameState }) => {
-    const { deckTopToGraveyard } = useGameStore();
     const formatState = (obj: any, depth = 0): string => {
         const indent = "  ".repeat(depth);
         if (obj === null) return "null";

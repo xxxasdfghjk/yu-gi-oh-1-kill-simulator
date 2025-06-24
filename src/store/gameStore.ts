@@ -519,19 +519,16 @@ export const useGameStore = create<GameStore>()(
                             );
                     },
                     callback: (state, card, selected) => {
-                        for (let i = 0; i < selected.length; i++) {
-                            withDelay(state, card, { order: 0, delay: 20 }, (state) => {
-                                sendCard(state, selected[i], "Graveyard");
-                            });
-                        }
-                        card.summonedByMaterials = selected.map((e) => e.card);
-                        withUserSummon(
-                            state,
-                            card,
-                            card,
-                            { canSelectPosition: false, optionPosition: ["attack"], order: 5, summonType: "Link" },
-                            () => {}
-                        );
+                        withSendToGraveyard(state, card, selected, (state, card) => {
+                            card.summonedByMaterials = selected.map((e) => e.card);
+                            withUserSummon(
+                                state,
+                                card,
+                                card,
+                                { canSelectPosition: false, optionPosition: ["attack"], order: 5, summonType: "Link" },
+                                () => {}
+                            );
+                        });
                     },
                 });
             });
