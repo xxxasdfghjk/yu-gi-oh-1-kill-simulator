@@ -1,14 +1,21 @@
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance, MagicCard } from "@/types/card";
+import type { CardInstance, MagicCard, SummonedBy } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
-import { getSpellTrapZoneIndex, releaseCardById, sendCard, sendCardById, summon } from "./cardMovement";
+import {
+    getSpellTrapZoneIndex,
+    releaseCardById,
+    sendCard,
+    sendCardById,
+    sendCardToGraveyardByEffect,
+    summon,
+} from "./cardMovement";
 import { type EffectQueueItem } from "../store/gameStore";
-import { canNormalSummon } from "./summonUtils";
+import { canNormalSummon, getNeedReleaseCount } from "./summonUtils";
 import { hasEmptySpellField, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { CardSelector } from "./CardSelector";
 import { placementPriority, getLinkMonsterSummonalble } from "@/components/SummonSelector";
-import { getLevel } from "./gameUtils";
 import { isLinkMonster } from "./cardManagement";
+import { getCardInstanceFromId } from "./gameUtils";
 
 type EffectCallback = (gameState: GameStore, cardInstance: CardInstance) => void;
 type ConditionCallback = (gameState: GameStore, cardInstance: CardInstance) => boolean;
@@ -20,6 +27,28 @@ const markTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
         gameStore.turnOnceUsedEffectMemo = {};
     }
     gameStore.turnOnceUsedEffectMemo = { ...gameStore.turnOnceUsedEffectMemo, [effectId]: true };
+};
+
+const markCardTurnOnceUsedEffect = (gameStore: GameStore, card: CardInstance, effectId: string) => {
+    for (let i = 0; i < 5; i++) {
+        if (gameStore.field.monsterZones[i]?.id === card.id) {
+            if (gameStore.field.monsterZones[i]?.effectUse) {
+                gameStore.field.monsterZones[i]?.effectUse?.push(effectId);
+            } else {
+                gameStore.field.monsterZones[i]!.effectUse = [effectId];
+            }
+        }
+    }
+
+    for (let i = 0; i < 2; i++) {
+        if (gameStore.field.extraMonsterZones[i]?.id === card.id) {
+            if (gameStore.field.extraMonsterZones[i]?.effectUse) {
+                gameStore.field.extraMonsterZones[i]?.effectUse?.push(effectId);
+            } else {
+                gameStore.field.extraMonsterZones[i]!.effectUse = [effectId];
+            }
+        }
+    }
 };
 
 const checkTurnOnceUsedEffect = (gameStore: GameStore, effectId: string) => {
@@ -36,11 +65,10 @@ const getSummonableZones = (state: GameStore, monster: CardInstance): number[] =
         monsterFilter(monster.card) &&
         (monster.card.monster_type === "エクシーズモンスター" || monster.card.monster_type === "シンクロモンスター")
     ) {
+        const isEmptyExtra = state.field.extraMonsterZones.filter((elem) => elem === null).length === 2;
         return [
             ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
-            ...state.field.extraMonsterZones
-                .map((e, index) => ({ elem: e, index: index + 5 }))
-                .filter(({ elem }) => elem === null),
+            ...(isEmptyExtra ? [{ index: 5 }, { index: 6 }] : []),
         ].map((e) => e.index);
     } else {
         return [
@@ -58,14 +86,15 @@ export const withTurnAtOneceCondition = (
     state: GameStore,
     cardInstance: CardInstance,
     callback: ConditionCallback,
-    effectId: string | undefined = undefined
+    effectId: string | undefined = undefined,
+    cardOneceEffect: boolean = false
 ) => {
     const id = effectId ?? cardInstance.card.card_name;
     const alreadyUsed = checkTurnOnceUsedEffect(state, id);
-    if (alreadyUsed) {
-        return false;
+    if (cardOneceEffect) {
+        return cardInstance.effectUse?.includes(id) ? false : callback(state, cardInstance);
     } else {
-        return callback(state, cardInstance);
+        return alreadyUsed ? false : callback(state, cardInstance);
     }
 };
 
@@ -73,11 +102,17 @@ export const withTurnAtOneceEffect = (
     state: GameStore,
     cardInstance: CardInstance,
     callback: EffectCallback,
-    effectId: string | undefined = undefined
+    effectId: string | undefined = undefined,
+    cardOneceEffect: boolean = false
 ) => {
     const id = effectId ?? cardInstance.card.card_name;
-    markTurnOnceUsedEffect(state, id);
-    return callback(state, cardInstance);
+    if (cardOneceEffect) {
+        markCardTurnOnceUsedEffect(state, cardInstance, id);
+        return callback(state, cardInstance);
+    } else {
+        markTurnOnceUsedEffect(state, id);
+        return callback(state, cardInstance);
+    }
 };
 
 // Effect queue utilities
@@ -166,11 +201,15 @@ export const withUserSummon = (
         optionPosition,
         order,
         needRelease,
+        summonType,
+        placementMask,
     }: {
         order?: number;
         canSelectPosition?: boolean;
         optionPosition?: Exclude<Position, undefined>[];
         needRelease?: number;
+        summonType?: SummonedBy;
+        placementMask?: number[];
     },
     callback: (state: GameStore, card: CardInstance, monster: CardInstance) => void
 ) => {
@@ -180,17 +219,25 @@ export const withUserSummon = (
         const defaultZone = placementPriority(summonable);
         if (defaultZone >= 0) {
             state.isProcessing = false;
-            const summonResult = summon(state, monster, defaultZone, defaultPositon);
+            const summonResult = summon(state, monster, defaultZone, defaultPositon, { summonedBy: summonType });
             callback(state, card, summonResult);
             return;
         }
+        // If no zone is available, fall back to manual selection
+        // This happens mainly with Link monsters when no suitable zones exist
     };
     // Check if auto summon is enabled
     if (state.autoSummon && !needRelease) {
-        handler(state, _card, monster);
-        return;
+        const summonable = getSummonableZones(state, monster);
+        const defaultZone = placementPriority(summonable);
+        if (defaultZone >= 0) {
+            handler(state, _card, monster);
+            return;
+        }
+        // If auto summon fails (no available zone), fall back to manual selection
+        // This happens mainly with Link monsters when no suitable zones exist
     }
-
+    const monsterId = monster.id;
     if ((needRelease ?? 0) > 0) {
         // Add summon selection to effect queue
         withUserSelectCard(
@@ -204,19 +251,26 @@ export const withUserSummon = (
                 message: "リリース対象を選んでください",
             },
             (state, _card, selected) => {
+                const idList = selected.map((e) => e.id);
                 withDelayRecursive(
                     state,
                     _card,
                     { delay: 100 },
                     selected.length,
-                    (state, _card, depth) => {
-                        sendCard(state, selected[depth - 1], "Graveyard");
+                    (state, _, depth) => {
+                        releaseCardById(state, idList[depth - 1]);
                     },
                     (state) => {
                         // Check auto summon after release
+                        const monster = getCardInstanceFromId(state, monsterId)!;
                         if (state.autoSummon) {
-                            handler(state, _card, monster);
-                            return;
+                            const summonable = getSummonableZones(state, monster);
+                            const defaultZone = placementPriority(summonable);
+                            if (defaultZone >= 0) {
+                                handler(state, _card, monster);
+                                return;
+                            }
+                            // If auto summon fails, fall back to manual selection
                         }
 
                         pushQueue(state, {
@@ -232,7 +286,9 @@ export const withUserSummon = (
                                 cardInstance: CardInstance,
                                 result: { zone: number; position: Position }
                             ) => {
-                                const summonResult = summon(state, cardInstance, result.zone, result.position);
+                                const summonResult = summon(state, cardInstance, result.zone, result.position, {
+                                    summonedBy: summonType,
+                                });
                                 callback(state, cardInstance, summonResult);
                             },
                         });
@@ -250,6 +306,7 @@ export const withUserSummon = (
                 callback(state, _card, summonResult);
                 return;
             }
+            // If auto summon fails, fall back to manual selection
         }
 
         pushQueue(state, {
@@ -260,8 +317,11 @@ export const withUserSummon = (
             effectType: "with_user_summon_callback",
             canSelectPosition: canSelectPosition ?? true,
             optionPosition: optionPosition ?? ["attack", "defense"],
+            placementMask: placementMask,
             callback: (state: GameStore, cardInstance: CardInstance, result: { zone: number; position: Position }) => {
-                const summonResult = summon(state, cardInstance, result.zone, result.position);
+                const summonResult = summon(state, cardInstance, result.zone, result.position, {
+                    summonedBy: summonType,
+                });
                 callback(state, cardInstance, summonResult);
             },
         });
@@ -329,11 +389,68 @@ export const withLifeChange = (
     });
 };
 
-export const withSendToGraveyard = (
+export const withSendToGraveyardFromDeckTop = (
+    state: GameStore,
+    card: CardInstance,
+    count: number,
+    callback?: (state: GameStore, cardInstance: CardInstance) => void,
+    option?: { byEffect?: boolean }
+) => {
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        count,
+        (state, card) => {
+            if (state.deck.length === 0) {
+                return;
+            }
+            if (option?.byEffect) {
+                sendCardToGraveyardByEffect(state, state.deck[0], card);
+            } else {
+                sendCard(state, state.deck[0], "Graveyard");
+            }
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
+export const withSendToDeckBottom = (
     state: GameStore,
     card: CardInstance,
     cardList: CardInstance[],
     callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    const cardIds = cardList.map((e) => e.id);
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        cardList.length,
+        (state, card, depth) => {
+            const instance = getCardInstanceFromId(state, cardIds[depth - 1])!;
+            sendCard(state, instance, "Deck", { effectedBy: card });
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+    // Execute callback after all cards are drawn
+};
+
+export const withSendToGraveyard = (
+    state: GameStore,
+    card: CardInstance,
+    cardList: CardInstance[],
+    callback?: (state: GameStore, cardInstance: CardInstance) => void,
+    option?: { byEffect?: boolean }
 ) => {
     const idList = cardList.map((c) => c.id);
     withDelayRecursive(
@@ -341,8 +458,13 @@ export const withSendToGraveyard = (
         card,
         {},
         cardList.length,
-        (state, _, depth) => {
-            sendCardById(state, idList[depth - 1], "Graveyard");
+        (state, card, depth) => {
+            const instance = getCardInstanceFromId(state, idList[depth - 1])!;
+            if (option?.byEffect) {
+                sendCardToGraveyardByEffect(state, instance, card);
+            } else {
+                sendCard(state, instance, "Graveyard");
+            }
         },
         (state, card) => {
             if (callback) {
@@ -377,6 +499,31 @@ export const withSendToDeckTop = (
     // Execute callback after all cards are drawn
 };
 
+export const withSendDeckBottom = (
+    state: GameStore,
+    card: CardInstance,
+    cardIdList: string[],
+    callback?: (state: GameStore, cardInstance: CardInstance) => void
+) => {
+    // シャッフルして順番をランダムにする
+    const shuffledIdList = [...cardIdList].sort(() => Math.random() - 0.5);
+
+    withDelayRecursive(
+        state,
+        card,
+        {},
+        shuffledIdList.length,
+        (state, _, depth) => {
+            sendCardById(state, shuffledIdList[depth - 1], "Deck", { deckTop: false });
+        },
+        (state, card) => {
+            if (callback) {
+                callback(state, card);
+            }
+        }
+    );
+};
+
 export const withDraw = (
     state: GameStore,
     card: CardInstance,
@@ -390,16 +537,6 @@ export const withDraw = (
     const target = options.target ?? "player";
 
     if (target === "player") {
-        // Check if there are enough cards to draw
-        if (state.deck.length < options.count) {
-            // Not enough cards to draw - player loses
-            state.gameOver = true;
-            state.winner = "timeout";
-            state.winReason = "deck_out";
-            return;
-        }
-
-        // Draw cards from deck to hand
         withDelayRecursive(
             state,
             card,
@@ -672,7 +809,9 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
             };
             if (card.card.effect.onSpell?.payCost) {
                 card.card.effect.onSpell.payCost(state, card, (state, card, context) => {
-                    handler(state, card, context);
+                    withDelay(state, card, {}, (state, card) => {
+                        handler(state, card, context);
+                    });
                 });
             } else {
                 handler(state, card, undefined);
@@ -702,7 +841,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 sendCard(state, state.field.fieldZone, "Graveyard");
                 withDelay(state, card, { order: -1 }, (state, card) => {
                     sendCard(state, card, "FieldZone");
-                    card.card.effect.onSpell?.effect(state, card, undefined, () => {
+                    card.card.effect.onSpell?.effect(state, card, undefined, (state) => {
                         state.isProcessing = false;
                     });
                 });
@@ -729,8 +868,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
         });
     } else if (card.card.card_type === "モンスター") {
         // Handle monster cards - add to effect queue for user to choose position and zone
-        const level = getLevel(card);
-        const needRelease = level <= 4 ? 0 : level <= 6 ? 1 : 2;
+        const needRelease = getNeedReleaseCount(state, card);
         withUserSummon(
             state,
             card,
@@ -739,6 +877,7 @@ export const playCardInternal = (state: GameStore, card: CardInstance) => {
                 canSelectPosition: true,
                 optionPosition: ["attack", "back_defense"],
                 needRelease: needRelease,
+                summonType: "Normal",
             },
             (state) => {
                 state.hasNormalSummoned = true;

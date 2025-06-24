@@ -96,6 +96,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     onCancel={currentEffect.canCancel ? () => handleClose(() => popQueue()) : undefined}
                     type={"single"}
                     isOpen={!isClosing}
+                    forceCancel={() => handleClose(() => popQueue())}
                 />
             );
 
@@ -124,6 +125,7 @@ export const EffectQueueModal: React.FC<EffectQueueModalProps> = ({
                     }
                     state={gameState}
                     isOpen={!isClosing}
+                    placementMask={currentEffect.placementMask}
                 />
             );
 

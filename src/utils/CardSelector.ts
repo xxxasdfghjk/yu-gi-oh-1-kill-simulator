@@ -14,6 +14,17 @@ export class CardSelector {
         return this;
     }
 
+    materials() {
+        const materials = [
+            ...this.state.field.monsterZones.map((e) => e?.materials ?? []),
+            ...this.state.field.extraMonsterZones.map((e) => e?.materials ?? []),
+        ]
+            .flat()
+            .filter((e): e is CardInstance => e !== null);
+        this.list = [...this.list, ...materials];
+        return this;
+    }
+
     monster() {
         this.list = [...this.list, ...this.state.field.monsterZones];
         return this;

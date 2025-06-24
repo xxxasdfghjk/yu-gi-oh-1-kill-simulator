@@ -1,5 +1,5 @@
 import type { GameStore } from "@/store/gameStore";
-import type { CardInstance, LinkMonsterCard } from "@/types/card";
+import type { CardInstance, Direction, LinkMonsterCard } from "@/types/card";
 import { FieldZone } from "./FieldZone";
 import { useEffect, useState } from "react";
 import ModalWrapper from "./ModalWrapper";
@@ -14,6 +14,7 @@ type Props = {
     onCancel?: () => void;
     isOpen?: boolean;
     popQueue: () => void;
+    placementMask?: number[];
 };
 
 const except = (a: number[], b: number[]) => {
@@ -21,13 +22,40 @@ const except = (a: number[], b: number[]) => {
     return a.filter((e) => !bSet.has(e));
 };
 
+export const getSummonableIndexLink = (directions: Direction[], zone: number) => {
+    const result: number[] = [];
+    if (directions.includes("上")) {
+        result.push(zone + 5);
+    }
+    if (directions.includes("右上")) {
+        result.push(zone + 6);
+    }
+    if (directions.includes("右")) {
+        result.push(zone + 1);
+    }
+    if (directions.includes("右下")) {
+        result.push(zone - 4);
+    }
+    if (directions.includes("下")) {
+        result.push(zone - 5);
+    }
+    if (directions.includes("左下")) {
+        result.push(zone - 6);
+    }
+    if (directions.includes("左")) {
+        result.push(zone - 1);
+    }
+    if (directions.includes("左上")) {
+        result.push(zone + 4);
+    }
+    return result;
+};
+
 export const getLinkMonsterSummonalble = (
     extraMonsterZones: (CardInstance | null)[],
     monsterZones: (CardInstance | null)[]
 ) => {
-    const extraMonsters = extraMonsterZones
-        .map((e, index) => ({ elem: e, index: index + 5 }))
-        .filter(({ elem }) => elem !== null).length;
+    const extraMonsters = extraMonsterZones.filter((elem) => elem !== null).length;
     const existing = [...monsterZones, ...extraMonsterZones]
         .map((e, zone) => ({ elem: e, zone: zone === 5 ? 6 : zone === 6 ? 8 : zone }))
         .filter(({ elem }) => elem !== null)
@@ -40,32 +68,7 @@ export const getLinkMonsterSummonalble = (
             return { directions: (e.card as LinkMonsterCard).linkDirection, zone: e.zone };
         })
         .map(({ directions, zone: index }) => {
-            const result: number[] = [];
-            if (directions.includes("上")) {
-                result.push(index + 5);
-            }
-            if (directions.includes("右上")) {
-                result.push(index + 6);
-            }
-            if (directions.includes("右")) {
-                result.push(index + 1);
-            }
-            if (directions.includes("右下")) {
-                result.push(index - 4);
-            }
-            if (directions.includes("下")) {
-                result.push(index - 5);
-            }
-            if (directions.includes("左下")) {
-                result.push(index - 6);
-            }
-            if (directions.includes("左")) {
-                result.push(index - 1);
-            }
-            if (directions.includes("左上")) {
-                result.push(index + 4);
-            }
-            return result;
+            return getSummonableIndexLink(directions, index);
         })
         .flat()
         .filter((e) => (e >= 0 && e <= 4) || e === 6 || e === 8)
@@ -81,7 +84,9 @@ export const order = [2, 1, 3, 0, 4, 5, 6];
 export const placementPriority = (candidate: number[]) => {
     return order.find((e) => candidate.includes(e)) ?? -1;
 };
-
+const intersection = (a: number[], b: number[]) => {
+    return a.filter((e) => b.includes(e));
+};
 const SummonSelector = ({
     cardInstance,
     state,
@@ -90,25 +95,33 @@ const SummonSelector = ({
     optionPosition,
     isOpen = true,
     popQueue,
+    placementMask = [0, 1, 2, 3, 4, 5, 6],
 }: Props) => {
     const cardSizeClass = "w-20 h-32";
     const positionSizeClass = "w-20 h-32";
     const isLink = isLinkMonster(cardInstance.card);
 
-    const summonable = isLink
-        ? getLinkMonsterSummonalble(state.field.extraMonsterZones, state.field.monsterZones)
-        : monsterFilter(cardInstance.card) &&
-          (cardInstance.card.monster_type === "エクシーズモンスター" ||
-              cardInstance.card.monster_type === "シンクロモンスター")
-        ? [
-              ...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null),
-              ...state.field.extraMonsterZones
-                  .map((e, index) => ({ elem: e, index: index + 5 }))
-                  .filter(({ elem }) => elem === null),
-          ].map((e) => e.index)
-        : [...state.field.monsterZones.map((e, index) => ({ elem: e, index })).filter(({ elem }) => elem === null)].map(
-              (e) => e.index
-          );
+    const summonable = intersection(
+        isLink
+            ? getLinkMonsterSummonalble(state.field.extraMonsterZones, state.field.monsterZones)
+            : monsterFilter(cardInstance.card) &&
+              (cardInstance.card.monster_type === "エクシーズモンスター" ||
+                  cardInstance.card.monster_type === "シンクロモンスター")
+            ? [
+                  ...state.field.monsterZones
+                      .map((e, index) => ({ elem: e, index }))
+                      .filter(({ elem }) => elem === null),
+                  ...state.field.extraMonsterZones
+                      .map((e, index) => ({ elem: e, index: index + 5 }))
+                      .filter(({ elem }) => elem === null),
+              ].map((e) => e.index)
+            : [
+                  ...state.field.monsterZones
+                      .map((e, index) => ({ elem: e, index }))
+                      .filter(({ elem }) => elem === null),
+              ].map((e) => e.index),
+        placementMask
+    );
     const [zone, setZone] = useState<number>(-1);
     const [position, setPosition] = useState<Exclude<Position, undefined>>("attack");
     const dummyCardInstance = { ...cardInstance, position: "back_defense" as const };

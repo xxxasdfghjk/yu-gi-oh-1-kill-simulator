@@ -9,6 +9,7 @@ import type {
     MagicCard,
     TrapCard,
     FusionMonsterCard,
+    SynchroMonsterCard,
 } from "@/types/card";
 import { v4 as uuidv4 } from "uuid";
 
@@ -47,6 +48,10 @@ export const isLinkMonster = (card: Card): card is LinkMonsterCard => {
 
 export const isXyzMonster = (card: Card): card is XyzMonsterCard => {
     return monsterFilter(card) && card.monster_type === "エクシーズモンスター";
+};
+
+export const isSynchroMonster = (card: Card): card is SynchroMonsterCard => {
+    return monsterFilter(card) && card.monster_type === "シンクロモンスター";
 };
 
 export const isExodia = (card: Card) => {
@@ -94,7 +99,7 @@ export const createCardInstance = (card: Card, location: CardInstance["location"
 
 // Level and link calculation utilities
 export const sumLevel = (cardList: CardInstance[]) =>
-    cardList.map((e) => (hasLevelMonsterFilter(e.card) ? e.card.level : 0)).reduce((prev, cur) => cur + prev, 0);
+    cardList.map((e) => (hasLevelMonsterFilter(e.card) ? e.card.level : -999)).reduce((prev, cur) => cur + prev, 0);
 
 export const sumLink = (cardList: CardInstance[]) =>
     cardList.map((e) => (hasLinkMonsterFilter(e.card) ? e.card.link : 1)).reduce((prev, cur) => cur + prev, 0);

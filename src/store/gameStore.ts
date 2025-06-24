@@ -4,10 +4,18 @@ import type { GameState } from "@/types/game";
 import type { Deck } from "@/data/deckUtils";
 import deckList from "@/data/deck/deckList";
 
-import { createCardInstance, isLinkMonster, isMagicCard, isXyzMonster } from "@/utils/cardManagement";
-import { excludeFromAnywhere, sendCard } from "@/utils/cardMovement";
+import { createCardInstance, isLinkMonster, isMagicCard, isXyzMonster, isSynchroMonster } from "@/utils/cardManagement";
+import { excludeFromAnywhere, notifyCardEffect, sendCard } from "@/utils/cardMovement";
 import type { CardInstance } from "@/types/card";
-import { withDelay, withUserSummon, type Position, playCardInternal, withDelayRecursive } from "@/utils/effectUtils";
+import {
+    withDelay,
+    withUserSummon,
+    type Position,
+    playCardInternal,
+    withDelayRecursive,
+    withSendToGraveyardFromDeckTop,
+    withSendToGraveyard,
+} from "@/utils/effectUtils";
 import { pushQueue } from "../utils/effectUtils";
 import { placementPriority } from "@/components/SummonSelector";
 import type { DeckEffect } from "@/components/DeckEffectSelectorModal";
@@ -71,6 +79,7 @@ export type EffectQueueItem =
                 effectType: string;
                 canSelectPosition: boolean;
                 optionPosition: Exclude<Position, undefined>[];
+                placementMask?: number[];
                 callback?: (
                     state: GameStore,
                     cardInstance: CardInstance,
@@ -117,7 +126,7 @@ export type EffectQueueItem =
                 cardInstance: CardInstance;
                 effectType: string;
                 targetMonster: CardInstance;
-                summonType: "link" | "xyz";
+                summonType: "link" | "xyz" | "synchro";
                 getAvailableCards: (state: GameStore) => CardInstance[];
                 callback: (state: GameStore, cardInstance: CardInstance, selectedMaterials: CardInstance[]) => void;
             }
@@ -159,6 +168,7 @@ export interface GameStore extends GameState {
     setCard: (card: CardInstance) => void;
     startLinkSummon: (linkMonster: CardInstance) => void;
     startXyzSummon: (xyzMonster: CardInstance) => void;
+    startSynchroSummon: (synchroMonster: CardInstance) => void;
     sendSpellToGraveyard: (cardInstance: CardInstance) => void;
     activateEffect: (card: CardInstance) => void;
     checkExodiaWin: () => void;
@@ -169,6 +179,7 @@ export interface GameStore extends GameState {
     setGameOver: (winner: "player" | "timeout") => void;
     animationExodiaWin: () => void;
     activateDeckEffect: (callback: DeckEffect) => void;
+    deckTopToGraveyard: () => void;
 }
 
 // Fisher-Yates (Knuth) シャッフルアルゴリズム
@@ -305,7 +316,12 @@ export const useGameStore = create<GameStore>()(
         activateEffect: (card: CardInstance) => {
             set((state) => {
                 state.isProcessing = true;
+
                 card.card.effect.onIgnition?.effect(state, card);
+                withDelay(state, card, {}, (state, card) => {
+                    notifyCardEffect(state, card, "onCardEffect");
+                });
+
                 state.isProcessing = false;
             });
         },
@@ -486,7 +502,6 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 pushQueue(state, {
                     order: 0,
-
                     id: linkMonster.id + "_material_select",
                     type: "material_select",
                     cardInstance: linkMonster,
@@ -504,18 +519,16 @@ export const useGameStore = create<GameStore>()(
                             );
                     },
                     callback: (state, card, selected) => {
-                        for (let i = 0; i < selected.length; i++) {
-                            withDelay(state, card, { order: 0, delay: 20 }, (state) => {
-                                sendCard(state, selected[i], "Graveyard");
-                            });
-                        }
-                        withUserSummon(
-                            state,
-                            card,
-                            card,
-                            { canSelectPosition: false, optionPosition: ["attack"], order: 5 },
-                            () => {}
-                        );
+                        withSendToGraveyard(state, card, selected, (state, card) => {
+                            card.summonedByMaterials = selected.map((e) => e.card);
+                            withUserSummon(
+                                state,
+                                card,
+                                card,
+                                { canSelectPosition: false, optionPosition: ["attack"], order: 5, summonType: "Link" },
+                                () => {}
+                            );
+                        });
                     },
                 });
             });
@@ -545,13 +558,60 @@ export const useGameStore = create<GameStore>()(
                     summonType: "xyz",
                     callback: (state, card, selected) => {
                         const newMaterials = selected.map((e) => ({ ...e, location: "Material" as const }));
-                        const newInstance = { ...card, materials: [...newMaterials], equipment: [...(card.equipment || [])] };
+                        const newInstance = {
+                            ...card,
+                            materials: [...newMaterials],
+                            equipment: [...(card.equipment || [])],
+                        };
                         for (const card of selected) {
                             const from = excludeFromAnywhere(state, card);
                             state.currentFrom = from;
                             state.currentTo = { location: "ExtraDeck" };
                         }
-                        withUserSummon(state, newInstance, newInstance, {}, () => {});
+                        withUserSummon(state, newInstance, newInstance, { summonType: "Xyz" }, () => {});
+                    },
+                });
+            });
+        },
+
+        startSynchroSummon: (synchroMonster: CardInstance) => {
+            set((state) => {
+                pushQueue(state, {
+                    order: 0,
+                    id: synchroMonster.id + "_material_select",
+                    type: "material_select",
+                    cardInstance: synchroMonster,
+                    effectType: "synchro_material_selection",
+                    targetMonster: synchroMonster,
+                    summonType: "synchro",
+                    getAvailableCards: (state) => {
+                        return [...state.field.monsterZones, ...state.field.extraMonsterZones]
+                            .filter(
+                                (e): e is CardInstance =>
+                                    e !== null && (e.position === "attack" || e.position === "defense")
+                            )
+                            .filter(
+                                (e) =>
+                                    isSynchroMonster(synchroMonster.card) &&
+                                    synchroMonster.card?.filterAvailableMaterials?.(e)
+                            );
+                    },
+                    callback: (state, card, selected) => {
+                        card.summonedByMaterials = selected.map((e) => e.card);
+                        withSendToGraveyard(state, card, selected, (state, card) => {
+                            withUserSummon(
+                                state,
+                                card,
+                                card,
+                                {
+                                    canSelectPosition: false,
+                                    optionPosition: ["attack"],
+                                    order: 5,
+                                    summonType: "Synchro",
+                                },
+                                () => {}
+                            );
+                        });
                     },
                 });
             });
@@ -649,6 +709,12 @@ export const useGameStore = create<GameStore>()(
             set((state) => {
                 state.gameOver = true;
                 state.winner = winner;
+            });
+        },
+
+        deckTopToGraveyard: () => {
+            set((state) => {
+                withSendToGraveyardFromDeckTop(state, { card: { card_name: "" } } as CardInstance, 1, () => {});
             });
         },
     }))

@@ -49,6 +49,9 @@ export type EffectType = {
     onRelease?: EffectCallback;
     onFieldToGraveyard?: EffectCallback;
     onAnywhereToGraveyard?: EffectCallback;
+    onAnywhereToGraveyardByEffect?: EffectCallback;
+    onDeckToGraveyard?: EffectCallback;
+    onHandToGraveyard?: EffectCallback;
     onGraveyardToField?: EffectCallback;
     onDestroyByBattle?: EffectCallback;
     onDestroyByEffect?: EffectCallback;
@@ -63,6 +66,10 @@ export type EffectType = {
     };
     onStandbyPhase?: EffectCallback;
     onPayLifeCost?: OnPayLifeCostCallback;
+    onCardEffect?: EffectCallback;
+    onCardDeckToGraveyard?: EffectCallback;
+    onCardToGraveyard?: EffectCallback;
+    onCardToGraveyardByEffect?: EffectCallback;
 };
 
 type CardTypeName = "モンスター" | "魔法" | "罠";
@@ -73,11 +80,30 @@ export interface Card {
     text: string;
     image: string;
     effect: EffectType;
+    originEffect?: EffectType;
 }
 
-export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | undefined;
-export type Element = "闇" | "光" | "風" | "炎" | "地" | "水" | "火";
-export type Race = "魔法使い" | "機械" | "悪魔" | "天使" | "サイバース" | "戦士" | "水" | "ドラゴン";
+export type SummonedBy = "Normal" | "Special" | "Link" | "Xyz" | "Synchro" | "Fusion" | undefined;
+export type Element = "闇" | "光" | "風" | "炎" | "地" | "水" | "火" | "神";
+export type Race =
+    | "魔法使い"
+    | "機械"
+    | "悪魔"
+    | "天使"
+    | "サイバース"
+    | "戦士"
+    | "水"
+    | "ドラゴン"
+    | "幻神獣"
+    | "恐竜"
+    | "獣"
+    | "岩石"
+    | "サイキック"
+    | "獣戦士"
+    | "創造神"
+    | "昆虫"
+    | "幻竜"
+    | "鳥獣";
 
 type MonsterType =
     | "通常モンスター"
@@ -127,7 +153,7 @@ export interface XyzMonsterCard extends DefensableMonsterCard, NeedMaterialMonst
     canNormalSummon: false;
 }
 
-type Direction = "左" | "左下" | "下" | "右下" | "右" | "右上" | "上" | "左上";
+export type Direction = "左" | "左下" | "下" | "右下" | "右" | "右上" | "上" | "左上";
 
 interface NeedMaterialMonster {
     materialCondition: MaterialCondition;
@@ -200,7 +226,10 @@ export interface CardInstance {
         defense: number;
     };
     materials: CardInstance[];
+    summonedByMaterials?: Card[];
     isToken?: boolean;
     setTurn?: number;
     isDummy?: true;
+    magicCounter?: number;
+    effectUse?: string[];
 }

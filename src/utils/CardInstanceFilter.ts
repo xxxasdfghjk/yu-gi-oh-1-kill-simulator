@@ -1,5 +1,5 @@
-import type { CardInstance, Race } from "@/types/card";
-import { isFusionMonster, isMagicCard, monsterFilter } from "./cardManagement";
+import type { CardInstance, Element, Race } from "@/types/card";
+import { isFusionMonster, isMagicCard, isTrapCard, monsterFilter } from "./cardManagement";
 import { getLevel } from "./gameUtils";
 
 export class CardInstanceFilter<T extends (CardInstance | null)[]> {
@@ -27,6 +27,13 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
     }
 
+    hasLevel() {
+        const leveledMonterList = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.hasLevel
+        );
+        return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
+    }
+
     upperLevel(level: number) {
         const leveledMonterList = this.cardList.filter(
             (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) >= level
@@ -36,7 +43,7 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
 
     underLevel(level: number) {
         const leveledMonterList = this.cardList.filter(
-            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) <= level
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && getLevel(e) <= level && 0 <= getLevel(e)
         );
         return new CardInstanceFilter<CardInstance[]>(leveledMonterList);
     }
@@ -56,6 +63,11 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
     magic() {
         const magicList = this.cardList.filter((e): e is CardInstance => e !== null && isMagicCard(e.card));
         return new CardInstanceFilter<CardInstance[]>(magicList);
+    }
+
+    trap() {
+        const trapList = this.cardList.filter((e): e is CardInstance => e !== null && isTrapCard(e.card));
+        return new CardInstanceFilter<CardInstance[]>(trapList);
     }
 
     equipSpell() {
@@ -89,6 +101,21 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<null[]>(nullList);
     }
 
+    element(element: Element) {
+        const list = this.cardList.filter(
+            (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.element === element
+        );
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    lightsworn() {
+        const list = this.cardList.filter(
+            (e): e is CardInstance =>
+                e !== null && (e.card.card_name.includes("ライトロード") || e.card.card_name.includes("光道の龍"))
+        );
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
     include(str: string) {
         const list = this.cardList.filter((e): e is CardInstance => e !== null && e.card.card_name.includes(str));
         return new CardInstanceFilter<CardInstance[]>(list);
@@ -99,11 +126,29 @@ export class CardInstanceFilter<T extends (CardInstance | null)[]> {
         return new CardInstanceFilter<CardInstance[]>(list);
     }
 
+    exclude(name: string) {
+        const list = this.cardList.filter((e): e is CardInstance => e !== null && !e.card.card_name.includes(name));
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    faceup() {
+        const list = this.cardList.filter(
+            (e): e is CardInstance => e !== null && (e.position === "attack" || e.position === "defense")
+        );
+        return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
     hasAttackBelow(attack: number) {
         const list = this.cardList.filter(
             (e): e is CardInstance => e !== null && monsterFilter(e.card) && e.card.attack <= attack
         );
         return new CardInstanceFilter<CardInstance[]>(list);
+    }
+
+    unique() {
+        const nonNull = this.cardList.filter((e) => e !== null);
+        const unique = Array.from(new Map(nonNull.map((e) => [e?.card.card_name, e])).values());
+        return new CardInstanceFilter<CardInstance[]>(unique);
     }
 
     len() {

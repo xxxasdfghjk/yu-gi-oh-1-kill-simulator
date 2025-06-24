@@ -6,7 +6,11 @@ import { HandArea } from "./HandArea";
 import { PlayerField } from "./PlayerField";
 import { ExtraMonsterZones } from "./ExtraMonsterZones";
 import { ControlButtons } from "./ControlButtons";
-import { searchCombinationLinkSummon, searchCombinationXyzSummon } from "@/utils/gameUtils";
+import {
+    searchCombinationLinkSummon,
+    searchCombinationXyzSummon,
+    searchCombinationSynchroSummon,
+} from "@/utils/gameUtils";
 import type { CardInstance } from "@/types/card";
 import type { Deck } from "@/data/deckUtils";
 import { HoveredCardDisplay } from "./HoveredCardDisplay";
@@ -14,7 +18,7 @@ import { GraveyardModal } from "./GraveyardModal";
 import { ExtraDeckModal } from "./ExtraDeckModal";
 import { EffectQueueModal } from "./EffectQueueModal";
 import { DeckSelectionModal } from "./DeckSelectionModal";
-import { isXyzMonster } from "@/utils/cardManagement";
+import { isXyzMonster, isSynchroMonster } from "@/utils/cardManagement";
 import { ExodiaVictoryRotationAnime } from "./ExodiaVictoryRotationAnime";
 import { TurnEndAnimation } from "./TurnEndAnimation";
 import { GameStatusDisplay } from "./GameStatusDisplay";
@@ -122,6 +126,8 @@ export const GameBoard: React.FC = () => {
             gameState.startLinkSummon(monster);
         } else if (summonType === "xyz" && gameState.startXyzSummon) {
             gameState.startXyzSummon(monster);
+        } else if (summonType === "synchro" && gameState.startSynchroSummon) {
+            gameState.startSynchroSummon(monster);
         }
     };
 
@@ -149,6 +155,19 @@ export const GameBoard: React.FC = () => {
 
         return searchCombinationXyzSummon(xyzMonster, gameState.field.extraMonsterZones, gameState.field.monsterZones);
     };
+
+    const canPerformSynchroSummon = (synchroMonster: CardInstance): boolean => {
+        if (!isSynchroMonster(synchroMonster.card)) return false;
+        if (gameState.phase !== "main1") {
+            return false;
+        }
+
+        return searchCombinationSynchroSummon(
+            synchroMonster,
+            gameState.field.extraMonsterZones,
+            gameState.field.monsterZones
+        );
+    };
     useEffect(() => {
         const func = async () => {
             const currentEffect = effectQueue?.[0];
@@ -163,7 +182,7 @@ export const GameBoard: React.FC = () => {
             } else if (currentEffect?.type === "notification") {
                 // Show notification banner
                 setCurrentNotification({
-                    message: currentEffect.message,
+                    message: currentEffect.cardInstance.card.card_name + " : " + currentEffect.message,
                     duration: currentEffect.duration ?? 2000,
                 });
 
@@ -260,7 +279,7 @@ export const GameBoard: React.FC = () => {
                                     tooltipText="あなたのライフポイント"
                                     color="blue"
                                 />
-                                
+
                                 {/* 自動召喚設定 */}
                                 <div className="mt-4 flex items-center justify-center gap-2">
                                     <label className="flex items-center cursor-pointer">
@@ -298,8 +317,10 @@ export const GameBoard: React.FC = () => {
                     extraDeck={extraDeck}
                     canPerformLinkSummon={canPerformLinkSummon}
                     canPerformXyzSummon={canPerformXyzSummon}
+                    canPerformSynchroSummon={canPerformSynchroSummon}
                     startLinkSummon={(monster) => startSpecialSummon(monster, "link")}
                     startXyzSummon={(monster) => startSpecialSummon(monster, "xyz")}
+                    startSynchroSummon={(monster) => startSpecialSummon(monster, "synchro")}
                 />
 
                 <CardListModal
@@ -371,6 +392,8 @@ export const GameBoard: React.FC = () => {
                                     >
                                         {winReason === "exodia"
                                             ? "エクゾディアの5つのパーツが揃いました！"
+                                            : winReason === "horakty"
+                                            ? "ホルアクティが降臨しました！"
                                             : "相手のライフポイントを0にしました！"}
                                     </motion.p>
                                     <motion.button

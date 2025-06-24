@@ -1,6 +1,6 @@
 import React from "react";
 import ModalWrapper from "./ModalWrapper";
-import type { GameStore } from "@/store/gameStore";
+import { type GameStore } from "@/store/gameStore";
 
 interface DebugStateModalProps {
     isOpen: boolean;

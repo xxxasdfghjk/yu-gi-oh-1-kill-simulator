@@ -2,7 +2,7 @@ import React from "react";
 import type { CardInstance } from "@/types/card";
 import { Card } from "./Card";
 import ModalWrapper from "./ModalWrapper";
-import { isLinkMonster, isXyzMonster } from "@/utils/cardManagement";
+import { isLinkMonster, isXyzMonster, isSynchroMonster } from "@/utils/cardManagement";
 
 interface ExtraDeckModalProps {
     isOpen: boolean;
@@ -12,8 +12,10 @@ interface ExtraDeckModalProps {
     viewOnly?: boolean;
     canPerformLinkSummon?: (card: CardInstance) => boolean;
     canPerformXyzSummon?: (card: CardInstance) => boolean;
+    canPerformSynchroSummon?: (card: CardInstance) => boolean;
     startLinkSummon?: (card: CardInstance) => void;
     startXyzSummon?: (card: CardInstance) => void;
+    startSynchroSummon?: (card: CardInstance) => void;
 }
 
 export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
@@ -23,8 +25,10 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
     viewOnly = false,
     canPerformLinkSummon,
     canPerformXyzSummon,
+    canPerformSynchroSummon,
     startLinkSummon,
     startXyzSummon,
+    startSynchroSummon,
 }) => {
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose}>
@@ -51,6 +55,10 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                             } transition-transform hover:scale-105 hover:ring-2 rounded ${
                                 !viewOnly && isLinkMonster(card.card) && canPerformLinkSummon?.(card)
                                     ? "hover:ring-blue-400 ring-2 ring-blue-200"
+                                    : !viewOnly && isXyzMonster(card.card) && canPerformXyzSummon?.(card)
+                                    ? "hover:ring-purple-400 ring-2 ring-purple-200"
+                                    : !viewOnly && isSynchroMonster(card.card) && canPerformSynchroSummon?.(card)
+                                    ? "hover:ring-green-400 ring-2 ring-green-200"
                                     : "hover:ring-green-300"
                             }`}
                             onClick={() => {
@@ -60,6 +68,9 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                                     onClose();
                                 } else if (isXyzMonster(card.card) && canPerformXyzSummon?.(card) && startXyzSummon) {
                                     startXyzSummon(card);
+                                    onClose();
+                                } else if (isSynchroMonster(card.card) && canPerformSynchroSummon?.(card) && startSynchroSummon) {
+                                    startSynchroSummon(card);
                                     onClose();
                                 }
                             }}
@@ -77,6 +88,11 @@ export const ExtraDeckModal: React.FC<ExtraDeckModalProps> = ({
                             {!viewOnly && isXyzMonster(card.card) && canPerformXyzSummon && (
                                 <div className="text-xs text-center text-purple-600 font-bold">
                                     {canPerformXyzSummon(card) ? "エクシーズ召喚可能" : "召喚不能"}
+                                </div>
+                            )}
+                            {!viewOnly && isSynchroMonster(card.card) && canPerformSynchroSummon && (
+                                <div className="text-xs text-center text-green-600 font-bold">
+                                    {canPerformSynchroSummon(card) ? "シンクロ召喚可能" : "召喚不能"}
                                 </div>
                             )}
                         </div>

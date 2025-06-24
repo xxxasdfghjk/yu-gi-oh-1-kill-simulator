@@ -65,6 +65,10 @@ effect: {
     onRelease?: EffectCallback;          // リリース時効果
     onFieldToGraveyard?: EffectCallback; // フィールド→墓地時効果
     onAnywhereToGraveyard?: EffectCallback; // どこからでも→墓地時効果
+    onHandToGraveyard?: EffectCallback;  // 手札→墓地時効果
+    onCardToGraveyardByEffect?: EffectCallback; // 効果によって墓地送り時（効果を送ったカード情報がcontextに含まれる）
+    onAnywhereToGraveyardByEffect?: EffectCallback; // 効果によってどこからでも墓地送り時
+    onCardEffect?: EffectCallback;       // 他のカードの効果発動時（ライトロード用）
     onDestroyByBattle?: EffectCallback;  // 戦闘破壊時効果（未使用）
     onDestroyByEffect?: EffectCallback;  // 効果破壊時効果（未実装）
 }
@@ -95,10 +99,15 @@ type EffectQueueItem = {
 
 -   `withUserSelectCard()`：カード選択 UI
 -   `withOption()`：選択肢表示 UI
--   `withUserSummon()`：召喚位置選択 UI
+-   `withUserSummon()`：召喚位置選択 UI（自動召喚モード対応）
 -   `withDelay()`：遅延実行（アニメーション用）
 -   `withDelayRecursive()`：再帰的遅延実行（連続アニメーション用）
 -   `withTurnAtOneceCondition()`/`withTurnAtOneceEffect()`：1 ターン 1 度制限
+-   `withSendDeckBottom()`：カードをデッキの下に送る
+-   `withSendToGraveyardFromDeckTop()`：デッキトップから墓地送り
+-   `withDraw()`：ドロー処理
+-   `withNotification()`：通知バナー表示
+-   `withLifeChange()`：ライフポイント変更
 
 ### カード移動システム（`src/utils/cardMovement.ts`）
 
@@ -108,6 +117,11 @@ type EffectQueueItem = {
 -   `destroyByBattle()`/`destroyByEffect()`：破壊処理
 
 **重要：**トークンの墓地送りは特別処理され、`"TokenRemove"` ロケーションでフェードアウトアニメーションが実行されます。
+
+### デッキシャッフルシステム（`src/utils/gameUtils.ts`）
+
+-   `shuffleDeck()`：デッキをシャッフルする
+-   **重要：**デッキからカードをサーチした後は必ず `shuffleDeck()` を呼び出す
 
 ## アニメーションシステム
 
@@ -165,6 +179,8 @@ const monsters = new CardSelector(state)
 .hand()             // 手札
 .graveyard()        // 墓地
 .field()            // フィールドゾーン
+.banished()         // 除外ゾーン（exclusion）
+.allFieldSpellTrap() // フィールド上の魔法・罠と継続カード
 ```
 
 ### CardInstanceFilter（`src/utils/CardInstanceFilter.ts`）
@@ -187,6 +203,15 @@ const attackMonsters = new CardSelector(state)
 .monster()              // モンスターカードのみ
 .magic()                // 魔法カードのみ
 .trap()                 // 罠カードのみ
+.race(race)             // 特定の種族
+.element(element)       // 特定の属性
+.hasLevel()             // レベルを持つモンスター
+.underLevel(level)      // 指定レベル以下
+.overLevel(level)       // 指定レベル以上
+.lightsworn()           // ライトロード関連カード
+.include(str)           // カード名に特定文字列を含む
+.exclude(str)           // カード名に特定文字列を含まない
+.noSummonLimited()      // 特殊召喚制限なし
 ```
 
 ## デッキ管理システム
@@ -256,6 +281,13 @@ MonsterCard
 -   トークンの削除は `"TokenRemove"` ロケーション使用
 -   複数カード同時処理時は `withDelay()` で順次実行
 
+### 自動召喚システム
+
+-   `state.autoSummon`：自動召喚モードのON/OFF
+-   自動召喚モードでは `withUserSummon()` で最適な位置に自動配置
+-   `placementPriority()`：空きゾーンの優先順位を決定
+-   リンクモンスターなど特殊な条件がある場合は手動選択にフォールバック
+
 ### コミット時の処理
 
 「コミットして」の指示時：
@@ -269,6 +301,18 @@ MonsterCard
 -   型エラー発生時：必ず戻り値の型注釈を明示
 -   アニメーション不具合時：`currentFrom`/`currentTo`とキー値の確認必須
 -   **プロキシエラー対策**：`withDelay`内では新しい`CardSelector`を作らず、事前にIDを取得してから使用
+
+### コンテキスト（context）付きコールバック
+
+一部のコールバック（`onCardToGraveyardByEffect`、`onCardEffect`など）では第3引数にcontextが渡されます：
+
+```typescript
+onCardToGraveyardByEffect: (state, card, context) => {
+    // context?.["effectedByName"] - 効果を発動したカード名
+    // context?.["effectedById"] - 効果を発動したカードID
+    // context?.["effectedByField"] - 効果を発動したカードの位置
+}
+```
 
 ### Immerプロキシエラーの回避方法
 
