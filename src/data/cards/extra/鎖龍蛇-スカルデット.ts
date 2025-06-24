@@ -42,7 +42,12 @@ export default {
                     withOption(
                         state,
                         card,
-                        [{ name: "自分は４枚ドローする", condition: () => true }],
+                        [
+                            {
+                                name: "自分は４枚ドローする。その後、自分の手札を３枚選んで好きな順番でデッキの下に戻す。",
+                                condition: () => true,
+                            },
+                        ],
                         (state, card) => {
                             withDraw(state, card, { count: 4 }, (state, card) => {
                                 const handCards = (state: GameStore) => new CardSelector(state).hand().getNonNull();

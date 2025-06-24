@@ -9,7 +9,7 @@ import {
 import { sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import type { LinkMonsterCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
-import { getCardInstanceFromId } from "@/utils/gameUtils";
+import { getCardInstanceFromId, shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "ライトロード・ドミニオン キュリオス",
@@ -85,6 +85,7 @@ export default {
                         (state, card) => {
                             const instance = getCardInstanceFromId(state, id)!;
                             sendCardToGraveyardByEffect(state, instance, card);
+                            shuffleDeck(state);
                         },
                         "dominion_1"
                     );
