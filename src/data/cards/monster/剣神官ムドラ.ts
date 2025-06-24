@@ -126,7 +126,7 @@ export default {
                                                                     message:
                                                                         "魔法&罠ゾーンに置く「墓守の罠」を選択してください",
                                                                 },
-                                                                (state, card, selected) => {
+                                                                (state, _, selected) => {
                                                                     if (selected.length > 0) {
                                                                         sendCard(state, selected[0], "SpellField");
                                                                     }

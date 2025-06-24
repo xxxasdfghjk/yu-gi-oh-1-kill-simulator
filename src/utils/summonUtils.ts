@@ -5,7 +5,7 @@ import { getLevel } from "./gameUtils";
 import { CardSelector } from "./CardSelector";
 import type { GameStore } from "@/store/gameStore";
 
-export const getNeedReleaseCount = (gameState: GameStore, card: CardInstance): number => {
+export const getNeedReleaseCount = (_gameState: GameStore, card: CardInstance): number => {
     return monsterFilter(card.card)
         ? card.card.element === "神"
             ? 3

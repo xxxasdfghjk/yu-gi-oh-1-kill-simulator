@@ -30,7 +30,7 @@ export default {
     canNormalSummon: false as const,
     effect: {
         onIgnition: {
-            condition: (state, card) => {
+            condition: (_state, card) => {
                 return card.location === "Hand";
             },
             effect: (state, card) => {

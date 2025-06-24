@@ -2,7 +2,7 @@ import { expandDeckList, type Deck } from "@/data/deckUtils";
 import cardMap from "@/data/cards/cardMap";
 
 const DECK_CONFIG = {
-    deck_name: "ホルアクティ",
+    deck_name: "ライトロード・ホルアクティ",
     main_deck: [
         // Monsters
         { card_name: "光の創造神 ホルアクティ", quantity: 1 },

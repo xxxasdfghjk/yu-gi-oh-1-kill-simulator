@@ -5,7 +5,6 @@ import {
     withSendToDeckBottom,
     withUserSelectCard,
     withOption,
-    withDelay,
 } from "@/utils/effectUtils";
 import type { FusionMonsterCard, LeveledMonsterCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";

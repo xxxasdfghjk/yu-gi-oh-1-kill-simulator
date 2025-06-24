@@ -37,7 +37,7 @@ export default {
                 return withTurnAtOneceCondition(
                     state,
                     card,
-                    (state, card) => {
+                    (_state, card) => {
                         return card.materials.length >= 2;
                     },
                     "Dugares_Effect"
