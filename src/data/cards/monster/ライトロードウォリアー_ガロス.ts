@@ -21,8 +21,8 @@ export default {
         onCardToGraveyardByEffect: (state, card, context) => {
             console.log(context);
             if (
-                (context?.["effectedBy"].toString() ?? "")?.includes("ライトロード") &&
-                (context?.["effectedBy"].toString() ?? "") !== "ライトロード・ウォリアー ガロス" &&
+                (context?.["effectedByName"]?.toString() ?? "")?.includes("ライトロード") &&
+                (context?.["effectedByName"]?.toString() ?? "") !== "ライトロード・ウォリアー ガロス" &&
                 (context?.["effectedByField"] ?? "").toString() === "MonsterField"
             ) {
                 withNotification(state, card, { message: "ガロスの効果発動" }, (state, card) => {

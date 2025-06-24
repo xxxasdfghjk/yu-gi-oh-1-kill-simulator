@@ -1,5 +1,10 @@
 import type { LeveledMonsterCard } from "@/types/card";
-import { withTurnAtOneceCondition, withTurnAtOneceEffect, withDelayRecursive } from "@/utils/effectUtils";
+import {
+    withTurnAtOneceCondition,
+    withTurnAtOneceEffect,
+    withDelayRecursive,
+    withNotification,
+} from "@/utils/effectUtils";
 import { addBuf, sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 
 export default {
@@ -32,32 +37,40 @@ export default {
                 );
             },
             effect: (state, card) => {
-                withTurnAtOneceEffect(
+                withNotification(
                     state,
                     card,
+                    { message: "自分のデッキの上からカードを２枚墓地へ送る" },
                     (state, card) => {
-                        const includeLightLoad =
-                            state.deck.slice(0, 2).filter((e) => e.card.card_name.includes("ライトロード")).length > 0;
-
-                        withDelayRecursive(
+                        withTurnAtOneceEffect(
                             state,
                             card,
-                            { delay: 100 },
-                            2,
                             (state, card) => {
-                                if (state.deck.length > 0) {
-                                    const topCard = state.deck[0];
-                                    sendCardToGraveyardByEffect(state, topCard, card);
-                                }
+                                const includeLightLoad =
+                                    state.deck.slice(0, 2).filter((e) => e.card.card_name.includes("ライトロード"))
+                                        .length > 0;
+
+                                withDelayRecursive(
+                                    state,
+                                    card,
+                                    { delay: 100 },
+                                    2,
+                                    (state, card) => {
+                                        if (state.deck.length > 0) {
+                                            const topCard = state.deck[0];
+                                            sendCardToGraveyardByEffect(state, topCard, card);
+                                        }
+                                    },
+                                    (state, card) => {
+                                        if (includeLightLoad) {
+                                            addBuf(state, card, { attack: 200, defense: 0, level: 0 });
+                                        }
+                                    }
+                                );
                             },
-                            (state, card) => {
-                                if (includeLightLoad) {
-                                    addBuf(state, card, { attack: 200, defense: 0, level: 0 });
-                                }
-                            }
+                            "LightlordRaiden_Ignition"
                         );
-                    },
-                    "LightlordRaiden_Ignition"
+                    }
                 );
             },
         },

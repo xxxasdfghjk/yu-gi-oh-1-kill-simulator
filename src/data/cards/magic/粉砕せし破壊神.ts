@@ -1,7 +1,7 @@
 import type { MagicCard } from "@/types/card";
 import { CardSelector } from "@/utils/CardSelector";
 import { withTurnAtOneceCondition } from "@/utils/effectUtils";
-import { hasEmptyMonsterZone } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 import { withUserSummon } from "../../../utils/effectUtils";
 
 export default {
@@ -31,8 +31,10 @@ export default {
                     resolve?.(state, card);
                     return;
                 }
-                withUserSummon(state, card, oberisk, {}, (state, card) => {
-                    resolve?.(state, card);
+                const cardId = card.id;
+                withUserSummon(state, card, oberisk, {}, (state) => {
+                    const magicCard = getCardInstanceFromId(state, cardId)!;
+                    resolve?.(state, magicCard);
                 });
             },
         },
