@@ -94,7 +94,13 @@ export default {
                     card,
                     (state, card) => {
                         const lightroadInHandGrave = (state: GameStore) =>
-                            new CardSelector(state).hand().graveyard().filter().include("ライトロード").get();
+                            new CardSelector(state)
+                                .hand()
+                                .graveyard()
+                                .filter()
+                                .hasLevel()
+                                .include("ライトロード")
+                                .get();
 
                         withUserSelectCard(
                             state,

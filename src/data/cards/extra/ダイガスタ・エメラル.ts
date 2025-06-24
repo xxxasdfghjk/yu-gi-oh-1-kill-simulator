@@ -9,7 +9,7 @@ import {
     withTurnAtOneceCondition,
 } from "@/utils/effectUtils";
 import { sendCard } from "@/utils/cardMovement";
-import { getCardInstanceFromId, getLevel, shuffleDeck } from "@/utils/gameUtils";
+import { getLevel, shuffleDeck } from "@/utils/gameUtils";
 import type { XyzMonsterCard } from "@/types/card";
 import { monsterFilter } from "@/utils/cardManagement";
 import { CardInstanceFilter } from "@/utils/CardInstanceFilter";

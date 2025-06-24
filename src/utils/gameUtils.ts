@@ -17,7 +17,7 @@ export const getAttack = (cardInstance: CardInstance) => {
         return prev + (cur?.buf?.attack ?? 0);
     }, 0);
 
-    return cardInstance.buf.attack + attack + equip;
+    return Math.max(cardInstance.buf.attack + attack + equip, 0);
 };
 
 export const getDefense = (cardInstance: CardInstance) => {
@@ -26,7 +26,7 @@ export const getDefense = (cardInstance: CardInstance) => {
         return prev + (cur?.buf?.defense ?? 0);
     }, 0);
 
-    return cardInstance.buf.defense + defense + equip;
+    return Math.max(cardInstance.buf.defense + defense + equip, 0);
 };
 
 export const hasEmptyMonsterZone = (state: GameStore) => {

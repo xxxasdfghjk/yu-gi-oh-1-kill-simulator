@@ -2,6 +2,7 @@ import { CardSelector } from "@/utils/CardSelector";
 import { withUserSummon } from "@/utils/effectUtils";
 import { monsterFilter } from "@/utils/cardManagement";
 import type { LeveledMonsterCard } from "@/types/card";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "戒めの龍",
@@ -19,6 +20,7 @@ export default {
     hasRank: false as const,
     hasLink: false as const,
     canNormalSummon: false as const,
+    summonLimited: true,
     effect: {
         // 特殊召喚効果
         onIgnition: {
@@ -36,7 +38,7 @@ export default {
                 // カード名の種類をカウント
                 const uniqueLightlordNames = new Set(banishedLightlords.map((c) => c.card.card_name));
 
-                return uniqueLightlordNames.size >= 4;
+                return uniqueLightlordNames.size >= 4 && hasEmptyMonsterZone(state);
             },
             effect: (state, card) => {
                 // 手札から特殊召喚

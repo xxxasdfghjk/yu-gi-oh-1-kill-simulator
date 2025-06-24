@@ -2,6 +2,7 @@ import { CardSelector } from "@/utils/CardSelector";
 import { withUserSummon, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
 import { destroyByEffect } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "裁きの龍",
@@ -35,7 +36,7 @@ export default {
                     // カード名の種類をカウント
                     const uniqueLightlordNames = new Set(graveyardLightlordMonsters.map((c) => c.card.card_name));
 
-                    return uniqueLightlordNames.size >= 4;
+                    return uniqueLightlordNames.size >= 4 && hasEmptyMonsterZone(state);
                 } else if (card.location === "MonsterField") {
                     // フィールドから起動：1ターンに1度、LPコスト支払い可能
                     return withTurnAtOneceCondition(

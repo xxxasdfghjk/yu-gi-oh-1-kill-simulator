@@ -1,6 +1,7 @@
 import { CardSelector } from "@/utils/CardSelector";
 import { withUserSelectCard, withUserSummon, withExclusionMonsters } from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "妖精伝姫-シラユキ",
@@ -29,7 +30,9 @@ export default {
                         .allFieldSpellTrap()
                         .filter()
                         .excludeId(card.id)
-                        .len() >= 7 && card.location === "Graveyard"
+                        .len() >= 7 &&
+                    card.location === "Graveyard" &&
+                    hasEmptyMonsterZone(state)
                 );
             },
 

@@ -11,6 +11,7 @@ import type { SynchroMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
 import { monsterFilter } from "@/utils/cardManagement";
 import { sumLevel } from "@/utils/cardManagement";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "ライトロード・アテナ ミネルバ",
@@ -61,7 +62,15 @@ export default {
                                     condition: (cards) => cards.length <= lightlordMaterialCount,
                                 },
                                 (state, _card, selected) => {
-                                    withSendToGraveyard(state, _card, selected, () => {}, { byEffect: true });
+                                    withSendToGraveyard(
+                                        state,
+                                        _card,
+                                        selected,
+                                        (state) => {
+                                            shuffleDeck(state);
+                                        },
+                                        { byEffect: true }
+                                    );
                                 }
                             );
                         }

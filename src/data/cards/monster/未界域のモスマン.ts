@@ -10,7 +10,7 @@ import {
 import { sendCardToGraveyardByEffect } from "@/utils/cardMovement";
 import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
-import { getCardInstanceFromId } from "@/utils/gameUtils";
+import { getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "未界域のモスマン",
@@ -64,7 +64,7 @@ export default {
                                         .getNonNull()
                                         .filter((c) => c.card.card_name === "未界域のモスマン");
 
-                                if (mothmanInHand.length > 0) {
+                                if (mothmanInHand.length > 0 && hasEmptyMonsterZone(state)) {
                                     withUserSelectCard(
                                         state,
                                         card,
@@ -91,9 +91,6 @@ export default {
                                             }
                                         }
                                     );
-                                } else {
-                                    // モスマンがいない場合でも1枚ドロー
-                                    withDraw(state, card, { count: 1 });
                                 }
                             });
                         }

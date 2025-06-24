@@ -9,7 +9,7 @@ import {
     withUserSelectCard,
     withUserSummon,
 } from "@/utils/effectUtils";
-import { calcCanSummonLink } from "@/utils/gameUtils";
+import { calcCanSummonLink, getCardInstanceFromId } from "@/utils/gameUtils";
 
 export default {
     card_name: "神聖魔皇后セレーネ",
@@ -93,36 +93,38 @@ export default {
                     true
                 ),
             effect: (state, card) => {
-                withTurnAtOneceEffect(
+                const direction = (card.card as LinkMonsterCard).linkDirection;
+                let zone = -1;
+                for (let i = 0; i < 2; i++) {
+                    if (state.field.extraMonsterZones[i]?.id === card.id) {
+                        zone = i === 0 ? 6 : 8;
+                    }
+                }
+                for (let i = 0; i < 5; i++) {
+                    if (state.field.monsterZones[i]?.id === card.id) {
+                        zone = i;
+                    }
+                }
+                const index = getSummonableIndexLink(direction, zone)
+                    .filter((e) => e === 6 || e === 8 || (e <= 4 && e >= 0))
+                    .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
+                putMagicCounter(state, card, -3);
+                withUserSelectCard(
                     state,
                     card,
-                    (state, card) => {
-                        const direction = (card.card as LinkMonsterCard).linkDirection;
-                        let zone = -1;
-                        for (let i = 0; i < 2; i++) {
-                            if (state.field.extraMonsterZones[i]?.id === card.id) {
-                                zone = i === 0 ? 6 : 8;
-                            }
-                        }
-                        for (let i = 0; i < 5; i++) {
-                            if (state.field.monsterZones[i]?.id === card.id) {
-                                zone = i;
-                            }
-                        }
-                        const index = getSummonableIndexLink(direction, zone)
-                            .filter((e) => e === 6 || e === 8 || (e <= 4 && e >= 0))
-                            .map((e) => (e === 6 ? 5 : e === 8 ? 6 : e));
-                        putMagicCounter(state, card, -3);
-                        withUserSelectCard(
+                    (state) => new CardSelector(state).hand().graveyard().filter().race("魔法使い").get(),
+                    { select: "single", canCancel: true },
+                    (state, card, selected) => {
+                        const selectedId = selected[0].id;
+                        withTurnAtOneceEffect(
                             state,
                             card,
-                            (state) => new CardSelector(state).hand().graveyard().filter().race("魔法使い").get(),
-                            { select: "single" },
-                            (state, card, selected) => {
+                            (state, card) => {
+                                const selected = getCardInstanceFromId(state, selectedId)!;
                                 withUserSummon(
                                     state,
                                     card,
-                                    selected[0],
+                                    selected,
                                     {
                                         optionPosition: ["defense"],
                                         canSelectPosition: false,
@@ -131,11 +133,11 @@ export default {
                                     },
                                     () => {}
                                 );
-                            }
+                            },
+                            card.id,
+                            true
                         );
-                    },
-                    card.id,
-                    true
+                    }
                 );
             },
         },

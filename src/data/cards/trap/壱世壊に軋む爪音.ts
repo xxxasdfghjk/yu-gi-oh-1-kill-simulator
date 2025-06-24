@@ -23,7 +23,7 @@ export default {
                 (state) => {
                     return new CardSelector(state).graveyard().filter().monster().include("ティアラメンツ").get();
                 },
-                { select: "single" },
+                { select: "single", canCancel: true },
                 (state, card, selected) => {
                     const selectedId = selected[0].id;
                     withTurnAtOneceEffect(state, card, (state) => {

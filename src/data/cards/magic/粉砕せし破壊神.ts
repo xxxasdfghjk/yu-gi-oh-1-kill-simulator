@@ -31,7 +31,9 @@ export default {
                     resolve?.(state, card);
                     return;
                 }
-                withUserSummon(state, card, oberisk, {}, () => {});
+                withUserSummon(state, card, oberisk, {}, (state, card) => {
+                    resolve?.(state, card);
+                });
             },
         },
     },

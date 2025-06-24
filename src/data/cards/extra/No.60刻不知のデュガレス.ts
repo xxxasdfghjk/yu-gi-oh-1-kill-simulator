@@ -63,7 +63,6 @@ export default {
                                 (state, card, selected) => {
                                     if (selected.length === 2) {
                                         // 選択した素材を取り除く
-                                        console.log(selected);
                                         withSendToGraveyard(state, card, selected, (state, card) => {
                                             withOption(
                                                 state,

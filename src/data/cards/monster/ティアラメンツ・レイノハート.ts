@@ -104,7 +104,9 @@ export default {
                                     card,
                                     (state) => new CardSelector(state).hand().filter().include("ティアラメンツ").get(),
                                     { select: "single" },
-                                    () => {}
+                                    (state, card, selected) => {
+                                        sendCardToGraveyardByEffect(state, selected[0], card);
+                                    }
                                 );
                             });
                         },

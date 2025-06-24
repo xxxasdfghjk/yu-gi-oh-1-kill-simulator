@@ -1,8 +1,7 @@
 import { useAtom } from "jotai";
 import { hoveredCardAtom } from "@/store/hoveredCardAtom";
-import { getAttack, getLevel } from "@/utils/gameUtils";
+import { getAttack, getDefense, getLevel } from "@/utils/gameUtils";
 import { hasLevelMonsterFilter, isLinkMonster, isXyzMonster, monsterFilter, isMagicCard } from "@/utils/cardManagement";
-import type { DefensableMonsterCard } from "@/types/card";
 import { getMonsterEquippedWith } from "@/utils/cardMovement";
 import { useGameStore } from "@/store/gameStore";
 export const HoveredCardDisplay = () => {
@@ -100,10 +99,7 @@ export const HoveredCardDisplay = () => {
                                         >
                                             {"defense" in hoveredCard.card
                                                 ? `DEF: ${
-                                                      (isBattleField &&
-                                                          (hoveredCard.card as DefensableMonsterCard).defense! +
-                                                              hoveredCard.buf.defense) ||
-                                                      hoveredCard.card.defense
+                                                      isBattleField ? getDefense(hoveredCard) : hoveredCard.card.defense
                                                   }`
                                                 : ""}
                                         </div>
@@ -153,9 +149,7 @@ export const HoveredCardDisplay = () => {
                                                 >
                                                     {equipment.card.card_name}
                                                     {isMagicCard(equipment.card) && (
-                                                        <span className="ml-2 text-gray-500">
-                                                            装備魔法
-                                                        </span>
+                                                        <span className="ml-2 text-gray-500">装備魔法</span>
                                                     )}
                                                 </div>
                                             ))}
@@ -174,15 +168,16 @@ export const HoveredCardDisplay = () => {
                                             <div className="space-y-1">
                                                 <div className="text-xs bg-green-100 rounded px-2 py-1">
                                                     {equippedMonster.card.card_name}
-                                                    {monsterFilter(equippedMonster.card) && "attack" in equippedMonster.card && (
-                                                        <span className="ml-2 text-gray-500">
-                                                            ATK: {equippedMonster.card.attack}
-                                                            {"defense" in equippedMonster.card &&
-                                                                ` / DEF: ${equippedMonster.card.defense}`}
-                                                            {hasLevelMonsterFilter(equippedMonster.card) &&
-                                                                ` / LV: ${equippedMonster.card.level}`}
-                                                        </span>
-                                                    )}
+                                                    {monsterFilter(equippedMonster.card) &&
+                                                        "attack" in equippedMonster.card && (
+                                                            <span className="ml-2 text-gray-500">
+                                                                ATK: {equippedMonster.card.attack}
+                                                                {"defense" in equippedMonster.card &&
+                                                                    ` / DEF: ${equippedMonster.card.defense}`}
+                                                                {hasLevelMonsterFilter(equippedMonster.card) &&
+                                                                    ` / LV: ${equippedMonster.card.level}`}
+                                                            </span>
+                                                        )}
                                                 </div>
                                             </div>
                                         </div>

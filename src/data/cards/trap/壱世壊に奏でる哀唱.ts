@@ -2,6 +2,7 @@ import { CardSelector } from "@/utils/CardSelector";
 import { withUserSelectCard, withTurnAtOneceCondition, withTurnAtOneceEffect } from "@/utils/effectUtils";
 import { sendCardById } from "@/utils/cardMovement";
 import type { TrapCard } from "@/types/card";
+import { shuffleDeck } from "@/utils/gameUtils";
 
 export default {
     card_name: "壱世壊に奏でる哀唱",
@@ -10,7 +11,7 @@ export default {
     image: "card100260564_1.jpg",
     trap_type: "通常罠" as const,
     effect: {
-        onAnywhereToGraveyardByEffect: (state, card, context) => {
+        onAnywhereToGraveyardByEffect: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true)) {
                 return;
             }
@@ -24,11 +25,12 @@ export default {
                 (state) => {
                     return new CardSelector(state).deck().filter().monster().include("ティアラメンツ").get();
                 },
-                { select: "single" },
+                { select: "single", canCancel: true },
                 (state, card, selected) => {
                     const selectedId = selected[0].id;
                     withTurnAtOneceEffect(state, card, (state) => {
                         sendCardById(state, selectedId, "Hand");
+                        shuffleDeck(state);
                     });
                 }
             );

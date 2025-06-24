@@ -42,7 +42,7 @@ export default {
                             .excludeId(card.id)
                             .get();
 
-                        return lightlordInHand.length > 0 && card.location === "Hand";
+                        return lightlordInHand.length > 0 && card.location === "Hand" && hasEmptyMonsterZone(state);
                     },
                     "LightlordVice_HandEffect"
                 );

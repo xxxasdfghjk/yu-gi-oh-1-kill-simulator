@@ -11,7 +11,7 @@ import {
 import { monsterFilter } from "@/utils/cardManagement";
 import type { LinkMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
-import { calcCanSummonLink } from "@/utils/gameUtils";
+import { calcCanSummonLink, getCardInstanceFromId, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "鎖龍蛇-スカルデット",
@@ -88,7 +88,8 @@ export default {
                             materialCount >= 3 &&
                             isMainPhase &&
                             handMonsters.length > 0 &&
-                            card.location === "MonsterField"
+                            card.location === "MonsterField" &&
+                            hasEmptyMonsterZone(state)
                         );
                     },
                     card.id,
@@ -96,39 +97,36 @@ export default {
                 );
             },
             effect: (state, card) => {
-                withTurnAtOneceEffect(
+                const handMonsters = (state: GameStore) =>
+                    new CardSelector(state).hand().filter().monster().noSummonLimited().get();
+
+                withUserSelectCard(
                     state,
                     card,
-                    (state, card) => {
-                        const handMonsters = (state: GameStore) =>
-                            new CardSelector(state).hand().filter().monster().noSummonLimited().get();
-
-                        withUserSelectCard(
-                            state,
-                            card,
-                            handMonsters,
-                            {
-                                select: "single",
-                                message: "特殊召喚するモンスターを選択してください",
-                            },
-                            (state, card, selected) => {
-                                if (selected.length > 0) {
-                                    withUserSummon(
-                                        state,
-                                        card,
-                                        selected[0],
-                                        {
-                                            canSelectPosition: true,
-                                            optionPosition: ["attack", "defense"],
-                                        },
-                                        () => {}
-                                    );
-                                }
-                            }
-                        );
+                    handMonsters,
+                    {
+                        select: "single",
+                        message: "特殊召喚するモンスターを選択してください",
+                        canCancel: true,
                     },
-                    card.id,
-                    true
+                    (state, card, selected) => {
+                        const selectedId = selected[0].id;
+                        withTurnAtOneceEffect(state, card, (state, card) => {
+                            if (selected.length > 0) {
+                                const selected = getCardInstanceFromId(state, selectedId)!;
+                                withUserSummon(
+                                    state,
+                                    card,
+                                    selected,
+                                    {
+                                        canSelectPosition: true,
+                                        optionPosition: ["attack", "defense"],
+                                    },
+                                    () => {}
+                                );
+                            }
+                        });
+                    }
                 );
             },
         },

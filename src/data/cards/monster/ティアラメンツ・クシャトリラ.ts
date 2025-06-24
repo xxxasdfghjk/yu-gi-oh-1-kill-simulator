@@ -9,6 +9,7 @@ import {
 } from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 import { sendCard } from "@/utils/cardMovement";
+import { hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "ティアラメンツ・クシャトリラ",
@@ -93,7 +94,8 @@ export default {
                         .filter()
                         .excludeId(card.id)
                         .include("ティアラメンツ")
-                        .len() > 0
+                        .len() > 0 &&
+                    hasEmptyMonsterZone(state)
                 );
             },
             effect: (state, card) => {

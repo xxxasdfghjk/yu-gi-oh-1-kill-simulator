@@ -7,9 +7,9 @@ import {
     withTurnAtOneceCondition,
 } from "@/utils/effectUtils";
 import { addBuf } from "@/utils/cardMovement";
-import type { DefensableMonsterCard, LeveledMonsterCard } from "@/types/card";
+import type { LeveledMonsterCard } from "@/types/card";
 import type { GameStore } from "@/store/gameStore";
-import { getAttack } from "@/utils/gameUtils";
+import { getAttack, getDefense, hasEmptyMonsterZone } from "@/utils/gameUtils";
 
 export default {
     card_name: "Emトリック・クラウン",
@@ -30,6 +30,9 @@ export default {
     effect: {
         onAnywhereToGraveyard: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true)) {
+                return;
+            }
+            if (!hasEmptyMonsterZone(state)) {
                 return;
             }
             const emMonsters = (state: GameStore) =>
@@ -58,7 +61,7 @@ export default {
                                     (state, card, monster) => {
                                         addBuf(state, monster, {
                                             attack: -getAttack(monster),
-                                            defense: -(monster.card as DefensableMonsterCard).defense,
+                                            defense: -getDefense(monster),
                                             level: 0,
                                         });
                                         withLifeChange(
