@@ -25,16 +25,7 @@ export default {
                 (context?.["effectedByName"]?.toString() ?? "") !== "ライトロード・ウォリアー ガロス" &&
                 (context?.["effectedByField"] ?? "").toString() === "MonsterField"
             ) {
-                const effectId = (context?.["effectedById"] ?? "").toString() + card.id;
-                const effectedByName = context?.["effectedByName"]?.toString() ?? "";
                 withDelay(state, card, {}, (state, card) => {
-                    const isExistingEffect = state.effectQueue.find((e) => e.id === effectId);
-                    if (isExistingEffect !== undefined) {
-                        console.log("ガロスエフェクト拒否");
-                        return false;
-                    }
-                    console.log("ガロスエフェクト発動:", effectedByName, effectId);
-
                     withNotification(state, card, { message: "ガロスの効果発動" }, (state, card) => {
                         if (state.deck.length >= 2) {
                             const drawNum = new CardInstanceFilter(state.deck.slice(0, 2)).monster().lightsworn().len();
