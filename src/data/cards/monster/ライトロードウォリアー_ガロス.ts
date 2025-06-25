@@ -1,4 +1,4 @@
-import { withDraw, withNotification, withSendToGraveyardFromDeckTop } from "@/utils/effectUtils";
+import { withDelay, withDraw, withNotification, withSendToGraveyardFromDeckTop } from "@/utils/effectUtils";
 import type { LeveledMonsterCard } from "@/types/card";
 import { CardInstanceFilter } from "@/utils/CardInstanceFilter";
 
@@ -25,30 +25,41 @@ export default {
                 (context?.["effectedByName"]?.toString() ?? "") !== "ライトロード・ウォリアー ガロス" &&
                 (context?.["effectedByField"] ?? "").toString() === "MonsterField"
             ) {
-                withNotification(state, card, { message: "ガロスの効果発動" }, (state, card) => {
-                    if (state.deck.length >= 2) {
-                        const drawNum = new CardInstanceFilter(state.deck.slice(0, 2)).monster().lightsworn().len();
-                        withSendToGraveyardFromDeckTop(
-                            state,
-                            card,
-                            2,
-                            (state, card) => {
-                                withDraw(state, card, { count: drawNum }, () => {});
-                            },
-                            { byEffect: true }
-                        );
-                    } else if (state.deck.length === 1) {
-                        const drawNum = new CardInstanceFilter(state.deck.slice(0, 1)).lightsworn().len();
-                        withSendToGraveyardFromDeckTop(
-                            state,
-                            card,
-                            1,
-                            (state, card) => {
-                                withDraw(state, card, { count: drawNum }, () => {});
-                            },
-                            { byEffect: true }
-                        );
+                const effectId = (context?.["effectedById"] ?? "").toString() + card.id;
+                const effectedByName = context?.["effectedByName"]?.toString() ?? "";
+                withDelay(state, card, {}, (state, card) => {
+                    const isExistingEffect = state.effectQueue.find((e) => e.id === effectId);
+                    if (isExistingEffect !== undefined) {
+                        console.log("ガロスエフェクト拒否");
+                        return false;
                     }
+                    console.log("ガロスエフェクト発動:", effectedByName, effectId);
+
+                    withNotification(state, card, { message: "ガロスの効果発動" }, (state, card) => {
+                        if (state.deck.length >= 2) {
+                            const drawNum = new CardInstanceFilter(state.deck.slice(0, 2)).monster().lightsworn().len();
+                            withSendToGraveyardFromDeckTop(
+                                state,
+                                card,
+                                2,
+                                (state, card) => {
+                                    withDraw(state, card, { count: drawNum }, () => {});
+                                },
+                                { byEffect: true }
+                            );
+                        } else if (state.deck.length === 1) {
+                            const drawNum = new CardInstanceFilter(state.deck.slice(0, 1)).lightsworn().len();
+                            withSendToGraveyardFromDeckTop(
+                                state,
+                                card,
+                                1,
+                                (state, card) => {
+                                    withDraw(state, card, { count: drawNum }, () => {});
+                                },
+                                { byEffect: true }
+                            );
+                        }
+                    });
                 });
             }
         },

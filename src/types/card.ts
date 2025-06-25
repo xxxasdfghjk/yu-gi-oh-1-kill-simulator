@@ -10,7 +10,7 @@ type ContextType = Record<string, number | string> | undefined;
 
 type CardWithStatusArgs = [gameState: GameStore, cardInstance: CardInstance, context?: ContextType];
 
-type EffectCallback = (...args: CardWithStatusArgs) => void;
+type EffectCallback = (...args: CardWithStatusArgs) => void | boolean;
 type ChainConditionCallback = (
     gameState: GameStore,
     cardInstance: CardInstance,
@@ -68,7 +68,6 @@ export type EffectType = {
     onPayLifeCost?: OnPayLifeCostCallback;
     onCardEffect?: EffectCallback;
     onCardDeckToGraveyard?: EffectCallback;
-    onCardToGraveyard?: EffectCallback;
     onCardToGraveyardByEffect?: EffectCallback;
 };
 

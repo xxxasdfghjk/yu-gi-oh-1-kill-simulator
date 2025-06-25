@@ -4,15 +4,16 @@ import type { CardInstance, EffectType, Location, SummonedBy } from "@/types/car
 import { getPrioritySetSpellTrapZoneIndex, getCardInstanceFromId } from "./gameUtils";
 import { isExtraDeckMonster, monsterFilter } from "./cardManagement";
 import { withDelay } from "./effectUtils";
-import { CardSelector } from "./CardSelector";
 
 type Position = "back_defense" | "attack" | "back" | "defense" | undefined;
 
-type NotifyType = Extract<
-    keyof EffectType,
-    "onCardEffect" | "onCardDeckToGraveyard" | "onCardToGraveyard" | "onCardToGraveyardByEffect"
->;
-export const notifyCardEffect = (state: GameStore, card: CardInstance, key: NotifyType) => {
+type NotifyType = Extract<keyof EffectType, "onCardEffect" | "onCardDeckToGraveyard" | "onCardToGraveyardByEffect">;
+export const notifyCardEffect = (
+    state: GameStore,
+    card: CardInstance,
+    key: NotifyType,
+    option?: { effectId?: string }
+) => {
     for (let i = 0; i < 5; i++) {
         if (state.field.monsterZones[i]?.card.effect?.[key]) {
             withDelay(state, card, { order: 3000 }, (state, card) => {
@@ -20,6 +21,7 @@ export const notifyCardEffect = (state: GameStore, card: CardInstance, key: Noti
                     effectedByName: card.card.card_name,
                     effectedByField: card.location,
                     effectedById: card.id,
+                    effectId: option?.effectId ?? "",
                 });
             });
         }
@@ -41,7 +43,7 @@ export const triggerEffects = (
     card: CardInstance,
     from: Location,
     to: Location,
-    context?: { equipCardId?: string; effectedBy?: CardInstance }
+    context?: { equipCardId?: string; effectedBy?: CardInstance; effectId?: string }
 ) => {
     const effect = card.card.effect;
 
@@ -90,22 +92,6 @@ export const triggerEffects = (
     if (from === "Graveyard" && to === "MonsterField" && effect?.onGraveyardToField) {
         withDelay(state, card, { order: 3000 }, (state, card) => {
             card.card?.effect?.onGraveyardToField?.(state, card, { equipCardId: context?.equipCardId ?? "" });
-        });
-    }
-
-    // onCardToGraveyard effects - trigger when any card goes to graveyard
-    if (to === "Graveyard") {
-        const fieldsToCheck = new CardSelector(state).allMonster().spellTrap().field().filter().nonNull().get();
-
-        fieldsToCheck.forEach((fieldCard) => {
-            if (fieldCard.card.effect?.onCardToGraveyard) {
-                withDelay(state, fieldCard, { order: 3100 }, (state, fieldCard) => {
-                    fieldCard.card.effect?.onCardToGraveyard?.(state, fieldCard, {
-                        effectedBy: context?.effectedBy?.card?.card_name ?? "",
-                        effectedByField: context?.effectedBy?.location ?? "",
-                    });
-                });
-            }
         });
     }
 };
@@ -175,7 +161,12 @@ export const notifyFieldCard = (
     }
 };
 
-export const sendCardToGraveyardByEffect = (state: GameStore, card: CardInstance, effectedBy: CardInstance) => {
+export const sendCardToGraveyardByEffect = (
+    state: GameStore,
+    card: CardInstance,
+    effectedBy: CardInstance,
+    notify: boolean = true
+) => {
     sendCard(state, card, "Graveyard");
     const effectedByName = effectedBy.card.card_name;
     const effectedByField = effectedBy.location;
@@ -187,7 +178,9 @@ export const sendCardToGraveyardByEffect = (state: GameStore, card: CardInstance
             effectedById,
         });
     });
-    notifyCardEffect(state, effectedBy, "onCardToGraveyardByEffect");
+    if (notify) {
+        notifyCardEffect(state, effectedBy, "onCardToGraveyardByEffect");
+    }
 };
 
 export const equipCardById = (state: GameStore, equipMonster: CardInstance, equippedCardId: string) => {
@@ -280,6 +273,7 @@ export const sendCard = (
         zone?: number;
         deckTop?: boolean;
         effectedBy?: CardInstance;
+        effectId?: string;
     }
 ) => {
     const originalLocation = card.location;
@@ -434,6 +428,7 @@ export const sendCard = (
     triggerEffects(state, updatedCard, originalLocation, to, {
         equipCardId: from?.equipCard?.id ?? "",
         effectedBy: option?.effectedBy,
+        effectId: option?.effectId,
     });
 };
 
@@ -649,10 +644,12 @@ export const summon = (
     if (summonedMonster.position === "attack" || summonedMonster.position === "defense") {
         withDelay(state, summonedMonster, { order: 2000, delay: 100 }, (state, monster) => {
             if (monster.card.effect?.onSummon) {
-                monster.card.effect?.onSummon?.(state, monster);
-                withDelay(state, monster, {}, (state, monster) => {
-                    notifyCardEffect(state, monster, "onCardEffect");
-                });
+                const result = monster.card.effect?.onSummon?.(state, monster);
+                if (result !== false) {
+                    withDelay(state, monster, {}, (state, monster) => {
+                        notifyCardEffect(state, monster, "onCardEffect");
+                    });
+                }
             }
         });
     }

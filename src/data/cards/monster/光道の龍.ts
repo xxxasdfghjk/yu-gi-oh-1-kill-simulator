@@ -73,7 +73,7 @@ export default {
         // ②の効果：特殊召喚した場合、デッキから「光道の龍」以外のライトロードカードを墓地に送る
         onSummon: (state, card) => {
             if (!withTurnAtOneceCondition(state, card, () => true, "KoudouDragon_Effect2")) {
-                return;
+                return false;
             }
             if (card.summonedBy === "Special") {
                 withTurnAtOneceEffect(
@@ -111,6 +111,8 @@ export default {
                     },
                     "KoudouDragon_Effect2"
                 );
+            } else {
+                return false;
             }
         },
 

@@ -73,6 +73,8 @@ export default {
                     },
                     "LightlordAthenaMinerva_SynchroSummon"
                 );
+            } else {
+                return false;
             }
         },
 

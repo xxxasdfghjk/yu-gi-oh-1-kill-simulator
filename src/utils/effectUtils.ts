@@ -401,12 +401,12 @@ export const withSendToGraveyardFromDeckTop = (
         card,
         {},
         count,
-        (state, card) => {
+        (state, card, depth) => {
             if (state.deck.length === 0) {
                 return;
             }
             if (option?.byEffect) {
-                sendCardToGraveyardByEffect(state, state.deck[0], card);
+                sendCardToGraveyardByEffect(state, state.deck[0], card, depth === 1);
             } else {
                 sendCard(state, state.deck[0], "Graveyard");
             }
@@ -461,7 +461,7 @@ export const withSendToGraveyard = (
         (state, card, depth) => {
             const instance = getCardInstanceFromId(state, idList[depth - 1])!;
             if (option?.byEffect) {
-                sendCardToGraveyardByEffect(state, instance, card);
+                sendCardToGraveyardByEffect(state, instance, card, depth === 1);
             } else {
                 sendCard(state, instance, "Graveyard");
             }
