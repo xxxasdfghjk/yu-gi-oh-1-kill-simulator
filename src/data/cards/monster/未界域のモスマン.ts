@@ -31,7 +31,7 @@ export default {
     effect: {
         onIgnition: {
             condition: (_state, card) => {
-                return card.location === "Hand";
+                return card.location === "Hand" && hasEmptyMonsterZone(_state);
             },
             effect: (state, card) => {
                 // ①の効果：手札のこのカードを相手に見せて発動
